@@ -1,0 +1,57 @@
+[package]
+name = "griffin-core"
+description = "UTXO framework for Substrate and Polkadot."
+version = "0.1.0"
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
+
+[dependencies]
+async-trait = { version = "0.1.73", optional = true }
+log = { workspace = true }
+parity-scale-codec = { features = ["derive"], workspace = true }
+parity-util-mem = { version = "0.12.0", optional = true }
+scale-info = { features = ["derive"], workspace = true }
+serde = { features = ["derive"], workspace = true }
+
+# Substrate
+sp-core = { default-features = false, workspace = true }
+sp-debug-derive = { features = [
+	"force-debug",
+], default-features = false, workspace = true }
+sp-inherents = { default-features = false, workspace = true }
+sp-io = { features = [
+	"with-tracing",
+], default-features = false, workspace = true }
+sp-runtime = { default-features = false, workspace = true }
+sp-std = { default-features = false, workspace = true }
+sp-storage = { default-features = false, workspace = true }
+
+### Genesis Builder dependencies
+# TODO: Maybe put the next one in workspace Cargo to centralize `psvm` updates
+sc-chain-spec = { version = "37.0.0", optional = true }
+sc-client-api = { optional = true, workspace = true }
+sc-executor = { optional = true, workspace = true }
+sp-blockchain = { optional = true, workspace = true }
+sp-genesis-builder = { default-features = false, workspace = true }
+
+[features]
+default = ["std"]
+std = [
+	"async-trait",
+	"sp-debug-derive/std",
+	"parity-scale-codec/std",
+	"sp-core/std",
+	"sp-std/std",
+	"serde/std",
+	"sp-genesis-builder/std",
+	"sp-inherents/std",
+	"sp-io/std",
+	"sp-runtime/std",
+	"parity-util-mem",
+	"sp-storage/std",
+	"sc-client-api",
+	"sc-chain-spec",
+	"sc-executor",
+	"sp-blockchain",
+]

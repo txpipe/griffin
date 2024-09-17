@@ -1,12 +1,17 @@
 [workspace.package]
-license = "MIT-0"
-authors = ["Parity Technologies <admin@parity.io>"]
-homepage = "https://paritytech.github.io/polkadot-sdk/"
-repository = "https://github.com/paritytech/polkadot-sdk-solochain-template.git"
+license = "Apache-2.0"
+authors = [
+	"Santiago Carmuega <santiago@carmuega.me>",
+	"Francisco Joray <francisco.joray@txpipe.io>",
+	"Franco Luque <franco@txpipe.io>",
+	"Pedro Sánchez Terraf <pedrost@gmail.com>"
+]
+homepage = "https://github.com/txpipe/griffin"
+repository = "https://github.com/txpipe/griffin"
 edition = "2021"
 
 [workspace]
-members = ["node", "runtime"]
+members = ["node", "runtime", "griffin-core"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -67,3 +72,11 @@ sp-storage = { version = "21.0.0", default-features = false }
 sp-transaction-pool = { version = "34.0.0", default-features = false }
 sp-version = { version = "37.0.0", default-features = false }
 substrate-wasm-builder = { version = "24.0.0", default-features = false }
+
+hex-literal = "0.4.1"
+log = "0.4"
+parity-scale-codec = { version = "3.6", default-features = false }
+serde = { version = "1.0.209", default-features = false }
+sp-application-crypto = { version = "38.0.0", default-features = false }
+sp-debug-derive = { version = "14.0.0", default-features = false }
+sp-std = { version = "14.0.0", default-features = false }
