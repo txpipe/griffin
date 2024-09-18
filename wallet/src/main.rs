@@ -1,4 +1,4 @@
-//! A simple CLI wallet. For now it is a toy just to start testing things out.
+//! CLI wallet to demostrate minting and spending transactions.
 
 use clap::Parser;
 use jsonrpsee::http_client::HttpClientBuilder;
@@ -65,14 +65,14 @@ async fn main() -> anyhow::Result<()> {
     log::info!("Number of blocks in the db: {num_blocks}");
 
     if !sled::Db::was_recovered(&db) {
-        sync::apply_block(&db, node_genesis_block, node_genesis_hash, &true).await?;
+        sync::apply_block(&db, node_genesis_block, node_genesis_hash).await?;
     }
 
     // Synchronize the wallet with attached node unless instructed otherwise.
     if cli.no_sync {
         log::warn!("Skipping sync with node. Using previously synced information.")
     } else {
-        sync::synchronize(&db, &client, &true).await?;
+        sync::synchronize(&db, &client).await?;
 
         log::info!(
             "Wallet database synchronized with node to height {:?}",

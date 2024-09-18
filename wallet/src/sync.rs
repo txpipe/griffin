@@ -1,9 +1,9 @@
 //! This module is responsible for maintaining the wallet's local database of blocks
-//! and owned UTXOs to the canonical database reported by the node.
+//! and owned UTxOs to the canonical database reported by the node.
 //!
 //! It is backed by a sled database
 //!
-//! ## Schema
+//! ## Scheme
 //!
 //! There are 4 tables in the database
 //! BlockHashes     block_number:u32 => block_hash:H256
@@ -49,7 +49,12 @@ pub(crate) fn open_db(
     expected_genesis_hash: H256,
     expected_genesis_block: OpaqueBlock,
 ) -> anyhow::Result<Db> {
-    let db = sled::open(db_path)?;
+    // Error messages
+    const DIFF_GEN: &str = "Node reports a different genesis block than wallet.";
+    const ABORTING: &str = "Aborting all operations.";
+    const HINT: &str = "HINT: Try removing the wallet database at";
+
+    let db = sled::open(db_path.clone())?;
 
     // Open the tables we'll need
     let wallet_block_hashes_tree = db.open_tree(BLOCK_HASHES)?;
@@ -65,7 +70,14 @@ pub(crate) fn open_db(
         log::debug!("Found existing database.");
         if expected_genesis_hash != wallet_genesis_hash {
             log::error!("Wallet's genesis does not match expected. Aborting database opening.");
-            return Err(anyhow!("Node reports a different genesis block than wallet. Wallet: {wallet_genesis_hash:?}. Expected: {expected_genesis_hash:?}. Aborting all operations"));
+            return Err(anyhow!(
+                "{DIFF_GEN}\nWallet: {:?}. Expected: {:?}.\n{}\n{} {:?}.",
+                wallet_genesis_hash,
+                expected_genesis_hash,
+                ABORTING,
+                HINT,
+                db_path,
+            ));
         }
         return Ok(db);
     }
@@ -89,9 +101,8 @@ pub(crate) fn open_db(
 pub(crate) async fn synchronize(
     db: &Db,
     client: &HttpClient,
-    filter: &bool,
 ) -> anyhow::Result<()> {
-    synchronize_helper(db, client, filter).await
+    synchronize_helper(db, client).await
 }
 
 /// Synchronize the local database to the database of the running node.
@@ -100,7 +111,6 @@ pub(crate) async fn synchronize(
 pub(crate) async fn synchronize_helper(
     db: &Db,
     client: &HttpClient,
-    filter: &bool,
 ) -> anyhow::Result<()> {
     log::debug!("Synchronizing wallet with node.");
 
@@ -144,7 +154,7 @@ pub(crate) async fn synchronize_helper(
             .expect("Node should be able to return a block whose hash it already returned");
 
         // Apply the new block
-        apply_block(db, block, hash, filter).await?;
+        apply_block(db, block, hash).await?;
 
         height += 1;
 
@@ -168,37 +178,6 @@ pub(crate) fn get_unspent(db: &Db, output_ref: &OutputRef) -> anyhow::Result<Opt
     Ok(Some(<(H256, Coin)>::decode(&mut &ivec[..])?))
 }
 
-/// Picks an arbitrary set of unspent outputs from the database for spending.
-/// The set's token values must add up to at least the specified target value.
-///
-/// The return value is None if the total value of the database is less than the target
-/// It is Some(Vec![...]) when it is possible
-pub(crate) fn get_arbitrary_unspent_set(
-    db: &Db,
-    target: Coin,
-) -> anyhow::Result<Option<Vec<OutputRef>>> {
-    let wallet_unspent_tree = db.open_tree(UNSPENT)?;
-
-    let mut total: Coin = 0;
-    let mut keepers = Vec::new();
-
-    let mut unspent_iter = wallet_unspent_tree.iter();
-    while total < target {
-        let Some(pair) = unspent_iter.next() else {
-            return Ok(None);
-        };
-
-        let (output_ref_ivec, owner_amount_ivec) = pair?;
-        let output_ref = OutputRef::decode(&mut &output_ref_ivec[..])?;
-        let (_owner_pubkey, amount) = <(H256, Coin)>::decode(&mut &owner_amount_ivec[..])?;
-
-        total += amount;
-        keepers.push(output_ref);
-    }
-
-    Ok(Some(keepers))
-}
-
 /// Gets the block hash from the local database given a block height. Similar the Node's RPC.
 ///
 /// Some if the block exists, None if the block does not exist.
@@ -218,7 +197,6 @@ pub(crate) async fn apply_block(
     db: &Db,
     b: OpaqueBlock,
     block_hash: H256,
-    filter: &bool,
 ) -> anyhow::Result<()> {
     log::debug!("Applying Block {:?}, Block_Hash {:?}", b, block_hash);
     // Write the hash to the block_hashes table
@@ -231,7 +209,7 @@ pub(crate) async fn apply_block(
 
     // Iterate through each transaction
     for tx in b.extrinsics {
-        apply_transaction(db, tx, filter).await?;
+        apply_transaction(db, tx).await?;
     }
 
     Ok(())
@@ -242,7 +220,6 @@ pub(crate) async fn apply_block(
 async fn apply_transaction(
     db: &Db,
     opaque_tx: OpaqueExtrinsic,
-    filter: &bool,
 ) -> anyhow::Result<()> {
     let encoded_extrinsic = opaque_tx.encode();
     let tx_hash = BlakeTwo256::hash_of(&encoded_extrinsic);
@@ -253,9 +230,7 @@ async fn apply_transaction(
 
     // Insert all new outputs
     for (index, output) in tx.outputs.iter().enumerate() {
-        if *filter {
-            crate::money::apply_transaction(db, tx_hash, index as u32, output)?;
-        }
+        crate::money::apply_transaction(db, tx_hash, index as u32, output)?;
     }
 
     log::debug!("about to spend all inputs");

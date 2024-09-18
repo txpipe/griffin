@@ -7,7 +7,6 @@ use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use parity_scale_codec::Encode;
 use sc_keystore::LocalKeystore;
 use sled::Db;
-use sp_core::H256;
 use sp_runtime::traits::{BlakeTwo256, Hash};
 use griffin_core::{
     types::{Coin, Input, Output, OutputRef, Transaction},
@@ -18,20 +17,23 @@ pub async fn mint_coins(
     client: &HttpClient,
     args: MintCoinArgs,
 ) -> anyhow::Result<()> {
-    mint_coins_helper(client, args).await
-}
-
-pub async fn mint_coins_helper(client: &HttpClient, args: MintCoinArgs) -> anyhow::Result<()> {
     log::debug!("The args are:: {:?}", args);
 
-    let transaction: griffin_core::types::Transaction = Transaction {
+    let mut transaction: griffin_core::types::Transaction = Transaction {
         inputs: Vec::new(),
         outputs: vec![Output {
             payload: args.amount,
-            owner: H256::from_slice(b"                                "),
+            owner: args.owner,
         }],
     };
-
+  
+    // The input appears as a new output.
+    let utxo = fetch_storage(&args.input, client).await?;
+    transaction.inputs.push(Input {
+        output_ref: args.input.clone(),
+    });
+    transaction.outputs.push(utxo);
+    
     let encoded_tx = hex::encode(transaction.encode());
     let params = rpc_params![encoded_tx];
     let spawn_response: Result<String, _> = client.request("author_submitExtrinsic", params).await;
@@ -59,15 +61,6 @@ pub async fn mint_coins_helper(client: &HttpClient, args: MintCoinArgs) -> anyho
 pub async fn spend_coins(
     db: &Db,
     client: &HttpClient,
-    keystore: &LocalKeystore,
-    args: SpendArgs,
-) -> anyhow::Result<()> {
-    spend_coins_helper(db, client, keystore, args).await
-}
-
-pub async fn spend_coins_helper(
-    db: &Db,
-    client: &HttpClient,
     _keystore: &LocalKeystore,
     args: SpendArgs,
 ) -> anyhow::Result<()> {
@@ -79,12 +72,12 @@ pub async fn spend_coins_helper(
         outputs: Vec::new(),
     };
 
-    // Construct each output and then push to the transactions
+    // Construct each output and then push to the transaction
     let mut total_output_amount: u64 = 0;
     for amount in &args.output_amount {
         let output = Output {
             payload: *amount,
-            owner: H256::from_slice(b"                                "),
+            owner: args.recipient,
         };
         total_output_amount += *amount;
         transaction.outputs.push(output);
@@ -93,8 +86,7 @@ pub async fn spend_coins_helper(
     // The total input set will consist of any manually chosen inputs
     // plus any automatically chosen to make the input amount high enough
     let mut total_input_amount: u64 = 0;
-    let mut all_input_refs = args.input;
-    for output_ref in &all_input_refs {
+    for output_ref in &args.input {
         let (_owner_pubkey, amount) = sync::get_unspent(db, output_ref)?.ok_or(anyhow!(
             "user-specified output ref not found in local database"
         ))?;
@@ -104,19 +96,12 @@ pub async fn spend_coins_helper(
     // If the supplied inputs are not valuable enough to cover the output amount
     // we select the rest arbitrarily from the local db. (In many cases, this will be all the inputs.)
     if total_input_amount < total_output_amount {
-        match sync::get_arbitrary_unspent_set(db, total_output_amount - total_input_amount)? {
-            Some(more_inputs) => {
-                all_input_refs.extend(more_inputs);
-            }
-            None => Err(anyhow!(
-                "Not enough value in database to construct transaction"
-            ))?,
-        }
+        Err(anyhow!("Inputs not enough for given outputs."))?;
     }
 
     // Make sure each input decodes and is still present in the node's storage,
     // and then push to transaction.
-    for output_ref in &all_input_refs {
+    for output_ref in &args.input {
         get_coin_from_storage(output_ref, client).await?;
         transaction.inputs.push(Input {
             output_ref: output_ref.clone(),
@@ -174,6 +159,6 @@ pub(crate) fn apply_transaction(
 ) -> anyhow::Result<()> {
     let amount = output.payload;
     let output_ref = OutputRef { tx_hash, index };
-    let owner_pubkey = H256::from_slice(b"                                ");
+    let owner_pubkey = output.owner;
     crate::sync::add_unspent_output(db, &output_ref, &owner_pubkey, &amount)
 }
