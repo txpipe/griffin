@@ -2647,6 +2647,48 @@ dependencies = [
 ]
 
 [[package]]
+name = "griffin-solochain-node"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "frame-benchmarking-cli",
+ "frame-system",
+ "futures",
+ "griffin-core",
+ "griffin-solochain-runtime",
+ "jsonrpsee",
+ "pallet-transaction-payment",
+ "pallet-transaction-payment-rpc",
+ "sc-basic-authorship",
+ "sc-cli",
+ "sc-client-api",
+ "sc-consensus",
+ "sc-consensus-aura",
+ "sc-consensus-grandpa",
+ "sc-executor",
+ "sc-network",
+ "sc-rpc-api",
+ "sc-service",
+ "sc-telemetry",
+ "sc-transaction-pool",
+ "sc-transaction-pool-api",
+ "serde_json",
+ "sp-api",
+ "sp-block-builder",
+ "sp-blockchain",
+ "sp-consensus-aura",
+ "sp-consensus-grandpa",
+ "sp-core",
+ "sp-inherents",
+ "sp-io",
+ "sp-keyring",
+ "sp-runtime",
+ "sp-timestamp",
+ "substrate-build-script-utils",
+ "substrate-frame-rpc-system",
+]
+
+[[package]]
 name = "griffin-solochain-runtime"
 version = "0.1.0"
 dependencies = [
@@ -3008,22 +3050,6 @@ dependencies = [
  "pin-project-lite",
  "smallvec",
  "tokio",
-]
-
-[[package]]
-name = "hyper-rustls"
-version = "0.24.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec3efd23720e2049821a693cbc7e65ea87c72f1c58ff2f9522ff332b1491e590"
-dependencies = [
- "futures-util",
- "http 0.2.12",
- "hyper 0.14.30",
- "log",
- "rustls 0.21.12",
- "rustls-native-certs",
- "tokio",
- "tokio-rustls",
 ]
 
 [[package]]
@@ -7093,41 +7119,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sc-offchain"
-version = "39.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f0fce257906e8a6f2ffbabe64ce9739ef0e18f272f61e759c975446c752cd74"
-dependencies = [
- "array-bytes",
- "bytes",
- "fnv",
- "futures",
- "futures-timer",
- "hyper 0.14.30",
- "hyper-rustls",
- "log",
- "num_cpus",
- "once_cell",
- "parity-scale-codec",
- "parking_lot 0.12.3",
- "rand",
- "sc-client-api",
- "sc-network",
- "sc-network-common",
- "sc-network-types",
- "sc-transaction-pool-api",
- "sc-utils",
- "sp-api",
- "sp-core",
- "sp-externalities",
- "sp-keystore",
- "sp-offchain",
- "sp-runtime",
- "threadpool",
- "tracing",
-]
-
-[[package]]
 name = "sc-proposer-metrics"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7940,48 +7931,6 @@ dependencies = [
  "log",
  "rand",
  "sha1",
-]
-
-[[package]]
-name = "solochain-template-node"
-version = "0.1.0"
-dependencies = [
- "clap",
- "frame-benchmarking-cli",
- "frame-system",
- "futures",
- "griffin-solochain-runtime",
- "jsonrpsee",
- "pallet-transaction-payment",
- "pallet-transaction-payment-rpc",
- "sc-basic-authorship",
- "sc-cli",
- "sc-client-api",
- "sc-consensus",
- "sc-consensus-aura",
- "sc-consensus-grandpa",
- "sc-executor",
- "sc-network",
- "sc-offchain",
- "sc-rpc-api",
- "sc-service",
- "sc-telemetry",
- "sc-transaction-pool",
- "sc-transaction-pool-api",
- "serde_json",
- "sp-api",
- "sp-block-builder",
- "sp-blockchain",
- "sp-consensus-aura",
- "sp-consensus-grandpa",
- "sp-core",
- "sp-inherents",
- "sp-io",
- "sp-keyring",
- "sp-runtime",
- "sp-timestamp",
- "substrate-build-script-utils",
- "substrate-frame-rpc-system",
 ]
 
 [[package]]
@@ -9066,15 +9015,6 @@ checksum = "8b9ef9bad013ada3808854ceac7b46812a6465ba368859a37e2100283d2d719c"
 dependencies = [
  "cfg-if",
  "once_cell",
-]
-
-[[package]]
-name = "threadpool"
-version = "1.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d050e60b33d41c19108b32cea32164033a9013fe3b46cbd4457559bfbf77afaa"
-dependencies = [
- "num_cpus",
 ]
 
 [[package]]

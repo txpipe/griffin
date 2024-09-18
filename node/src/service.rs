@@ -1,13 +1,13 @@
 //! Service and ServiceFactory implementation. Specialized wrapper over substrate service.
 
-use futures::FutureExt;
-use sc_client_api::{Backend, BlockBackend};
+use sc_client_api::BlockBackend;
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_consensus_grandpa::SharedVoterState;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncParams};
 use sc_telemetry::{Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
-use solochain_template_runtime::{self, opaque::Block, RuntimeApi};
+use griffin_solochain_runtime::{self, RuntimeApi};
+use griffin_core::{genesis::GriffinGenesisBlockBuilder, types::OpaqueBlock as Block};
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
 use std::{sync::Arc, time::Duration};
 
@@ -49,13 +49,25 @@ pub fn new_partial(config: &Configuration) -> Result<Service, ServiceError> {
 		.transpose()?;
 
 	let executor = sc_service::new_wasm_executor::<sp_io::SubstrateHostFunctions>(config);
-	let (client, backend, keystore_container, task_manager) =
-		sc_service::new_full_parts::<Block, RuntimeApi, _>(
-			config,
-			telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
-			executor,
-		)?;
-	let client = Arc::new(client);
+
+	let backend = sc_service::new_db_backend(config.db_config())?;
+    let genesis_block_builder = GriffinGenesisBlockBuilder::new(
+        config.chain_spec.as_storage_builder(),
+        !config.no_genesis(),
+        backend.clone(),
+        executor.clone(),
+    )?;
+
+    let (client, backend, keystore_container, task_manager) =
+        sc_service::new_full_parts_with_genesis_builder::<Block, RuntimeApi, _, _>(
+            config,
+            telemetry.as_ref().map(|(_, telemetry)| telemetry.handle()),
+            executor,
+            backend,
+            genesis_block_builder,
+            false,
+        )?;
+    let client = Arc::new(client);
 
 	let telemetry = telemetry.map(|(worker, telemetry)| {
 		task_manager.spawn_handle().spawn("telemetry", None, worker.run());
@@ -180,27 +192,6 @@ pub fn new_full<
 			metrics,
 		})?;
 
-	if config.offchain_worker.enabled {
-		task_manager.spawn_handle().spawn(
-			"offchain-workers-runner",
-			"offchain-worker",
-			sc_offchain::OffchainWorkers::new(sc_offchain::OffchainWorkerOptions {
-				runtime_api_provider: client.clone(),
-				is_validator: config.role.is_authority(),
-				keystore: Some(keystore_container.keystore()),
-				offchain_db: backend.offchain_storage(),
-				transaction_pool: Some(OffchainTransactionPoolFactory::new(
-					transaction_pool.clone(),
-				)),
-				network_provider: Arc::new(network.clone()),
-				enable_http_requests: true,
-				custom_extensions: |_| vec![],
-			})
-			.run(client.clone(), task_manager.spawn_handle())
-			.boxed(),
-		);
-	}
-
 	let role = config.role.clone();
 	let force_authoring = config.force_authoring;
 	let backoff_authoring_blocks: Option<()> = None;
@@ -212,9 +203,9 @@ pub fn new_full<
 		let client = client.clone();
 		let pool = transaction_pool.clone();
 
-		Box::new(move |deny_unsafe, _| {
+		Box::new(move |_deny_unsafe, _| {
 			let deps =
-				crate::rpc::FullDeps { client: client.clone(), pool: pool.clone(), deny_unsafe };
+				crate::rpc::FullDeps { _client: client.clone(), _pool: pool.clone(), _deny_unsafe };
 			crate::rpc::create_full(deps).map_err(Into::into)
 		})
 	};
