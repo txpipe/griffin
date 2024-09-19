@@ -1,8 +1,8 @@
 [package]
-name = "solochain-template-node"
-description = "A solochain node template built with Substrate, part of Polkadot Sdk. (polkadot v1.15.0)"
+name = "griffin-solochain-node"
+description = "A solochain node built with Substrate, part of Polkadot SDK"
 version = "0.1.0"
-license = "Unlicense"
+license.workspace = true
 authors.workspace = true
 homepage.workspace = true
 repository.workspace = true
@@ -35,8 +35,6 @@ sc-transaction-pool.workspace = true
 sc-transaction-pool.default-features = true
 sc-transaction-pool-api.workspace = true
 sc-transaction-pool-api.default-features = true
-sc-offchain.workspace = true
-sc-offchain.default-features = true
 sc-consensus-aura.workspace = true
 sc-consensus-aura.default-features = true
 sp-consensus-aura.workspace = true
@@ -78,7 +76,9 @@ substrate-frame-rpc-system.workspace = true
 substrate-frame-rpc-system.default-features = true
 frame-benchmarking-cli.workspace = true
 frame-benchmarking-cli.default-features = true
-solochain-template-runtime.workspace = true
+griffin-solochain-runtime.workspace = true
+griffin-core = { path = "../griffin-core" }
+
 
 [build-dependencies]
 substrate-build-script-utils.workspace = true
@@ -86,22 +86,4 @@ substrate-build-script-utils.default-features = true
 
 [features]
 default = ["std"]
-std = [
-	"solochain-template-runtime/std",
-]
-# Dependencies that are only required if runtime benchmarking should be build.
-runtime-benchmarks = [
-	"frame-benchmarking-cli/runtime-benchmarks",
-	"frame-system/runtime-benchmarks",
-	"sc-service/runtime-benchmarks",
-	"solochain-template-runtime/runtime-benchmarks",
-	"sp-runtime/runtime-benchmarks",
-]
-# Enable features that allow the runtime to be tried and debugged. Name might be subject to change
-# in the near future.
-try-runtime = [
-	"frame-system/try-runtime",
-	"pallet-transaction-payment/try-runtime",
-	"solochain-template-runtime/try-runtime",
-	"sp-runtime/try-runtime",
-]
+std = ["griffin-solochain-runtime/std"]

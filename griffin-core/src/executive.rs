@@ -47,6 +47,9 @@ where
             "validating griffin transaction",
         );
 
+        // There must be at least one input
+        ensure!(!transaction.inputs.is_empty(), UtxoError::NoInputs);
+
         // Make sure there are no duplicate inputs
         {
             let input_set: BTreeSet<_> = transaction.inputs.iter().map(|o| o.encode()).collect();
