@@ -57,6 +57,16 @@ async fn main() -> anyhow::Result<()> {
         .expect("node should be able to return some genesis block");
     log::debug!("Node's Genesis block::{:?}", node_genesis_hash);
 
+    if cli.purge_db {
+        std::fs::remove_dir_all(db_path.clone()).map_err(|e| {
+            log::warn!(
+                "Unable to remove database directory at {}\nPlease remove it manually.",
+                db_path.to_string_lossy()
+            );
+            e
+        })?;
+    }
+
     // Open the local database
     let db = sync::open_db(db_path, node_genesis_hash, node_genesis_block.clone())?;
 

@@ -52,7 +52,7 @@ pub(crate) fn open_db(
     // Error messages
     const DIFF_GEN: &str = "Node reports a different genesis block than wallet.";
     const ABORTING: &str = "Aborting all operations.";
-    const HINT: &str = "HINT: Try removing the wallet database at";
+    const HINT: &str = "HINT: Try removing using the `--purge-db` option.";
 
     let db = sled::open(db_path.clone())?;
 
