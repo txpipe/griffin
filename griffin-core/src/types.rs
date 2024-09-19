@@ -114,6 +114,8 @@ pub enum UtxoError {
     /// This transaction defines an output that already existed in the UTXO set
     PreExistingOutput,
     MissingInput,
+    /// The transaction has no inputs
+    NoInputs,
 }
 
 // Substrate requires this supposedly reusable error type, but it is actually tied pretty tightly
@@ -123,6 +125,7 @@ impl From<UtxoError> for InvalidTransaction {
         match utxo_error {
             UtxoError::DuplicateInput => InvalidTransaction::Custom(255),
             UtxoError::PreExistingOutput => InvalidTransaction::Custom(254),
+            UtxoError::NoInputs => InvalidTransaction::Custom(253),
             UtxoError::MissingInput => InvalidTransaction::Future,
         }
     }
