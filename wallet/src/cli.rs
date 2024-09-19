@@ -120,7 +120,7 @@ pub struct MintCoinArgs {
 #[derive(Debug, Args)]
 pub struct SpendArgs {
     /// An input to be consumed by this transaction. This argument may be specified multiple times.
-    #[arg(long, short, verbatim_doc_comment, value_parser = output_ref_from_string)]
+    #[arg(long, short, verbatim_doc_comment, value_parser = output_ref_from_string, required = true)]
     pub input: Vec<OutputRef>,
 
     /// Hex encoded address (sr25519 pubkey) of the recipient.
