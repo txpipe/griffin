@@ -41,7 +41,7 @@ When this is done for the first, the output will look like this:
 The following splits that UTxO in three parts (assigned to Shawn by default). The remaining 14 coins are lost.
 
 ```bash
-$ ./target/release/utxo-wallet spend-coins -i 149b3e2702eef1055ee08362b22638305fcb751f4fde6bbef763af89f9c84c7900000000 -o 100 -o 150 -o 50
+$ ./target/release/utxo-wallet spend-coins --input 149b3e2702eef1055ee08362b22638305fcb751f4fde6bbef763af89f9c84c7900000000 --amount 100 --amount 150 --amount 50
 
 [2024-09-19T21:28:08Z INFO  utxo_wallet] Number of blocks in the db: 26
 [2024-09-19T21:28:08Z INFO  utxo_wallet] Wallet database synchronized with node to height 35
@@ -54,7 +54,7 @@ Created "16a0afadf19d6b7e62784a1441271d1f731260623be423c33187a96e3cc8d2970200000
 All command-line arguments admit short versions (run `./target/release/utxo-wallet -h` for details). The next one sends 60 coins from the second output to some arbitrary key:
 
 ```bash
-$ ./target/release/utxo-wallet spend-coins -i 16a0afadf19d6b7e62784a1441271d1f731260623be423c33187a96e3cc8d29701000000 -o 60 -r 0x524414d5af095bcb4cadc0cf9f8bfbeeeaa8cc34f2df41c3bc4ed953cf8a4367
+$ ./target/release/utxo-wallet spend-coins --input 16a0afadf19d6b7e62784a1441271d1f731260623be423c33187a96e3cc8d29701000000 --amount 60 --recipient 0x524414d5af095bcb4cadc0cf9f8bfbeeeaa8cc34f2df41c3bc4ed953cf8a4367
 
 [2024-09-19T21:28:55Z INFO  utxo_wallet] Number of blocks in the db: 35
 [2024-09-19T21:28:55Z INFO  utxo_wallet] Wallet database synchronized with node to height 51
@@ -65,7 +65,7 @@ Created "d054364bdba58df9fae05e2388e09b607ed7767e91cc7d3af9bf4776f1a87b9f0000000
 The UTxO set at this point is
 
 ```bash
-$ /target/release/utxo-wallet show-all-outputs
+$ ./target/release/utxo-wallet show-all-outputs
 
 [2024-09-19T21:29:14Z INFO  utxo_wallet] Number of blocks in the db: 51
 [2024-09-19T21:29:14Z INFO  utxo_wallet] Wallet database synchronized with node to height 57
@@ -92,9 +92,8 @@ total      : 210
 At this development stage, coin minting is allowed. As with every other transaction, an input is required, whose coins are channeled back as a new UTxO.
 
 ```bash
-$ ./target/release/utxo-wallet mint-coins -a 1000 -o 524414d5af095bcb4cadc0cf9f8bfbeeeaa8cc34f2df41c3bc4ed953cf8a4367 -i 16a0af
+$ ./target/release/utxo-wallet mint-coins --amount 1000 --recipient 524414d5af095bcb4cadc0cf9f8bfbeeeaa8cc34f2df41c3bc4ed953cf8a4367 --input 16a0afadf19d6b7e62784a1441271d1f731260623be423c33187a96e3cc8d29700000000
 
-adf19d6b7e62784a1441271d1f731260623be423c33187a96e3cc8d29700000000
 [2024-09-19T21:43:59Z INFO  utxo_wallet] Number of blocks in the db: 64
 [2024-09-19T21:43:59Z INFO  utxo_wallet] Wallet database synchronized with node to height 352
 [2024-09-19T21:43:59Z INFO  utxo_wallet::money] Node's response to mint-coin transaction: Ok("0x8e2f5536cefe8f5443b59da404fdc7997f2f922b777812a3de63092d98cab3c6")

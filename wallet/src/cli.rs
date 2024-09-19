@@ -118,7 +118,7 @@ pub struct MintCoinArgs {
 
     /// Hex encoded address (sr25519 pubkey) of the owner.
     #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
-    pub owner: H256,
+    pub recipient: H256,
 }
 
 #[derive(Debug, Args)]
@@ -134,5 +134,5 @@ pub struct SpendArgs {
     /// An output amount. For the transaction to be valid, the outputs must add up to less than the sum of the inputs.
     /// The wallet will not enforce this and will gladly send an invalid which will then be rejected by the node.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
-    pub output_amount: Vec<Coin>,
+    pub amount: Vec<Coin>,
 }

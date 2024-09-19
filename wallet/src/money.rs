@@ -23,7 +23,7 @@ pub async fn mint_coins(
         inputs: Vec::new(),
         outputs: vec![Output {
             payload: args.amount,
-            owner: args.owner,
+            owner: args.recipient,
         }],
     };
   
@@ -73,13 +73,13 @@ pub async fn spend_coins(
     };
 
     // Construct each output and then push to the transaction
-    let mut total_output_amount: u64 = 0;
-    for amount in &args.output_amount {
+    let mut total_amount: u64 = 0;
+    for amount in &args.amount {
         let output = Output {
             payload: *amount,
             owner: args.recipient,
         };
-        total_output_amount += *amount;
+        total_amount += *amount;
         transaction.outputs.push(output);
     }
 
@@ -95,7 +95,7 @@ pub async fn spend_coins(
 
     // If the supplied inputs are not valuable enough to cover the output amount
     // we select the rest arbitrarily from the local db. (In many cases, this will be all the inputs.)
-    if total_input_amount < total_output_amount {
+    if total_input_amount < total_amount {
         Err(anyhow!("Inputs not enough for given outputs."))?;
     }
 
