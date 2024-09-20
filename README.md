@@ -34,19 +34,13 @@ Use the following command to build the node:
 cargo build --package griffin-solochain-node --release
 ```
 
-And the next one to build the UTxO wallet:
-
-```bash
-cargo build --package utxo-wallet --release
-```
-
 ### Debug Build
 
 For a faster building process (but resulting in unoptimized binaries), you can build both the node and the wallet in debug mode by running the previous commands without the `--release` flag. In this case, the resulting binaries will be located in the `./target/debug` directory.
 
-### Running
+## Running
 
-The following command starts a single-node development chain that doesn't persist state:
+The following command starts a block-producing development node that doesn't persist state:
 
 ```bash
 ./target/release/griffin-solochain-node --dev
@@ -60,7 +54,7 @@ To purge the development chain's state, run the following:
 
 Development chains are set to 
 
-- maintain state in a tmp folder while the node is running;
+- maintain state in a temporary folder while the node is running;
 - use the Alice account as default validator authority; and
 - are preconfigured with a genesis state (/node/src/chain_spec.rs).
 
@@ -82,3 +76,7 @@ dev
 $ ls ./my-chain-state/chains/dev
 db keystore network
 ```
+
+## Testing
+
+Development node features can be tested by using the [demo UTxO wallet](https://github.com/txpipe/griffin/tree/main/wallet#demo-utxo-wallet).

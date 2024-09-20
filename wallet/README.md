@@ -8,7 +8,7 @@ This is a minimized version of the [Tuxedo wallet](https://github.com/Off-Narrat
 You should have a properly installed Griffin node to build the wallet. After following the [instructions to do that](https://github.com/txpipe/griffin/blob/main/README.md#installation), run
 
 ```bash
-$ cargo build --release -p utxo-wallet
+cargo build --release -p utxo-wallet
 ```
 
 As explained in the node installation instructions, omitting the `--release` will build the "debug" version.
@@ -18,7 +18,7 @@ As explained in the node installation instructions, omitting the `--release` wil
 In terminal, run the node in development mode:
 
 ```bash
-$ ./target/release/griffin-solochain-node --dev
+./target/release/griffin-solochain-node --dev
 ```
 
 In another terminal, one can interact with the node by issuing wallet commands. Every time the wallet starts (without the `--help` or `--version` command-line options), it will try to synchronize its database with the present chain state, unless there is a mismatch with the genesis hash.
@@ -26,13 +26,13 @@ In another terminal, one can interact with the node by issuing wallet commands. 
 To list the whole UTxO set, run
 
 ```bash
-$ ./target/release/utxo-wallet show-all-outputs
+./target/release/utxo-wallet show-all-outputs
 ```
 
 When this is done for the first, the output will look like this:
 
 ```bash
-[2024-09-19T21:27:40Z INFO  utxo_wallet] Number of blocks in the db: 239
+[2024-09-19T21:27:40Z INFO  utxo_wallet] Number of blocks in the db: 0
 [2024-09-19T21:27:41Z INFO  utxo_wallet] Wallet database synchronized with node to height 26
 ###### Unspent outputs ###########
 149b3e2702eef1055ee08362b22638305fcb751f4fde6bbef763af89f9c84c7900000000: owner 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67, amount 314
