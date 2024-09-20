@@ -35,6 +35,8 @@ sc-executor = { optional = true, workspace = true }
 sp-blockchain = { optional = true, workspace = true }
 sp-genesis-builder = { default-features = false, workspace = true }
 
+pallas-primitives.workspace = true
+
 [features]
 default = ["std"]
 std = [

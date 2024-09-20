@@ -7,6 +7,9 @@ use sp_runtime::{
     transaction_validity::InvalidTransaction,
 };
 use sp_std::vec::Vec;
+use pallas_primitives::alonzo::{
+    TransactionOutput,
+};        
 
 pub type Coin = u64;
 
