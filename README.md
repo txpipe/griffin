@@ -34,6 +34,8 @@ Use the following command to build the node:
 cargo build --package griffin-solochain-node --release
 ```
 
+*Note on exhaustion*. The building process is **memory-intensive**, and you might need to close some programs (browser, etc.) if you are getting errors during the last part (e.g. from `collect2` or `ld` at the linking step).
+
 ### Debug Build
 
 For a faster building process (but resulting in unoptimized binaries), you can build both the node and the wallet in debug mode by running the previous commands without the `--release` flag. In this case, the resulting binaries will be located in the `./target/debug` directory.
