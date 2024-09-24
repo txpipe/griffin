@@ -9,6 +9,7 @@ use super::{
 use sp_core::H256;
 use alloc::{ vec::Vec, vec };
 use hex::FromHex;
+use core::convert::From;
 
 /// A default seed phrase for signing inputs when none is provided
 /// Corresponds to the default pubkey.
@@ -26,10 +27,10 @@ pub fn development_genesis_transactions() -> Vec<Transaction> {
         Transaction {
             inputs: vec![],
             outputs: vec![
-                Output {
-                    payload: 314,
-                    owner: H256::from(<[u8; 32]>::from_hex(SHAWN_PUB_KEY).unwrap())
-                }
+                Output::from((
+                    H256::from(<[u8; 32]>::from_hex(SHAWN_PUB_KEY).unwrap()),
+                    314
+                ))
             ]
         }
     ]

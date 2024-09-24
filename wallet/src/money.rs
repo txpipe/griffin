@@ -21,10 +21,7 @@ pub async fn mint_coins(
 
     let mut transaction: griffin_core::types::Transaction = Transaction {
         inputs: Vec::new(),
-        outputs: vec![Output {
-            payload: args.amount,
-            owner: args.recipient,
-        }],
+        outputs: vec![Output::from((args.recipient, args.amount))],
     };
   
     // The input appears as a new output.
@@ -48,7 +45,7 @@ pub async fn mint_coins(
         index: 0,
     };
     let output = &transaction.outputs[0];
-    let amount = output.payload;
+    let amount = output.value;
     println!(
         "Minted {:?} worth {amount}. ",
         hex::encode(minted_coin_ref.encode())
@@ -75,10 +72,7 @@ pub async fn spend_coins(
     // Construct each output and then push to the transaction
     let mut total_amount: u64 = 0;
     for amount in &args.amount {
-        let output = Output {
-            payload: *amount,
-            owner: args.recipient,
-        };
+        let output = Output::from((args.recipient, *amount));
         total_amount += *amount;
         transaction.outputs.push(output);
     }
@@ -127,7 +121,7 @@ pub async fn spend_coins(
             tx_hash,
             index: i as u32,
         };
-        let amount = output.payload;
+        let amount = output.value;
 
         println!(
             "Created {:?} worth {amount}. ",
@@ -145,7 +139,7 @@ pub async fn get_coin_from_storage(
     client: &HttpClient,
 ) -> anyhow::Result<Coin> {
     let utxo = fetch_storage(output_ref, client).await?;
-    let coin_in_storage: Coin = utxo.payload;
+    let coin_in_storage: Coin = utxo.value;
 
     Ok(coin_in_storage)
 }
@@ -157,8 +151,8 @@ pub(crate) fn apply_transaction(
     index: u32,
     output: &Output,
 ) -> anyhow::Result<()> {
-    let amount = output.payload;
+    let amount = output.value;
     let output_ref = OutputRef { tx_hash, index };
-    let owner_pubkey = output.owner;
+    let owner_pubkey = output.address;
     crate::sync::add_unspent_output(db, &output_ref, &owner_pubkey, &amount)
 }

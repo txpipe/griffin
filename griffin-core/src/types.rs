@@ -7,9 +7,6 @@ use sp_runtime::{
     transaction_validity::InvalidTransaction,
 };
 use alloc::vec::Vec;
-use pallas_primitives::alonzo::{
-    TransactionOutput,
-};        
 
 pub type Coin = u64;
 
@@ -118,15 +115,20 @@ impl From<UtxoError> for InvalidTransaction {
 /// The Result of dispatching a UTXO transaction.
 pub type DispatchResult = Result<(), UtxoError>;
 
+/// Bytes of the Plutus Data.
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+pub struct Datum(Vec<u8>);
+
 /// An opaque piece of Transaction output data. This is how the data appears at the Runtime level.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub struct Output {
-    pub payload: Coin,
-    pub owner: H256,
+    pub address: H256,
+    pub value: Coin,
+    pub datum_option: Option<Datum>,
 }
 
-impl From<(Coin, H256)> for Output {
-    fn from(p_o: (Coin, H256)) -> Self {
-        Self { payload: p_o.0, owner:p_o.1 }
+impl From<(H256, Coin)> for Output {
+    fn from(p_o: (H256, Coin)) -> Self {
+        Self { address: p_o.0, value: p_o.1, datum_option: None }
     }
 }
