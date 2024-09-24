@@ -7,7 +7,7 @@ use super::{
     Output
 };
 use sp_core::H256;
-use sp_std::{ vec::Vec, vec };
+use alloc::{ vec::Vec, vec };
 use hex::FromHex;
 
 /// A default seed phrase for signing inputs when none is provided

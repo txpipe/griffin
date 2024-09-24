@@ -24,12 +24,10 @@ sp-io = { features = [
 	"with-tracing",
 ], default-features = false, workspace = true }
 sp-runtime = { default-features = false, workspace = true }
-sp-std = { default-features = false, workspace = true }
 sp-storage = { default-features = false, workspace = true }
 
 ### Genesis Builder dependencies
-# TODO: Maybe put the next one in workspace Cargo to centralize `psvm` updates
-sc-chain-spec = { version = "37.0.0", optional = true }
+sc-chain-spec = { optional = true, workspace = true }
 sc-client-api = { optional = true, workspace = true }
 sc-executor = { optional = true, workspace = true }
 sp-blockchain = { optional = true, workspace = true }
@@ -42,7 +40,6 @@ std = [
 	"sp-debug-derive/std",
 	"parity-scale-codec/std",
 	"sp-core/std",
-	"sp-std/std",
 	"serde/std",
 	"sp-genesis-builder/std",
 	"sp-inherents/std",
