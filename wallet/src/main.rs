@@ -5,7 +5,7 @@ use jsonrpsee::http_client::HttpClientBuilder;
 use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 use std::path::PathBuf;
-use griffin_core::types::OutputRef;
+use griffin_core::types::{OutputRef, Address};
 
 mod cli;
 mod keystore;
@@ -191,6 +191,16 @@ pub(crate) fn h256_from_string(s: &str) -> anyhow::Result<H256> {
     hex::decode_to_slice(s, &mut bytes as &mut [u8])
         .map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
     Ok(H256::from(bytes))
+}
+
+/// Parse a string into an Address that represents a public key
+pub(crate) fn address_from_string(s: &str) -> anyhow::Result<Address> {
+    let s = strip_0x_prefix(s);
+
+    let mut bytes: [u8; 32] = [0; 32];
+    hex::decode_to_slice(s, &mut bytes as &mut [u8])
+        .map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
+    Ok(Address(Vec::from(bytes)))
 }
 
 /// Parse an output ref from a string

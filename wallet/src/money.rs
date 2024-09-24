@@ -72,7 +72,7 @@ pub async fn spend_coins(
     // Construct each output and then push to the transaction
     let mut total_amount: u64 = 0;
     for amount in &args.amount {
-        let output = Output::from((args.recipient, *amount));
+        let output = Output::from((args.recipient.clone(), *amount));
         total_amount += *amount;
         transaction.outputs.push(output);
     }
@@ -153,6 +153,6 @@ pub(crate) fn apply_transaction(
 ) -> anyhow::Result<()> {
     let amount = output.value;
     let output_ref = OutputRef { tx_hash, index };
-    let owner_pubkey = output.address;
-    crate::sync::add_unspent_output(db, &output_ref, &owner_pubkey, &amount)
+    let owner_pubkey = &output.address;
+    crate::sync::add_unspent_output(db, &output_ref, owner_pubkey, &amount)
 }

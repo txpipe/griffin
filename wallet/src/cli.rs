@@ -3,12 +3,11 @@
 use std::path::PathBuf;
 
 use clap::{ArgAction::Append, Args, Parser, Subcommand};
-use sp_core::H256;
-use griffin_core::types::{Coin, OutputRef};
+use griffin_core::types::{Coin, OutputRef, Address};
 use crate::{
-    h256_from_string,
     output_ref_from_string,
-    DEFAULT_ENDPOINT
+    DEFAULT_ENDPOINT,
+    address_from_string,
 };
 use runtime::genesis::SHAWN_PUB_KEY;
 
@@ -93,8 +92,8 @@ pub enum Command {
     #[command(verbatim_doc_comment)]
     RemoveKey {
         /// The public key to remove
-        #[arg(value_parser = h256_from_string)]
-        pub_key: H256,
+        #[arg(value_parser = address_from_string)]
+        pub_key: Address,
     },
 
     /// For each key tracked by the wallet, shows the sum of all UTXO values owned by that key.
@@ -117,8 +116,8 @@ pub struct MintCoinArgs {
     pub amount: Coin,
 
     /// Hex encoded address (sr25519 pubkey) of the owner.
-    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
-    pub recipient: H256,
+    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_PUB_KEY)]
+    pub recipient: Address,
 }
 
 #[derive(Debug, Args)]
@@ -128,8 +127,8 @@ pub struct SpendArgs {
     pub input: Vec<OutputRef>,
 
     /// Hex encoded address (sr25519 pubkey) of the recipient.
-    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
-    pub recipient: H256,
+    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_PUB_KEY)]
+    pub recipient: Address,
 
     /// An output amount. For the transaction to be valid, the outputs must add up to less than the sum of the inputs.
     /// The wallet will not enforce this and will gladly send an invalid which will then be rejected by the node.

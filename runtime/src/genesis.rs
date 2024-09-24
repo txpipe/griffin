@@ -6,10 +6,10 @@ use super::{
     Transaction,
     Output
 };
-use sp_core::H256;
 use alloc::{ vec::Vec, vec };
 use hex::FromHex;
 use core::convert::From;
+use griffin_core::types::Address;
 
 /// A default seed phrase for signing inputs when none is provided
 /// Corresponds to the default pubkey.
@@ -28,7 +28,7 @@ pub fn development_genesis_transactions() -> Vec<Transaction> {
             inputs: vec![],
             outputs: vec![
                 Output::from((
-                    H256::from(<[u8; 32]>::from_hex(SHAWN_PUB_KEY).unwrap()),
+                    Address(Vec::from(<[u8; 32]>::from_hex(SHAWN_PUB_KEY).unwrap())),
                     314
                 ))
             ]

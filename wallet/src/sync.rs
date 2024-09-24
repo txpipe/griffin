@@ -22,9 +22,8 @@ use sp_runtime::{
     traits::{BlakeTwo256, Hash},
     OpaqueExtrinsic,
 };
-use griffin_core::{
-    types::Transaction,
-    types::{Coin, Input, OpaqueBlock, OutputRef},
+use griffin_core::types::{
+    Transaction, Coin, Input, OpaqueBlock, OutputRef, Address,
 };
 use jsonrpsee::http_client::HttpClient;
 
@@ -168,13 +167,13 @@ pub(crate) async fn synchronize_helper(
 /// Gets the owner and amount associated with an output ref from the unspent table
 ///
 /// Some if the output ref exists, None if it doesn't
-pub(crate) fn get_unspent(db: &Db, output_ref: &OutputRef) -> anyhow::Result<Option<(H256, Coin)>> {
+pub(crate) fn get_unspent(db: &Db, output_ref: &OutputRef) -> anyhow::Result<Option<(Address, Coin)>> {
     let wallet_unspent_tree = db.open_tree(UNSPENT)?;
     let Some(ivec) = wallet_unspent_tree.get(output_ref.encode())? else {
         return Ok(None);
     };
 
-    Ok(Some(<(H256, Coin)>::decode(&mut &ivec[..])?))
+    Ok(Some(<(Address, Coin)>::decode(&mut &ivec[..])?))
 }
 
 /// Gets the block hash from the local database given a block height. Similar the Node's RPC.
@@ -245,7 +244,7 @@ async fn apply_transaction(
 pub(crate) fn add_unspent_output(
     db: &Db,
     output_ref: &OutputRef,
-    owner_pubkey: &H256,
+    owner_pubkey: &Address,
     amount: &Coin,
 ) -> anyhow::Result<()> {
     let unspent_tree = db.open_tree(UNSPENT)?;
@@ -272,7 +271,7 @@ fn spend_output(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
     let Some(ivec) = unspent_tree.remove(output_ref.encode())? else {
         return Ok(());
     };
-    let (owner, amount) = <(H256, Coin)>::decode(&mut &ivec[..])?;
+    let (owner, amount) = <(Address, Coin)>::decode(&mut &ivec[..])?;
     spent_tree.insert(output_ref.encode(), (owner, amount).encode())?;
 
     Ok(())
@@ -286,7 +285,7 @@ fn unspend_output(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
     let Some(ivec) = spent_tree.remove(output_ref.encode())? else {
         return Ok(());
     };
-    let (owner, amount) = <(H256, Coin)>::decode(&mut &ivec[..])?;
+    let (owner, amount) = <(Address, Coin)>::decode(&mut &ivec[..])?;
     unspent_tree.insert(output_ref.encode(), (owner, amount).encode())?;
 
     Ok(())
@@ -370,7 +369,7 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
     for x in wallet_unspent_tree.iter() {
         let (output_ref_ivec, owner_amount_ivec) = x?;
         let output_ref = hex::encode(output_ref_ivec);
-        let (owner_pubkey, amount) = <(H256, Coin)>::decode(&mut &owner_amount_ivec[..])?;
+        let (owner_pubkey, amount) = <(Address, Coin)>::decode(&mut &owner_amount_ivec[..])?;
 
         println!("{output_ref}: owner {owner_pubkey:?}, amount {amount}");
     }
@@ -380,14 +379,14 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
 
 /// Iterate the entire unspent set summing the values of the coins
 /// on a per-address basis.
-pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (H256, Coin)>> {
-    let mut balances = std::collections::HashMap::<H256, Coin>::new();
+pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (Address, Coin)>> {
+    let mut balances = std::collections::HashMap::<Address, Coin>::new();
 
     let wallet_unspent_tree = db.open_tree(UNSPENT)?;
 
     for raw_data in wallet_unspent_tree.iter() {
         let (_output_ref_ivec, owner_amount_ivec) = raw_data?;
-        let (owner, amount) = <(H256, Coin)>::decode(&mut &owner_amount_ivec[..])?;
+        let (owner, amount) = <(Address, Coin)>::decode(&mut &owner_amount_ivec[..])?;
 
         balances
             .entry(owner)

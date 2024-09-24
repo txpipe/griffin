@@ -7,6 +7,7 @@ use sp_runtime::{
     transaction_validity::InvalidTransaction,
 };
 use alloc::vec::Vec;
+use core::fmt;
 
 pub type Coin = u64;
 
@@ -117,18 +118,28 @@ pub type DispatchResult = Result<(), UtxoError>;
 
 /// Bytes of the Plutus Data.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
-pub struct Datum(Vec<u8>);
+pub struct Datum(pub Vec<u8>);
+
+/// Bytes of a Cardano address.
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
+pub struct Address(pub Vec<u8>);
 
 /// An opaque piece of Transaction output data. This is how the data appears at the Runtime level.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub struct Output {
-    pub address: H256,
+    pub address: Address,
     pub value: Coin,
     pub datum_option: Option<Datum>,
 }
 
-impl From<(H256, Coin)> for Output {
-    fn from(p_o: (H256, Coin)) -> Self {
+impl fmt::Display for Address {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "0x{:?})", self.0)
+    }
+}
+
+impl From<(Address, Coin)> for Output {
+    fn from(p_o: (Address, Coin)) -> Self {
         Self { address: p_o.0, value: p_o.1, datum_option: None }
     }
 }
