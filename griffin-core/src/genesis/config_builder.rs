@@ -7,7 +7,7 @@ use crate::{
 };
 use parity_scale_codec::Encode;
 use sp_runtime::traits::Hash as HashT;
-use sp_std::vec::Vec;
+use alloc::vec::Vec;
 
 pub struct GriffinGenesisConfigBuilder;
 

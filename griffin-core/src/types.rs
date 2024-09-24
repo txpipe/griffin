@@ -6,25 +6,21 @@ use sp_runtime::{
     traits::{BlakeTwo256, Extrinsic, Hash as HashT},
     transaction_validity::InvalidTransaction,
 };
-use sp_std::vec::Vec;
+use alloc::vec::Vec;
 use pallas_primitives::alonzo::{
     TransactionOutput,
 };        
 
 pub type Coin = u64;
 
-// All Griffin chains use the same BlakeTwo256 hash.
 pub type Hash = BlakeTwo256;
-/// Opaque block hash type.
 pub type OpaqueHash = <Hash as HashT>::Output;
-/// All Griffin chains use the same u32 BlockNumber.
 pub type BlockNumber = u32;
 /// Because all griffin chains use the same Blocknumber and Hash types,
 /// they also use the same concrete header type.
 pub type Header = sp_runtime::generic::Header<BlockNumber, Hash>;
-/// An alias for a Griffin block with all the common parts filled in.
 pub type Block = sp_runtime::generic::Block<Header, Transaction>;
-/// Opaque block type. It has a Standard Griffin header, and opaque transactions.
+/// Opaque block type. It has a Griffin header, and opaque transactions.
 pub type OpaqueBlock = sp_runtime::generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
 
 /// A reference to an output that is expected to exist in the state.
@@ -74,10 +70,6 @@ impl Decode for Transaction {
 
 // We must implement this Extrinsic trait to use our Transaction type as the Block's associated Extrinsic type.
 // See https://paritytech.github.io/polkadot-sdk/master/sp_runtime/traits/trait.Block.html#associatedtype.Extrinsic
-//
-// This trait's design has a preference for transactions that will have a single signature over the
-// entire transaction, so it is not very useful for us. We still need to implement it to satisfy the bound,
-// so we do a minimal implementation.
 impl Extrinsic for Transaction {
     type Call = Self;
     type SignaturePayload = ();
@@ -86,18 +78,8 @@ impl Extrinsic for Transaction {
         Some(data)
     }
 
-    // The signature on this function is not the best. Ultimately it is
-    // trying to distinguish between three potential types of transactions:
-    // 1. Signed user transactions: `Some(true)`
-    // 2. Unsigned user transactions: `None`
-    // 3. Unsigned inherents: `Some(false)`
-    //
-    // In Substrate generally, and also in FRAME, all three of these could exist.
-    // But in Griffin we will never have signed user transactions, and therefore
-    // will never return `Some(true)`.
-    //
-    // Perhaps a dedicated enum makes more sense as the return type?
-    // That would be a Substrate PR after this is more tried and true.
+    // Most probably, transactions will never need be signed, since UTxOs
+    // require proof for consumption.
     fn is_signed(&self) -> Option<bool> {
         None
     }
@@ -121,8 +103,7 @@ pub enum UtxoError {
     NoInputs,
 }
 
-// Substrate requires this supposedly reusable error type, but it is actually tied pretty tightly
-// to the accounts model and some specific FRAME signed extensions. We map it the best we can.
+// `UtxoError`s are mapped to Substrate errors.
 impl From<UtxoError> for InvalidTransaction {
     fn from(utxo_error: UtxoError) -> Self {
         match utxo_error {

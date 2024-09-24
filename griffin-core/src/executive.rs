@@ -24,7 +24,7 @@ use sp_runtime::{
     },
     ApplyExtrinsicResult, ExtrinsicInclusionMode, StateVersion,
 };
-use sp_std::{collections::btree_set::BTreeSet, vec::Vec};
+use alloc::{collections::btree_set::BTreeSet, vec::Vec};
 
 /// The executive. Each runtime is encouraged to make a type alias called `Executive` that fills
 /// in the proper generic types.

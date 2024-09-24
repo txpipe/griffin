@@ -3,6 +3,8 @@
 #[cfg(feature = "std")]
 include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 
+extern crate alloc;
+
 pub mod genesis;
 
 use codec::{Decode, Encode};
@@ -18,7 +20,8 @@ use sp_runtime::{
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, BoundToRuntimeAppPublic,
 };
-use sp_std::prelude::*;
+use alloc::{vec, vec::Vec};
+
 
 #[cfg(feature = "std")]
 use sp_version::NativeVersion;
@@ -204,7 +207,7 @@ impl_runtime_apis! {
             None
         }
 
-        fn metadata_versions() -> sp_std::vec::Vec<u32> {
+        fn metadata_versions() -> alloc::vec::Vec<u32> {
             Default::default()
         }
     }
