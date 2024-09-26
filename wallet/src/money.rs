@@ -81,7 +81,7 @@ pub async fn spend_coins(
     // plus any automatically chosen to make the input amount high enough
     let mut total_input_amount: u64 = 0;
     for output_ref in &args.input {
-        let (_owner_pubkey, amount) = sync::get_unspent(db, output_ref)?.ok_or(anyhow!(
+        let (_owner_pubkey, amount, _) = sync::get_unspent(db, output_ref)?.ok_or(anyhow!(
             "user-specified output ref not found in local database"
         ))?;
         total_input_amount += amount;
@@ -154,5 +154,5 @@ pub(crate) fn apply_transaction(
     let amount = output.value;
     let output_ref = OutputRef { tx_hash, index };
     let owner_pubkey = &output.address;
-    crate::sync::add_unspent_output(db, &output_ref, owner_pubkey, &amount)
+    crate::sync::add_unspent_output(db, &output_ref, owner_pubkey, &amount, &None)
 }

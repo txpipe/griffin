@@ -1,4 +1,5 @@
 use parity_scale_codec::{Decode, Encode};
+use pallas_codec::minicbor::{self, Decode as MiniDecode, Encode as MiniEncode};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
@@ -120,9 +121,23 @@ pub type DispatchResult = Result<(), UtxoError>;
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub struct Datum(pub Vec<u8>);
 
+/// Fake data to be decoded from the Datum.
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
+pub enum FakeDatum {
+    #[n(0)]
+    CuteOutput,
+
+    #[n(1)]
+    UglyOutput,
+}
+
 /// Bytes of a Cardano address.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct Address(pub Vec<u8>);
+
+// /// Bytes of a Cardano Value.
+// #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
+// pub struct Coin(pub Vec<u8>);
 
 /// An opaque piece of Transaction output data. This is how the data appears at the Runtime level.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
@@ -134,12 +149,24 @@ pub struct Output {
 
 impl fmt::Display for Address {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "0x{:?})", self.0)
+        write!(f, "{}", hex::encode(self.0.as_slice()))
     }
 }
 
 impl From<(Address, Coin)> for Output {
     fn from(p_o: (Address, Coin)) -> Self {
         Self { address: p_o.0, value: p_o.1, datum_option: None }
+    }
+}
+
+impl From<(Address, Coin, Datum)> for Output {
+    fn from(p_o: (Address, Coin, Datum)) -> Self {
+        Self { address: p_o.0, value: p_o.1, datum_option: Some(p_o.2) }
+    }
+}
+
+impl From<Vec<u8>> for Datum {
+    fn from(bytes: Vec<u8>) -> Self {
+        Self(bytes)
     }
 }

@@ -9,7 +9,8 @@ use super::{
 use alloc::{ vec::Vec, vec };
 use hex::FromHex;
 use core::convert::From;
-use griffin_core::types::Address;
+use griffin_core::types::{ Address, FakeDatum, Datum };
+use pallas_codec::minicbor::encode;
 
 /// A default seed phrase for signing inputs when none is provided
 /// Corresponds to the default pubkey.
@@ -23,15 +24,24 @@ pub const SHAWN_PUB_KEY: &str = "d2bf4b844dfefd6772a8843e669f943408966a977e3ae2a
 /// It is called by the `ChainSpec::build` method, via the `development_genesis_config` function.
 /// The resulting transactions must be ordered: inherent first, then extrinsics.
 pub fn development_genesis_transactions() -> Vec<Transaction> {
+    let mut datum: Vec<u8> = Vec::new();
+    match encode(FakeDatum::CuteOutput, &mut datum) {
+        Ok(_) => (),
+        Err(err) => panic!("Unable to encode datum ({:?})", err),
+    };
+
+    let output = Output::from((
+        Address(Vec::from(<[u8; 32]>::from_hex(SHAWN_PUB_KEY).unwrap())),
+        314,
+        Datum::from(datum),
+    ));
+
+    log::info!("Datum: {:?}", output.clone());
+
     vec![
         Transaction {
             inputs: vec![],
-            outputs: vec![
-                Output::from((
-                    Address(Vec::from(<[u8; 32]>::from_hex(SHAWN_PUB_KEY).unwrap())),
-                    314
-                ))
-            ]
+            outputs: vec![output],
         }
     ]
 }

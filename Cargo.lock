@@ -2674,7 +2674,9 @@ name = "griffin-core"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "hex",
  "log",
+ "pallas-codec",
  "pallas-primitives",
  "parity-scale-codec",
  "parity-util-mem",
@@ -2743,6 +2745,7 @@ dependencies = [
  "hex",
  "hex-literal",
  "log",
+ "pallas-codec",
  "parity-scale-codec",
  "scale-info",
  "serde",

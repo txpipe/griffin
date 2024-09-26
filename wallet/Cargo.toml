@@ -26,7 +26,7 @@ anyhow = "1.0.69"
 directories = "5.0.0"
 env_logger = "0.11.0"
 futures = "0.3"
-hex = "0.4.3"
+hex.workspace = true
 sled = "0.34.7"
 tokio = "1.25.0"
 

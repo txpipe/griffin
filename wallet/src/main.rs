@@ -104,7 +104,7 @@ async fn main() -> anyhow::Result<()> {
 
             // Print the details from the local db
             match sync::get_unspent(&db, &output_ref)? {
-                Some((owner, amount)) => {
+                Some((owner, amount, _)) => {
                     println!("Found in local db. Value: {amount}, owned by {owner}");
                 }
                 None => {
@@ -202,6 +202,13 @@ pub(crate) fn address_from_string(s: &str) -> anyhow::Result<Address> {
         .map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
     Ok(Address(Vec::from(bytes)))
 }
+
+// /// Parse a string into a Cardano Coin
+// pub(crate) fn address_from_string(s: &str) -> anyhow::Result<Coin> {
+//     hex::decode_to_slice(s, &mut bytes as &mut [u8])
+//         .map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
+//     Ok(Address(Vec::from(bytes)))
+// }
 
 /// Parse an output ref from a string
 fn output_ref_from_string(s: &str) -> Result<OutputRef, clap::Error> {
