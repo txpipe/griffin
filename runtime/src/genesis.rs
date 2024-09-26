@@ -33,10 +33,8 @@ pub fn development_genesis_transactions() -> Vec<Transaction> {
     let output = Output::from((
         Address(Vec::from(<[u8; 32]>::from_hex(SHAWN_PUB_KEY).unwrap())),
         314,
-        Datum::from(datum),
+        Datum::from(datum.clone()),
     ));
-
-    log::info!("Datum: {:?}", output.clone());
 
     vec![
         Transaction {

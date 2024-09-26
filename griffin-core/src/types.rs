@@ -135,10 +135,6 @@ pub enum FakeDatum {
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct Address(pub Vec<u8>);
 
-// /// Bytes of a Cardano Value.
-// #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
-// pub struct Coin(pub Vec<u8>);
-
 /// An opaque piece of Transaction output data. This is how the data appears at the Runtime level.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub struct Output {

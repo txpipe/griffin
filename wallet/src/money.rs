@@ -151,8 +151,12 @@ pub(crate) fn apply_transaction(
     index: u32,
     output: &Output,
 ) -> anyhow::Result<()> {
-    let amount = output.value;
     let output_ref = OutputRef { tx_hash, index };
-    let owner_pubkey = &output.address;
-    crate::sync::add_unspent_output(db, &output_ref, owner_pubkey, &amount, &None)
+
+    crate::sync::add_unspent_output(db,
+                                    &output_ref,
+                                    &output.address,
+                                    &output.value,
+                                    &output.datum_option
+    )
 }

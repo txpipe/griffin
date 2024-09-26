@@ -15,6 +15,7 @@ use std::path::PathBuf;
 
 use crate::rpc;
 use anyhow::anyhow;
+use pallas_codec::minicbor::decode::{Decode as MiniDecode, Decoder as MiniDecoder};
 use parity_scale_codec::{Decode, Encode};
 use sled::Db;
 use sp_core::H256;
@@ -23,7 +24,7 @@ use sp_runtime::{
     OpaqueExtrinsic,
 };
 use griffin_core::types::{
-    Transaction, Coin, Input, OpaqueBlock, OutputRef, Address, Datum,
+    Transaction, Coin, Input, OpaqueBlock, OutputRef, Address, Datum, FakeDatum
 };
 use jsonrpsee::http_client::HttpClient;
 
@@ -375,8 +376,12 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
         let output_ref = hex::encode(output_ref_ivec);
         let (owner_pubkey, amount, datum_option) =
             <(Address, Coin, Option<Datum>)>::decode(&mut &owner_amount_datum_ivec[..])?;
-
-        println!("{output_ref}: owner {owner_pubkey}, amount {amount}, datum {datum_option:?}");
+        let fake_option: Option<FakeDatum> = match datum_option {
+            None => None,
+            Some(d) => MiniDecode::decode(&mut MiniDecoder::new(d.0.as_slice()), &mut ()).unwrap(),
+        };
+        
+        println!("{output_ref}: owner {owner_pubkey}, amount {amount}, datum {fake_option:?}");
     }
 
     Ok(())
@@ -390,8 +395,9 @@ pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (Addr
     let wallet_unspent_tree = db.open_tree(UNSPENT)?;
 
     for raw_data in wallet_unspent_tree.iter() {
-        let (_output_ref_ivec, owner_amount_ivec) = raw_data?;
-        let (owner, amount) = <(Address, Coin)>::decode(&mut &owner_amount_ivec[..])?;
+        let (_ , owner_amount_datum_ivec) = raw_data?;
+        let (owner, amount, _) =
+            <(Address, Coin, Option<Datum>)>::decode(&mut &owner_amount_datum_ivec[..])?;
 
         balances
             .entry(owner)

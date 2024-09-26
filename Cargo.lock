@@ -9955,6 +9955,7 @@ dependencies = [
  "hex-literal",
  "jsonrpsee",
  "log",
+ "pallas-codec",
  "parity-scale-codec",
  "sc-keystore",
  "serde_json",
