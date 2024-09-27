@@ -33,6 +33,9 @@ sc-executor = { optional = true, workspace = true }
 sp-blockchain = { optional = true, workspace = true }
 sp-genesis-builder = { default-features = false, workspace = true }
 
+[dev-dependencies]
+array-bytes = { workspace = true }
+
 [features]
 default = ["std"]
 std = [

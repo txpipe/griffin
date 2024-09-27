@@ -337,3 +337,536 @@ where
         r
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use sp_core::H256;
+    use sp_io::TestExternalities;
+    use sp_runtime::{transaction_validity::ValidTransactionBuilder};
+
+    use crate::{
+        types::{Block, Coin, Header, Input, Output, Transaction},
+    };
+
+    use super::*;
+
+    /// Construct a mock OutputRef from a transaction number and index in that transaction.
+    ///
+    /// When setting up tests, it is often useful to have some Utxos in the storage
+    /// before the test begins. There are no real transactions before the test, so there
+    /// are also no real OutputRefs. This function constructs an OutputRef that can be
+    /// used in the test from a "transaction number" (a simple u32) and an output index in
+    /// that transaction (also a u32).
+    fn mock_output_ref(tx_num: u32, index: u32) -> OutputRef {
+        OutputRef {
+            tx_hash: H256::from_low_u64_le(tx_num as u64),
+            index,
+        }
+    }
+
+    /// Construct a mock owner from a u32.
+    fn mock_owner(owner_num: u32) -> H256 {
+        H256::from_low_u64_le(owner_num as u64)
+    }
+
+    /// Builder pattern for test transactions.
+    #[derive(Default)]
+    struct TestTransactionBuilder {
+        inputs: Vec<Input>,
+        outputs: Vec<Output>,
+    }
+
+    impl TestTransactionBuilder {
+        fn with_input(mut self, input: Input) -> Self {
+            self.inputs.push(input);
+            self
+        }
+
+        fn with_output(mut self, output: Output) -> Self {
+            self.outputs.push(output);
+            self
+        }
+
+        fn build(self) -> Transaction {
+            Transaction {
+                inputs: self.inputs,
+                outputs: self.outputs,
+            }
+        }
+    }
+
+    /// Builds test externalities using a minimal builder pattern.
+    #[derive(Default)]
+    struct ExternalityBuilder {
+        utxos: Vec<(OutputRef, Output)>,
+        pre_header: Option<Header>,
+        noted_extrinsics: Vec<Vec<u8>>,
+    }
+
+    impl ExternalityBuilder {
+        /// Add the given Utxo to the storage.
+        ///
+        /// There are no real transactions to calculate OutputRefs so instead we
+        /// provide an output ref as a parameter. See the function `mock_output_ref`
+        /// for a convenient way to construct testing output refs.
+        fn with_utxo(
+            mut self,
+            output_ref: OutputRef,
+            payload: Coin,
+            owner: H256
+        ) -> Self {
+            let output = Output {
+                payload: payload,
+                owner: owner
+            };
+            self.utxos.push((output_ref, output));
+            self
+        }
+
+        /// Add a preheader to the storage.
+        ///
+        /// In normal execution `open_block` stores a header in storage
+        /// before any extrinsics are applied. This function allows setting up
+        /// a test case with a stored pre-header.
+        ///
+        /// Rather than passing in a header, we pass in parts of it. This ensures
+        /// that a realistic pre-header (without extrinsics root or state root)
+        /// is stored.
+        ///
+        /// Although a partial digest would be part of the pre-header, we have no
+        /// use case for setting one, so it is also omitted here.
+        fn with_pre_header(mut self, parent_hash: H256, number: u32) -> Self {
+            let h = Header {
+                parent_hash,
+                number,
+                state_root: H256::zero(),
+                extrinsics_root: H256::zero(),
+                digest: Default::default(),
+            };
+
+            self.pre_header = Some(h);
+            self
+        }
+
+        /// Add a noted extrinsic to the state.
+        ///
+        /// In normal block authoring, extrinsics are noted in state as they are
+        /// applied so that an extrinsics root can be calculated at the end of the
+        /// block. This function allows setting up a test case with some extrinsics
+        /// already noted.
+        ///
+        /// The extrinsic is already encoded so that it doesn't have to be a proper
+        /// extrinsic, but can just be some example bytes.
+        fn with_noted_extrinsic(mut self, ext: Vec<u8>) -> Self {
+            self.noted_extrinsics.push(ext);
+            self
+        }
+
+        /// Build the test externalities with all the utxos already stored
+        fn build(self) -> TestExternalities {
+            let mut ext = TestExternalities::default();
+
+            // Write all the utxos
+            for (output_ref, output) in self.utxos {
+                ext.insert(output_ref.encode(), output.encode());
+            }
+
+            // Write a pre-header. If none was supplied, create and use a default one.
+            let pre_header = self.pre_header.unwrap_or(Header {
+                parent_hash: Default::default(),
+                number: 0,
+                state_root: H256::zero(),
+                extrinsics_root: H256::zero(),
+                digest: Default::default(),
+            });
+            ext.insert(HEADER_KEY.to_vec(), pre_header.encode());
+
+            // Write a block height.
+            ext.insert(HEIGHT_KEY.to_vec(), pre_header.number.encode());
+
+            // Write the noted extrinsics
+            ext.insert(EXTRINSIC_KEY.to_vec(), self.noted_extrinsics.encode());
+
+            ext
+        }
+    }
+
+    #[test]
+    fn validate_no_inputs_fails() {
+        let tx = TestTransactionBuilder::default().build();
+        let result = Executive::validate_griffin_transaction(&tx);
+
+        assert_eq!(result, Err(UtxoError::NoInputs));
+    }
+
+    #[test]
+    fn validate_with_input_works() {
+        let output_ref = mock_output_ref(0, 0);
+        let owner = mock_owner(0);
+
+        ExternalityBuilder::default()
+            .with_utxo(output_ref.clone(), 1, owner)
+            .build()
+            .execute_with(|| {
+                let input = Input {
+                    output_ref,
+                };
+
+                let tx = TestTransactionBuilder::default()
+                    .with_input(input)
+                    .build();
+
+                let vt = Executive::validate_griffin_transaction(&tx).unwrap();
+
+                let expected_result = ValidTransactionBuilder::default().into();
+
+                assert_eq!(vt, expected_result);
+            });
+    }
+
+
+    #[test]
+    fn validate_with_input_and_output_works() {
+        let output_ref = mock_output_ref(0, 0);
+        let owner = mock_owner(0);
+
+        ExternalityBuilder::default()
+            .with_utxo(output_ref.clone(), 1, owner)
+            .build()
+            .execute_with(|| {
+                let input = Input {
+                    output_ref,
+                };
+                let output = Output {
+                    payload: 1,
+                    owner: owner,
+                };
+                let tx = TestTransactionBuilder::default()
+                    .with_input(input)
+                    .with_output(output)
+                    .build();
+
+                // This is a real transaction, so we need to calculate a real OutputRef
+                let tx_hash = BlakeTwo256::hash_of(&tx.encode());
+                let output_ref = OutputRef { tx_hash, index: 0 };
+
+                let vt = Executive::validate_griffin_transaction(&tx).unwrap();
+
+                let expected_result = ValidTransactionBuilder::default()
+                    .and_provides(output_ref)
+                    .into();
+
+                assert_eq!(vt, expected_result);
+             });
+    }
+
+    #[test]
+    fn validate_with_missing_input_works() {
+        ExternalityBuilder::default().build().execute_with(|| {
+            let output_ref = mock_output_ref(0, 0);
+            let input = Input {
+                output_ref: output_ref.clone(),
+            };
+
+            let tx = TestTransactionBuilder::default()
+                .with_input(input)
+                .build();
+
+            let vt = Executive::validate_griffin_transaction(&tx).unwrap();
+
+            let expected_result = ValidTransactionBuilder::default()
+                .and_requires(output_ref)
+                .into();
+
+            assert_eq!(vt, expected_result);
+        });
+    }
+
+    #[test]
+    fn validate_with_duplicate_input_fails() {
+        let output_ref = mock_output_ref(0, 0);
+        let owner = mock_owner(0);
+
+        ExternalityBuilder::default()
+            .with_utxo(output_ref.clone(), 1, owner)
+            .build()
+            .execute_with(|| {
+                let input = Input {
+                    output_ref,
+                };
+
+                let tx = TestTransactionBuilder::default()
+                    .with_input(input.clone())
+                    .with_input(input)
+                    .build();
+
+                let result = Executive::validate_griffin_transaction(&tx);
+
+                assert_eq!(result, Err(UtxoError::DuplicateInput));
+            });
+    }
+
+    #[test]
+    fn apply_no_inputs_fails() {
+        ExternalityBuilder::default().build().execute_with(|| {
+            let tx = TestTransactionBuilder::default().build();
+            let result = Executive::apply_griffin_transaction(tx);
+
+            assert_eq!(result, Err(UtxoError::NoInputs));
+        });
+    }
+
+    #[test]
+    fn apply_with_missing_input_fails() {
+        ExternalityBuilder::default().build().execute_with(|| {
+            let output_ref = mock_output_ref(0, 0);
+            let input = Input {
+                output_ref: output_ref.clone(),
+            };
+
+            let tx = TestTransactionBuilder::default()
+                .with_input(input)
+                .build();
+
+            let vt = Executive::apply_griffin_transaction(tx);
+
+            assert_eq!(vt, Err(UtxoError::MissingInput));
+        });
+    }
+
+    #[test]
+    fn update_storage_consumes_input() {
+        let output_ref = mock_output_ref(0, 0);
+        let owner = mock_owner(0);
+
+        ExternalityBuilder::default()
+            .with_utxo(output_ref.clone(), 1, owner)
+            .build()
+            .execute_with(|| {
+                let input = Input {
+                    output_ref: output_ref.clone(),
+                };
+
+                let tx = TestTransactionBuilder::default()
+                    .with_input(input)
+                    .build();
+
+                // Commit the tx to storage
+                Executive::update_storage(tx);
+
+                // Check whether the Input is still in storage
+                assert!(!sp_io::storage::exists(&output_ref.encode()));
+            });
+    }
+
+    #[test]
+    fn update_storage_adds_output() {
+        ExternalityBuilder::default().build().execute_with(|| {
+            let output = Output {
+                payload: 1,
+                owner: mock_owner(0),
+            };
+
+            let tx = TestTransactionBuilder::default()
+                .with_output(output.clone())
+                .build();
+
+            let tx_hash = BlakeTwo256::hash_of(&tx.encode());
+            let output_ref = OutputRef { tx_hash, index: 0 };
+
+            // Commit the tx to storage
+            Executive::update_storage(tx);
+
+            // Check whether the Output has been written to storage and the proper value is stored
+            let stored_bytes = sp_io::storage::get(&output_ref.encode()).unwrap();
+            let stored_value = Output::decode(&mut &stored_bytes[..]).unwrap();
+            assert_eq!(stored_value, output);
+        });
+    }
+
+    #[test]
+    fn open_block_works() {
+        let header = Header {
+            parent_hash: H256::repeat_byte(5),
+            number: 5,
+            state_root: H256::repeat_byte(6),
+            extrinsics_root: H256::repeat_byte(7),
+            digest: Default::default(),
+        };
+
+        ExternalityBuilder::default().build().execute_with(|| {
+            // Call open block which just writes the header to storage
+            Executive::open_block(&header);
+
+            // Fetch the header back out of storage
+            let retrieved_header = sp_io::storage::get(HEADER_KEY)
+                .and_then(|d| Header::decode(&mut &*d).ok())
+                .expect("Open block should have written a header to storage");
+
+            // Make sure the header that came out is the same one that went in.
+            assert_eq!(retrieved_header, header);
+        });
+    }
+
+    #[test]
+    fn apply_valid_extrinsic_work() {
+        let output_ref = mock_output_ref(0, 0);
+        let owner = mock_owner(0);
+
+        ExternalityBuilder::default()
+            .with_utxo(output_ref.clone(), 1, owner)
+            .build()
+            .execute_with(|| {
+                let input = Input {
+                    output_ref,
+                };
+                
+                let tx = TestTransactionBuilder::default()
+                    .with_input(input)
+                    .build();
+
+                let apply_result = Executive::apply_extrinsic(tx.clone());
+
+                // Make sure the returned result is Ok
+                assert_eq!(apply_result, Ok(Ok(())));
+
+                // Make sure the transaction is noted in storage
+                let noted_extrinsics = sp_io::storage::get(EXTRINSIC_KEY)
+                    .and_then(|d| <Vec<Vec<u8>>>::decode(&mut &*d).ok())
+                    .unwrap_or_default();
+
+                assert_eq!(noted_extrinsics, vec![tx.encode()]);
+            });
+    }
+
+    #[test]
+    fn close_block_works() {
+        let parent_hash = H256::repeat_byte(5);
+        let block_number = 6;
+        let extrinsic = vec![1, 2, 3];
+        ExternalityBuilder::default()
+            .with_pre_header(parent_hash, block_number)
+            .with_noted_extrinsic(extrinsic.clone())
+            .build()
+            .execute_with(|| {
+                let returned_header = Executive::close_block();
+
+                // Make sure the header is as we expected
+                let raw_state_root = &sp_io::storage::root(StateVersion::V1)[..];
+                let state_root = H256::decode(&mut &raw_state_root[..]).unwrap();
+                let expected_header = Header {
+                    parent_hash,
+                    number: block_number,
+                    state_root,
+                    extrinsics_root: BlakeTwo256::ordered_trie_root(
+                        vec![extrinsic],
+                        StateVersion::V0,
+                    ),
+                    digest: Default::default(),
+                };
+
+                assert_eq!(returned_header, expected_header);
+
+                // Make sure the transient storage has been removed
+                assert!(!sp_io::storage::exists(HEADER_KEY));
+                assert!(!sp_io::storage::exists(EXTRINSIC_KEY));
+            });
+    }
+
+    #[test]
+    fn execute_empty_block_works() {
+        ExternalityBuilder::default().build().execute_with(|| {
+            let b = Block {
+                header: Header {
+                    parent_hash: H256::zero(),
+                    number: 6,
+                    state_root: array_bytes::hex_n_into_unchecked(
+                        "cc2d78f5977b6e9e16f4417f60cbd7edaad0c39a6a7cd21281e847da7dd210b9",
+                    ),
+                    extrinsics_root: array_bytes::hex_n_into_unchecked(
+                        "03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314",
+                    ),
+                    digest: Default::default(),
+                },
+                extrinsics: Vec::new(),
+            };
+
+            Executive::execute_block(b);
+        });
+    }
+
+    #[test]
+    fn execute_block_with_transaction_works() {
+        let output_ref = mock_output_ref(0, 0);
+        let owner = mock_owner(0);
+
+        ExternalityBuilder::default()
+            .with_utxo(output_ref.clone(), 1, owner)
+            .build()
+            .execute_with(|| {
+                let input = Input {
+                    output_ref,
+                };
+
+                let b = Block {
+                    header: Header {
+                        parent_hash: H256::zero(),
+                        number: 6,
+                        state_root: array_bytes::hex_n_into_unchecked(
+                            "cc2d78f5977b6e9e16f4417f60cbd7edaad0c39a6a7cd21281e847da7dd210b9",
+                        ),
+                        extrinsics_root: array_bytes::hex_n_into_unchecked(
+                            "aaf645b6a9d8daa189db456a7bfc42a955e95dd5ddcb4d2549d96b532ec50328",
+                        ),
+                        digest: Default::default(),
+                    },
+                    extrinsics: vec![TestTransactionBuilder::default().with_input(input).build()],
+                };
+
+                Executive::execute_block(b);
+            });
+    }
+
+    #[test]
+    #[should_panic(expected = "state root mismatch")]
+    fn execute_block_state_root_mismatch() {
+        ExternalityBuilder::default().build().execute_with(|| {
+            let b = Block {
+                header: Header {
+                    parent_hash: H256::zero(),
+                    number: 6,
+                    state_root: H256::zero(),
+                    extrinsics_root: array_bytes::hex_n_into_unchecked(
+                        "03170a2e7597b7b7e3d84c05391d139a62b157e78786d8c082f29dcf4c111314",
+                    ),
+                    digest: Default::default(),
+                },
+                extrinsics: Vec::new(),
+            };
+
+            Executive::execute_block(b);
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "extrinsics root mismatch")]
+    fn execute_block_extrinsics_root_mismatch() {
+        ExternalityBuilder::default().build().execute_with(|| {
+            let b = Block {
+                header: Header {
+                    parent_hash: H256::zero(),
+                    number: 6,
+                    state_root: array_bytes::hex_n_into_unchecked(
+                        "cc2d78f5977b6e9e16f4417f60cbd7edaad0c39a6a7cd21281e847da7dd210b9",
+                    ),
+                    extrinsics_root: H256::zero(),
+                    digest: Default::default(),
+                },
+                extrinsics: Vec::new(),
+            };
+
+            Executive::execute_block(b);
+        });
+    }
+}
