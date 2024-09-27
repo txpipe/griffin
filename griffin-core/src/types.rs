@@ -7,8 +7,10 @@ use sp_runtime::{
     traits::{BlakeTwo256, Extrinsic, Hash as HashT},
     transaction_validity::InvalidTransaction,
 };
-use alloc::vec::Vec;
-use core::fmt;
+use alloc::{vec::Vec, string::ToString};
+use core::{fmt, str::FromStr};
+use pallas_crypto::hash::Hash as PallasHash;
+use hex::FromHex;
 
 pub type Coin = u64;
 
@@ -31,18 +33,62 @@ pub struct OutputRef {
     pub index: u32,
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone, TypeInfo)]
+impl<'b, C> minicbor::decode::Decode<'b, C> for OutputRef {
+    fn decode(
+        d: &mut minicbor::Decoder<'b>, ctx: &mut C
+    ) -> Result<Self, minicbor::decode::Error> {
+        d.tag()?;
+        d.array()?;
+
+        let tx_hash32: PallasHash::<32> = d.decode_with(ctx)?;
+        Ok(OutputRef {
+            // FIXME: Find a neater way to do this.
+            tx_hash: H256::from_slice(&<[u8; 32]>::from_hex(tx_hash32.to_string()).unwrap()),
+            index: d.u32()?,
+        })
+    }
+}
+
+impl<C> minicbor::encode::Encode<C> for OutputRef {
+    fn encode<W: minicbor::encode::Write>(
+        &self,
+        e: &mut minicbor::Encoder<W>,
+        ctx: &mut C,
+    ) -> Result<(), minicbor::encode::Error<W::Error>> {
+        e.array(2)?;
+
+        // FIXME: Find a neater way to do this.
+        let tx_hash32 = PallasHash::<32>::from_str(&self.tx_hash.to_string()[..]).unwrap();
+        e.encode_with(tx_hash32, ctx)?;
+        e.u32(self.index)?;
+        
+        Ok(())
+    }
+}
+
+
+/// Bytes of a Cardano witness set.
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, Default)]
+pub struct WitnessSet(pub Vec<u8>);
+
+#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
 pub struct Transaction {
+    #[n(0)]
     pub inputs: Vec<Input>,
+
+    #[n(1)]
     pub outputs: Vec<Output>,
+
+    // #[n(2)]
+    // pub transaction_witness_set: WitnessSet,
 }
 
 // Manually implement Encode and Decode for the Transaction type
 // so that its encoding is the same as an opaque Vec<u8>.
 impl Encode for Transaction {
     fn encode_to<T: parity_scale_codec::Output + ?Sized>(&self, dest: &mut T) {
-        let inputs = self.inputs.encode();
-        let outputs = self.outputs.encode();
+        let inputs = parity_scale_codec::Encode::encode(&self.inputs);
+        let outputs = parity_scale_codec::Encode::encode(&self.outputs);
 
         let total_len = (inputs.len() + outputs.len()) as u32;
         let size = parity_scale_codec::Compact::<u32>(total_len).encode();
@@ -60,8 +106,8 @@ impl Decode for Transaction {
         // Throw away the length of the vec. We just want the bytes.
         <parity_scale_codec::Compact<u32>>::skip(input)?;
 
-        let inputs = <Vec<Input>>::decode(input)?;
-        let outputs = <Vec<Output>>::decode(input)?;
+        let inputs = <Vec<Input> as parity_scale_codec::Decode>::decode(input)?;
+        let outputs = <Vec<Output> as parity_scale_codec::Decode>::decode(input)?;
 
         Ok(Transaction { inputs, outputs })
     }
@@ -85,9 +131,10 @@ impl Extrinsic for Transaction {
 }
 
 /// A reference to a utxo that will be consumed.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
 pub struct Input {
     /// a reference to the output being consumed
+    #[n(0)]
     pub output_ref: OutputRef,
 }
 
@@ -118,8 +165,8 @@ impl From<UtxoError> for InvalidTransaction {
 pub type DispatchResult = Result<(), UtxoError>;
 
 /// Bytes of the Plutus Data.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
-pub struct Datum(pub Vec<u8>);
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
+pub struct Datum(#[n(0)] pub Vec<u8>);
 
 /// Fake data to be decoded from the Datum.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
@@ -132,14 +179,19 @@ pub enum FakeDatum {
 }
 
 /// Bytes of a Cardano address.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
-pub struct Address(pub Vec<u8>);
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
+pub struct Address(#[n(0)] pub Vec<u8>);
 
 /// An opaque piece of Transaction output data. This is how the data appears at the Runtime level.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
 pub struct Output {
+    #[n(0)]
     pub address: Address,
+
+    #[n(1)]
     pub value: Coin,
+
+    #[n(2)]
     pub datum_option: Option<Datum>,
 }
 

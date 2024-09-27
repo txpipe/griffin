@@ -35,6 +35,7 @@ sp-genesis-builder = { default-features = false, workspace = true }
 
 pallas-primitives.workspace = true
 pallas-codec.workspace = true
+pallas-crypto.workspace = true
 hex.workspace = true
 
 [features]

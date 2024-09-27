@@ -2677,6 +2677,7 @@ dependencies = [
  "hex",
  "log",
  "pallas-codec",
+ "pallas-crypto",
  "pallas-primitives",
  "parity-scale-codec",
  "parity-util-mem",

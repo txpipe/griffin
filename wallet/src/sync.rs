@@ -177,7 +177,7 @@ pub(crate) fn get_unspent(
         return Ok(None);
     };
 
-    Ok(Some(<(Address, Coin, Option<Datum>)>::decode(&mut &ivec[..])?))
+    Ok(Some(<(Address, Coin, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &ivec[..])?))
 }
 
 /// Gets the block hash from the local database given a block height. Similar the Node's RPC.
@@ -228,7 +228,7 @@ async fn apply_transaction(
     log::debug!("syncing transaction {tx_hash:?}");
 
     // Now get a structured transaction
-    let tx = Transaction::decode(&mut &encoded_extrinsic[..])?;
+    let tx = <Transaction as parity_scale_codec::Decode>::decode(&mut &encoded_extrinsic[..])?;
 
     // Insert all new outputs
     for (index, output) in tx.outputs.iter().enumerate() {
@@ -276,7 +276,7 @@ fn spend_output(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
     let Some(ivec) = unspent_tree.remove(output_ref.encode())? else {
         return Ok(());
     };
-    let (owner, amount, datum_option) = <(Address, Coin, Option<Datum>)>::decode(&mut &ivec[..])?;
+    let (owner, amount, datum_option) = <(Address, Coin, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &ivec[..])?;
     spent_tree.insert(output_ref.encode(), (owner, amount, datum_option).encode())?;
 
     Ok(())
@@ -290,7 +290,7 @@ fn unspend_output(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
     let Some(ivec) = spent_tree.remove(output_ref.encode())? else {
         return Ok(());
     };
-    let (owner, amount, datum_option) = <(Address, Coin, Option<Datum>)>::decode(&mut &ivec[..])?;
+    let (owner, amount, datum_option) = <(Address, Coin, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &ivec[..])?;
     unspent_tree.insert(output_ref.encode(), (owner, amount, datum_option).encode())?;
 
     Ok(())
@@ -300,7 +300,7 @@ fn unspend_output(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
 /// as unspent, and drop all of the outputs.
 fn unapply_transaction(db: &Db, tx: &OpaqueExtrinsic) -> anyhow::Result<()> {
     // We need to decode the opaque extrinsics. So we do a scale round-trip.
-    let tx = Transaction::decode(&mut &tx.encode()[..])?;
+    let tx = <Transaction as parity_scale_codec::Decode>::decode(&mut &tx.encode()[..])?;
 
     // Loop through the inputs moving each from spent to unspent
     for Input { output_ref, .. } in &tx.inputs {
@@ -375,7 +375,7 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
         let (output_ref_ivec, owner_amount_datum_ivec) = x?;
         let output_ref = hex::encode(output_ref_ivec);
         let (owner_pubkey, amount, datum_option) =
-            <(Address, Coin, Option<Datum>)>::decode(&mut &owner_amount_datum_ivec[..])?;
+            <(Address, Coin, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &owner_amount_datum_ivec[..])?;
         let fake_option: Option<FakeDatum> = match datum_option {
             None => None,
             Some(d) => MiniDecode::decode(&mut MiniDecoder::new(d.0.as_slice()), &mut ()).unwrap(),
@@ -397,7 +397,7 @@ pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (Addr
     for raw_data in wallet_unspent_tree.iter() {
         let (_ , owner_amount_datum_ivec) = raw_data?;
         let (owner, amount, _) =
-            <(Address, Coin, Option<Datum>)>::decode(&mut &owner_amount_datum_ivec[..])?;
+            <(Address, Coin, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &owner_amount_datum_ivec[..])?;
 
         balances
             .entry(owner)
