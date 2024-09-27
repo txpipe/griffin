@@ -19,10 +19,10 @@ pub async fn mint_coins(
 ) -> anyhow::Result<()> {
     log::debug!("The args are:: {:?}", args);
 
-    let mut transaction: griffin_core::types::Transaction = Transaction {
-        inputs: Vec::new(),
-        outputs: vec![Output::from((args.recipient, args.amount))],
-    };
+    let mut transaction = Transaction::from((
+            Vec::new(),
+            vec![Output::from((args.recipient, args.amount))]
+    ));
   
     // The input appears as a new output.
     let utxo = fetch_storage(&args.input, client).await?;
@@ -64,10 +64,7 @@ pub async fn spend_coins(
     log::debug!("The args are:: {:?}", args);
 
     // Construct a template Transaction to push coins into later
-    let mut transaction: Transaction = Transaction {
-        inputs: Vec::new(),
-        outputs: Vec::new(),
-    };
+    let mut transaction = Transaction::from((Vec::new(), Vec::new()));
 
     // Construct each output and then push to the transaction
     let mut total_amount: u64 = 0;

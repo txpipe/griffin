@@ -36,12 +36,7 @@ pub fn development_genesis_transactions() -> Vec<Transaction> {
         Datum::from(datum.clone()),
     ));
 
-    vec![
-        Transaction {
-            inputs: vec![],
-            outputs: vec![output],
-        }
-    ]
+    vec![Transaction::from((vec![], vec![output]))]
 }
 
 pub fn development_genesis_config() -> serde_json::Value {

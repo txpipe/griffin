@@ -68,8 +68,8 @@ impl<C> minicbor::encode::Encode<C> for OutputRef {
 
 
 /// Bytes of a Cardano witness set.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, Default)]
-pub struct WitnessSet(pub Vec<u8>);
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, Default, MiniEncode, MiniDecode)]
+pub struct WitnessSet(#[n(0)] pub Vec<u8>);
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
 pub struct Transaction {
@@ -79,8 +79,8 @@ pub struct Transaction {
     #[n(1)]
     pub outputs: Vec<Output>,
 
-    // #[n(2)]
-    // pub transaction_witness_set: WitnessSet,
+    #[n(2)]
+    pub transaction_witness_set: WitnessSet,
 }
 
 // Manually implement Encode and Decode for the Transaction type
@@ -108,8 +108,9 @@ impl Decode for Transaction {
 
         let inputs = <Vec<Input> as parity_scale_codec::Decode>::decode(input)?;
         let outputs = <Vec<Output> as parity_scale_codec::Decode>::decode(input)?;
+        let transaction_witness_set = <WitnessSet as parity_scale_codec::Decode>::decode(input)?;
 
-        Ok(Transaction { inputs, outputs })
+        Ok(Transaction { inputs, outputs, transaction_witness_set })
     }
 }
 
@@ -216,5 +217,15 @@ impl From<(Address, Coin, Datum)> for Output {
 impl From<Vec<u8>> for Datum {
     fn from(bytes: Vec<u8>) -> Self {
         Self(bytes)
+    }
+}
+
+impl From<(Vec<Input>, Vec<Output>)> for Transaction {
+    fn from(i_o: (Vec<Input>, Vec<Output>)) -> Self {
+        Self {
+            inputs: i_o.0,
+            outputs: i_o.1,
+            transaction_witness_set: WitnessSet::default(),
+        }
     }
 }
