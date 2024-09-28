@@ -89,13 +89,15 @@ impl Encode for Transaction {
     fn encode_to<T: parity_scale_codec::Output + ?Sized>(&self, dest: &mut T) {
         let inputs = parity_scale_codec::Encode::encode(&self.inputs);
         let outputs = parity_scale_codec::Encode::encode(&self.outputs);
+        let transaction_witness_set = parity_scale_codec::Encode::encode(&self.transaction_witness_set);
 
-        let total_len = (inputs.len() + outputs.len()) as u32;
+        let total_len = (inputs.len() + outputs.len() + transaction_witness_set.len()) as u32;
         let size = parity_scale_codec::Compact::<u32>(total_len).encode();
 
         dest.write(&size);
         dest.write(&inputs);
         dest.write(&outputs);
+        dest.write(&transaction_witness_set);
     }
 }
 
