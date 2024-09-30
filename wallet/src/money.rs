@@ -26,8 +26,8 @@ pub async fn mint_coins(
   
     // The input appears as a new output.
     let utxo = fetch_storage(&args.input, client).await?;
-    transaction.inputs.push(args.input.clone());
-    transaction.outputs.push(utxo);
+    transaction.transaction_body.inputs.push(args.input.clone());
+    transaction.transaction_body.outputs.push(utxo);
     
     let encoded_tx = hex::encode(transaction.encode());
     let params = rpc_params![encoded_tx];
@@ -42,7 +42,7 @@ pub async fn mint_coins(
         tx_hash: <BlakeTwo256 as Hash>::hash_of(&transaction.encode()),
         index: 0,
     };
-    let output = &transaction.outputs[0];
+    let output = &transaction.transaction_body.outputs[0];
     let amount = output.value;
     println!(
         "Minted {:?} worth {amount}. ",
@@ -69,7 +69,7 @@ pub async fn spend_coins(
     for amount in &args.amount {
         let output = Output::from((args.recipient.clone(), *amount));
         total_amount += *amount;
-        transaction.outputs.push(output);
+        transaction.transaction_body.outputs.push(output);
     }
 
     // The total input set will consist of any manually chosen inputs
@@ -92,7 +92,7 @@ pub async fn spend_coins(
     // and then push to transaction.
     for input in &args.input {
         get_coin_from_storage(input, client).await?;
-        transaction.inputs.push(input.clone());
+        transaction.transaction_body.inputs.push(input.clone());
     }
 
     log::debug!("signed transactions is: {:#?}", transaction);
@@ -109,7 +109,7 @@ pub async fn spend_coins(
 
     // Print new output refs for user to check later
     let tx_hash = <BlakeTwo256 as Hash>::hash_of(&transaction.encode());
-    for (i, output) in transaction.outputs.iter().enumerate() {
+    for (i, output) in transaction.transaction_body.outputs.iter().enumerate() {
         let new_coin_ref = Input {
             tx_hash,
             index: i as u32,

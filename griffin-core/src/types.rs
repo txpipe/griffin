@@ -66,6 +66,14 @@ impl<C> minicbor::encode::Encode<C> for Input {
     }
 }
 
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, MiniEncode, MiniDecode)]
+pub struct TransactionBody {
+    #[n(0)]
+    pub inputs: Vec<Input>,
+
+    #[n(1)]
+    pub outputs: Vec<Output>,
+}
 
 /// Bytes of a Cardano witness set.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, Default, MiniEncode, MiniDecode)]
@@ -74,12 +82,9 @@ pub struct WitnessSet(#[n(0)] pub Vec<u8>);
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
 pub struct Transaction {
     #[n(0)]
-    pub inputs: Vec<Input>,
+    pub transaction_body: TransactionBody,
 
     #[n(1)]
-    pub outputs: Vec<Output>,
-
-    #[n(2)]
     pub transaction_witness_set: WitnessSet,
 }
 
@@ -87,16 +92,14 @@ pub struct Transaction {
 // so that its encoding is the same as an opaque Vec<u8>.
 impl Encode for Transaction {
     fn encode_to<T: parity_scale_codec::Output + ?Sized>(&self, dest: &mut T) {
-        let inputs = parity_scale_codec::Encode::encode(&self.inputs);
-        let outputs = parity_scale_codec::Encode::encode(&self.outputs);
+        let transaction_body = parity_scale_codec::Encode::encode(&self.transaction_body);
         let transaction_witness_set = parity_scale_codec::Encode::encode(&self.transaction_witness_set);
 
-        let total_len = (inputs.len() + outputs.len() + transaction_witness_set.len()) as u32;
+        let total_len = (transaction_body.len() + transaction_witness_set.len()) as u32;
         let size = parity_scale_codec::Compact::<u32>(total_len).encode();
 
         dest.write(&size);
-        dest.write(&inputs);
-        dest.write(&outputs);
+        dest.write(&transaction_body);
         dest.write(&transaction_witness_set);
     }
 }
@@ -108,11 +111,10 @@ impl Decode for Transaction {
         // Throw away the length of the vec. We just want the bytes.
         <parity_scale_codec::Compact<u32>>::skip(input)?;
 
-        let inputs = <Vec<Input> as parity_scale_codec::Decode>::decode(input)?;
-        let outputs = <Vec<Output> as parity_scale_codec::Decode>::decode(input)?;
+        let transaction_body = <TransactionBody as parity_scale_codec::Decode>::decode(input)?;
         let transaction_witness_set = <WitnessSet as parity_scale_codec::Decode>::decode(input)?;
 
-        Ok(Transaction { inputs, outputs, transaction_witness_set })
+        Ok(Transaction { transaction_body, transaction_witness_set })
     }
 }
 
@@ -217,8 +219,11 @@ impl From<Vec<u8>> for Datum {
 impl From<(Vec<Input>, Vec<Output>)> for Transaction {
     fn from(i_o: (Vec<Input>, Vec<Output>)) -> Self {
         Self {
-            inputs: i_o.0,
-            outputs: i_o.1,
+            transaction_body: TransactionBody
+            {
+                inputs: i_o.0,
+                outputs: i_o.1,
+            },
             transaction_witness_set: WitnessSet::default(),
         }
     }

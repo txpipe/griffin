@@ -231,13 +231,13 @@ async fn apply_transaction(
     let tx = <Transaction as parity_scale_codec::Decode>::decode(&mut &encoded_extrinsic[..])?;
 
     // Insert all new outputs
-    for (index, output) in tx.outputs.iter().enumerate() {
+    for (index, output) in tx.transaction_body.outputs.iter().enumerate() {
         crate::money::apply_transaction(db, tx_hash, index as u32, output)?;
     }
 
     log::debug!("about to spend all inputs");
     // Spend all the inputs
-    for input in tx.inputs {
+    for input in tx.transaction_body.inputs {
         spend_output(db, &input)?;
     }
 
@@ -303,14 +303,14 @@ fn unapply_transaction(db: &Db, tx: &OpaqueExtrinsic) -> anyhow::Result<()> {
     let tx = <Transaction as parity_scale_codec::Decode>::decode(&mut &tx.encode()[..])?;
 
     // Loop through the inputs moving each from spent to unspent
-    for input in &tx.inputs {
+    for input in &tx.transaction_body.inputs {
         unspend_output(db, input)?;
     }
 
     // Loop through the outputs pruning them from unspent and dropping all record
     let tx_hash = BlakeTwo256::hash_of(&tx.encode());
 
-    for i in 0..tx.outputs.len() {
+    for i in 0..tx.transaction_body.outputs.len() {
         let input = Input {
             tx_hash,
             index: i as u32,

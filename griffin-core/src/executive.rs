@@ -48,20 +48,20 @@ where
         );
 
         // There must be at least one input
-        ensure!(!transaction.inputs.is_empty(), UtxoError::NoInputs);
+        ensure!(!transaction.transaction_body.inputs.is_empty(), UtxoError::NoInputs);
 
         // Make sure there are no duplicate inputs
         {
-            let input_set: BTreeSet<_> = transaction.inputs.iter().map(|o| o.encode()).collect();
+            let input_set: BTreeSet<_> = transaction.transaction_body.inputs.iter().map(|o| o.encode()).collect();
             ensure!(
-                input_set.len() == transaction.inputs.len(),
+                input_set.len() == transaction.transaction_body.inputs.len(),
                 UtxoError::DuplicateInput
             );
         }
 
         // Keep track of any missing inputs for use in the tagged transaction pool
         let mut missing_inputs = Vec::new();
-        for input in transaction.inputs.iter() {
+        for input in transaction.transaction_body.inputs.iter() {
             if None == TransparentUtxoSet::peek_utxo(&input) {
                 missing_inputs.push(input.clone().encode());
             }
@@ -69,7 +69,7 @@ where
 
         // Make sure no outputs already exist in storage
         let tx_hash = BlakeTwo256::hash_of(&transaction.encode());
-        for index in 0..transaction.outputs.len() {
+        for index in 0..transaction.transaction_body.outputs.len() {
             let input = Input {
                 tx_hash,
                 index: index as u32,
@@ -88,7 +88,7 @@ where
 
         // Calculate the tx-pool tags provided by this transaction, which
         // are just the encoded Inputs
-        let provides = (0..transaction.outputs.len())
+        let provides = (0..transaction.transaction_body.outputs.len())
             .map(|i| {
                 let input = Input {
                     tx_hash,
@@ -155,7 +155,7 @@ where
     /// blindly to storage.
     fn update_storage(transaction: Transaction) {
         // Remove verified UTXOs
-        for input in &transaction.inputs {
+        for input in &transaction.transaction_body.inputs {
             TransparentUtxoSet::consume_utxo(&input);
         }
 
@@ -164,7 +164,7 @@ where
             "Transaction before updating storage {:?}", transaction
         );
         // Write the newly created utxos
-        for (index, output) in transaction.outputs.iter().enumerate() {
+        for (index, output) in transaction.transaction_body.outputs.iter().enumerate() {
             let input = Input {
                 tx_hash: BlakeTwo256::hash_of(&transaction.encode()),
                 index: index as u32,
