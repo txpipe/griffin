@@ -7,7 +7,7 @@
 
 use crate::{
     ensure,
-    types::{Block, BlockNumber, DispatchResult, Header, OutputRef, Transaction, UtxoError},
+    types::{Block, BlockNumber, DispatchResult, Header, Input, Transaction, UtxoError},
     utxo_set::TransparentUtxoSet,
     EXTRINSIC_KEY,
     HEADER_KEY,
@@ -62,39 +62,39 @@ where
         // Keep track of any missing inputs for use in the tagged transaction pool
         let mut missing_inputs = Vec::new();
         for input in transaction.inputs.iter() {
-            if None == TransparentUtxoSet::peek_utxo(&input.output_ref) {
-                missing_inputs.push(input.output_ref.clone().encode());
+            if None == TransparentUtxoSet::peek_utxo(&input) {
+                missing_inputs.push(input.clone().encode());
             }
         }
 
         // Make sure no outputs already exist in storage
         let tx_hash = BlakeTwo256::hash_of(&transaction.encode());
         for index in 0..transaction.outputs.len() {
-            let output_ref = OutputRef {
+            let input = Input {
                 tx_hash,
                 index: index as u32,
             };
 
             debug!(
                 target: LOG_TARGET,
-                "Checking for pre-existing output {:?}", output_ref
+                "Checking for pre-existing output {:?}", input
             );
 
             ensure!(
-                TransparentUtxoSet::peek_utxo(&output_ref).is_none(),
+                TransparentUtxoSet::peek_utxo(&input).is_none(),
                 UtxoError::PreExistingOutput
             );
         }
 
         // Calculate the tx-pool tags provided by this transaction, which
-        // are just the encoded OutputRefs
+        // are just the encoded Inputs
         let provides = (0..transaction.outputs.len())
             .map(|i| {
-                let output_ref = OutputRef {
+                let input = Input {
                     tx_hash,
                     index: i as u32,
                 };
-                output_ref.encode()
+                input.encode()
             })
             .collect::<Vec<_>>();
 
@@ -156,7 +156,7 @@ where
     fn update_storage(transaction: Transaction) {
         // Remove verified UTXOs
         for input in &transaction.inputs {
-            TransparentUtxoSet::consume_utxo(&input.output_ref);
+            TransparentUtxoSet::consume_utxo(&input);
         }
 
         debug!(
@@ -165,11 +165,11 @@ where
         );
         // Write the newly created utxos
         for (index, output) in transaction.outputs.iter().enumerate() {
-            let output_ref = OutputRef {
+            let input = Input {
                 tx_hash: BlakeTwo256::hash_of(&transaction.encode()),
                 index: index as u32,
             };
-            TransparentUtxoSet::store_utxo(output_ref, output);
+            TransparentUtxoSet::store_utxo(input, output);
         }
     }
 

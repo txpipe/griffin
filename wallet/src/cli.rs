@@ -3,9 +3,9 @@
 use std::path::PathBuf;
 
 use clap::{ArgAction::Append, Args, Parser, Subcommand};
-use griffin_core::types::{Coin, OutputRef, Address};
+use griffin_core::types::{Coin, Input, Address};
 use crate::{
-    output_ref_from_string,
+    input_from_string,
     DEFAULT_ENDPOINT,
     address_from_string,
 };
@@ -63,8 +63,8 @@ pub enum Command {
     #[command(verbatim_doc_comment)]
     VerifyCoin {
         /// A hex-encoded output reference
-        #[arg(value_parser = output_ref_from_string)]
-        output_ref: OutputRef,
+        #[arg(value_parser = input_from_string)]
+        input: Input,
     },
 
     /// Spend some coins.
@@ -108,8 +108,8 @@ pub enum Command {
 #[derive(Debug, Args)]
 pub struct MintCoinArgs {
     /// An input to be consumed by this transaction.
-    #[arg(long, short, verbatim_doc_comment, value_parser = output_ref_from_string)]
-    pub input: OutputRef,
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string)]
+    pub input: Input,
 
     /// Pass the amount to be minted.
     #[arg(long, short, verbatim_doc_comment, action = Append,default_value = DEFAULT_MINT_VALUE)]
@@ -123,8 +123,8 @@ pub struct MintCoinArgs {
 #[derive(Debug, Args)]
 pub struct SpendArgs {
     /// An input to be consumed by this transaction. This argument may be specified multiple times.
-    #[arg(long, short, verbatim_doc_comment, value_parser = output_ref_from_string, required = true)]
-    pub input: Vec<OutputRef>,
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true)]
+    pub input: Vec<Input>,
 
     /// Hex encoded address (sr25519 pubkey) of the recipient.
     #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_PUB_KEY)]

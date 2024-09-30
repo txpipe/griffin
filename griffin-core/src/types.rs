@@ -24,16 +24,16 @@ pub type Block = sp_runtime::generic::Block<Header, Transaction>;
 /// Opaque block type. It has a Griffin header, and opaque transactions.
 pub type OpaqueBlock = sp_runtime::generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
 
-/// A reference to an output that is expected to exist in the state.
+/// A reference to a utxo that will be consumed.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
-pub struct OutputRef {
+pub struct Input {
     /// A hash of the transaction that created this output
     pub tx_hash: H256,
     /// The index of this output among all outputs created by the same transaction
     pub index: u32,
 }
 
-impl<'b, C> minicbor::decode::Decode<'b, C> for OutputRef {
+impl<'b, C> minicbor::decode::Decode<'b, C> for Input {
     fn decode(
         d: &mut minicbor::Decoder<'b>, ctx: &mut C
     ) -> Result<Self, minicbor::decode::Error> {
@@ -41,7 +41,7 @@ impl<'b, C> minicbor::decode::Decode<'b, C> for OutputRef {
         d.array()?;
 
         let tx_hash32: PallasHash::<32> = d.decode_with(ctx)?;
-        Ok(OutputRef {
+        Ok(Input {
             // FIXME: Find a neater way to do this.
             tx_hash: H256::from_slice(&<[u8; 32]>::from_hex(tx_hash32.to_string()).unwrap()),
             index: d.u32()?,
@@ -49,7 +49,7 @@ impl<'b, C> minicbor::decode::Decode<'b, C> for OutputRef {
     }
 }
 
-impl<C> minicbor::encode::Encode<C> for OutputRef {
+impl<C> minicbor::encode::Encode<C> for Input {
     fn encode<W: minicbor::encode::Write>(
         &self,
         e: &mut minicbor::Encoder<W>,
@@ -131,14 +131,6 @@ impl Extrinsic for Transaction {
     fn is_signed(&self) -> Option<bool> {
         None
     }
-}
-
-/// A reference to a utxo that will be consumed.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
-pub struct Input {
-    /// a reference to the output being consumed
-    #[n(0)]
-    pub output_ref: OutputRef,
 }
 
 #[derive(Debug, PartialEq, Eq)]

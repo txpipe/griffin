@@ -2,7 +2,7 @@
 
 use crate::{
     ensure,
-    types::{OutputRef, Transaction},
+    types::{Input, Transaction},
     EXTRINSIC_KEY,
 };
 use parity_scale_codec::Encode;
@@ -30,11 +30,11 @@ where
             // Insert the outputs into the storage.
             let tx_hash = sp_runtime::traits::BlakeTwo256::hash_of(&tx.encode());
             for (index, utxo) in tx.outputs.iter().enumerate() {
-                let output_ref = OutputRef {
+                let input = Input {
                     tx_hash,
                     index: index as u32,
                 };
-                sp_io::storage::set(&output_ref.encode(), &utxo.encode());
+                sp_io::storage::set(&input.encode(), &utxo.encode());
             }
         }
 

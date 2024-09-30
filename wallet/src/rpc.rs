@@ -6,7 +6,7 @@ use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 use griffin_core::{
-    types::{OpaqueBlock, Output, OutputRef},
+    types::{OpaqueBlock, Output, Input},
 
 };
 
@@ -36,9 +36,9 @@ pub async fn node_get_block(
     Ok(Some(opaque_block))
 }
 
-/// Fetch an output from chain storage given an OutputRef
-pub async fn fetch_storage(output_ref: &OutputRef, client: &HttpClient) -> anyhow::Result<Output> {
-    let ref_hex = hex::encode(output_ref.encode());
+/// Fetch an output from chain storage given an Input
+pub async fn fetch_storage(input: &Input, client: &HttpClient) -> anyhow::Result<Output> {
+    let ref_hex = hex::encode(input.encode());
     let params = rpc_params![ref_hex];
     let rpc_response: Result<Option<String>, _> = client.request("state_getStorage", params).await;
 

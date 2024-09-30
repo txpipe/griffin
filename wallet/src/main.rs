@@ -5,7 +5,7 @@ use jsonrpsee::http_client::HttpClientBuilder;
 use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 use std::path::PathBuf;
-use griffin_core::types::{OutputRef, Address};
+use griffin_core::types::{Input, Address};
 
 mod cli;
 mod keystore;
@@ -95,15 +95,15 @@ async fn main() -> anyhow::Result<()> {
         Some(Command::MintCoins(args)) => {
             money::mint_coins(&client, args).await
         }
-        Some(Command::VerifyCoin { output_ref }) => {
-            println!("Details of coin {}:", hex::encode(output_ref.encode()));
+        Some(Command::VerifyCoin { input }) => {
+            println!("Details of coin {}:", hex::encode(input.encode()));
 
             // Print the details from storage
-            let coin_from_storage = money::get_coin_from_storage(&output_ref, &client).await?;
+            let coin_from_storage = money::get_coin_from_storage(&input, &client).await?;
             print!("Found in storage.  Value: {:?}, ", coin_from_storage);
 
             // Print the details from the local db
-            match sync::get_unspent(&db, &output_ref)? {
+            match sync::get_unspent(&db, &input)? {
                 Some((owner, amount, _)) => {
                     println!("Found in local db. Value: {amount}, owned by {owner}");
                 }
@@ -211,12 +211,12 @@ pub(crate) fn address_from_string(s: &str) -> anyhow::Result<Address> {
 // }
 
 /// Parse an output ref from a string
-fn output_ref_from_string(s: &str) -> Result<OutputRef, clap::Error> {
+fn input_from_string(s: &str) -> Result<Input, clap::Error> {
     let s = strip_0x_prefix(s);
     let bytes =
         hex::decode(s).map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
 
-    OutputRef::decode(&mut &bytes[..])
+    Input::decode(&mut &bytes[..])
         .map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))
 }
 

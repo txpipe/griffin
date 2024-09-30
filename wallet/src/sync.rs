@@ -8,8 +8,8 @@
 //! There are 4 tables in the database
 //! BlockHashes     block_number:u32 => block_hash:H256
 //! Blocks          block_hash:H256 => block:Block
-//! UnspentOutputs  output_ref => (owner_pubkey, amount, datum_option)
-//! SpentOutputs    output_ref => (owner_pubkey, amount, datum_option)
+//! UnspentOutputs  input => (owner_pubkey, amount, datum_option)
+//! SpentOutputs    input => (owner_pubkey, amount, datum_option)
 
 use std::path::PathBuf;
 
@@ -24,7 +24,7 @@ use sp_runtime::{
     OpaqueExtrinsic,
 };
 use griffin_core::types::{
-    Transaction, Coin, Input, OpaqueBlock, OutputRef, Address, Datum, FakeDatum
+    Transaction, Coin, Input, OpaqueBlock, Address, Datum, FakeDatum
 };
 use jsonrpsee::http_client::HttpClient;
 
@@ -165,15 +165,15 @@ pub(crate) async fn synchronize_helper(
     Ok(())
 }
 
-/// Gets the owner and amount associated with an output ref from the unspent table
+/// Gets the owner and amount associated with an input from the unspent table
 ///
-/// Some if the output ref exists, None if it doesn't
+/// Some if the input exists, None if it doesn't
 pub(crate) fn get_unspent(
     db: &Db,
-    output_ref: &OutputRef,
+    input: &Input,
 ) -> anyhow::Result<Option<(Address, Coin, Option<Datum>)>> {
     let wallet_unspent_tree = db.open_tree(UNSPENT)?;
-    let Some(ivec) = wallet_unspent_tree.get(output_ref.encode())? else {
+    let Some(ivec) = wallet_unspent_tree.get(input.encode())? else {
         return Ok(None);
     };
 
@@ -218,7 +218,7 @@ pub(crate) async fn apply_block(
 }
 
 /// Apply a single transaction to the local database
-/// The owner-specific tables are mappings from output_refs to coin amounts
+/// The owner-specific tables are mappings from inputs to coin amounts
 async fn apply_transaction(
     db: &Db,
     opaque_tx: OpaqueExtrinsic,
@@ -237,8 +237,8 @@ async fn apply_transaction(
 
     log::debug!("about to spend all inputs");
     // Spend all the inputs
-    for Input { output_ref, .. } in tx.inputs {
-        spend_output(db, &output_ref)?;
+    for input in tx.inputs {
+        spend_output(db, &input)?;
     }
 
     Ok(())
@@ -247,51 +247,51 @@ async fn apply_transaction(
 /// Add a new output to the database updating all tables.
 pub(crate) fn add_unspent_output(
     db: &Db,
-    output_ref: &OutputRef,
+    input: &Input,
     owner_pubkey: &Address,
     amount: &Coin,
     datum_option: &Option<Datum>,
 ) -> anyhow::Result<()> {
     let unspent_tree = db.open_tree(UNSPENT)?;
-    unspent_tree.insert(output_ref.encode(), (owner_pubkey, amount, datum_option).encode())?;
+    unspent_tree.insert(input.encode(), (owner_pubkey, amount, datum_option).encode())?;
 
     Ok(())
 }
 
 /// Remove an output from the database updating all tables.
-fn remove_unspent_output(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
+fn remove_unspent_output(db: &Db, input: &Input) -> anyhow::Result<()> {
     let unspent_tree = db.open_tree(UNSPENT)?;
 
-    unspent_tree.remove(output_ref.encode())?;
+    unspent_tree.remove(input.encode())?;
 
     Ok(())
 }
 
 /// Mark an existing output as spent. This does not purge all record of the output from the db.
 /// It just moves the record from the unspent table to the spent table
-fn spend_output(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
+fn spend_output(db: &Db, input: &Input) -> anyhow::Result<()> {
     let unspent_tree = db.open_tree(UNSPENT)?;
     let spent_tree = db.open_tree(SPENT)?;
 
-    let Some(ivec) = unspent_tree.remove(output_ref.encode())? else {
+    let Some(ivec) = unspent_tree.remove(input.encode())? else {
         return Ok(());
     };
     let (owner, amount, datum_option) = <(Address, Coin, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &ivec[..])?;
-    spent_tree.insert(output_ref.encode(), (owner, amount, datum_option).encode())?;
+    spent_tree.insert(input.encode(), (owner, amount, datum_option).encode())?;
 
     Ok(())
 }
 
 /// Mark an output that was previously spent back as unspent.
-fn unspend_output(db: &Db, output_ref: &OutputRef) -> anyhow::Result<()> {
+fn unspend_output(db: &Db, input: &Input) -> anyhow::Result<()> {
     let unspent_tree = db.open_tree(UNSPENT)?;
     let spent_tree = db.open_tree(SPENT)?;
 
-    let Some(ivec) = spent_tree.remove(output_ref.encode())? else {
+    let Some(ivec) = spent_tree.remove(input.encode())? else {
         return Ok(());
     };
     let (owner, amount, datum_option) = <(Address, Coin, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &ivec[..])?;
-    unspent_tree.insert(output_ref.encode(), (owner, amount, datum_option).encode())?;
+    unspent_tree.insert(input.encode(), (owner, amount, datum_option).encode())?;
 
     Ok(())
 }
@@ -303,19 +303,19 @@ fn unapply_transaction(db: &Db, tx: &OpaqueExtrinsic) -> anyhow::Result<()> {
     let tx = <Transaction as parity_scale_codec::Decode>::decode(&mut &tx.encode()[..])?;
 
     // Loop through the inputs moving each from spent to unspent
-    for Input { output_ref, .. } in &tx.inputs {
-        unspend_output(db, output_ref)?;
+    for input in &tx.inputs {
+        unspend_output(db, input)?;
     }
 
     // Loop through the outputs pruning them from unspent and dropping all record
     let tx_hash = BlakeTwo256::hash_of(&tx.encode());
 
     for i in 0..tx.outputs.len() {
-        let output_ref = OutputRef {
+        let input = Input {
             tx_hash,
             index: i as u32,
         };
-        remove_unspent_output(db, &output_ref)?;
+        remove_unspent_output(db, &input)?;
     }
 
     Ok(())
@@ -372,8 +372,8 @@ pub(crate) fn height(db: &Db) -> anyhow::Result<Option<u32>> {
 pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
     let wallet_unspent_tree = db.open_tree(UNSPENT)?;
     for x in wallet_unspent_tree.iter() {
-        let (output_ref_ivec, owner_amount_datum_ivec) = x?;
-        let output_ref = hex::encode(output_ref_ivec);
+        let (input_ivec, owner_amount_datum_ivec) = x?;
+        let input = hex::encode(input_ivec);
         let (owner_pubkey, amount, datum_option) =
             <(Address, Coin, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &owner_amount_datum_ivec[..])?;
         let fake_option: Option<FakeDatum> = match datum_option {
@@ -381,7 +381,7 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
             Some(d) => MiniDecode::decode(&mut MiniDecoder::new(d.0.as_slice()), &mut ()).unwrap(),
         };
         
-        println!("{output_ref}: owner {owner_pubkey}, amount {amount}, datum {fake_option:?}");
+        println!("{input}: owner {owner_pubkey}, amount {amount}, datum {fake_option:?}.");
     }
 
     Ok(())
