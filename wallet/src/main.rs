@@ -203,13 +203,6 @@ pub(crate) fn address_from_string(s: &str) -> anyhow::Result<Address> {
     Ok(Address(Vec::from(bytes)))
 }
 
-// /// Parse a string into a Cardano Coin
-// pub(crate) fn address_from_string(s: &str) -> anyhow::Result<Coin> {
-//     hex::decode_to_slice(s, &mut bytes as &mut [u8])
-//         .map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
-//     Ok(Address(Vec::from(bytes)))
-// }
-
 /// Parse an output ref from a string
 fn input_from_string(s: &str) -> Result<Input, clap::Error> {
     let s = strip_0x_prefix(s);

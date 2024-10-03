@@ -1,5 +1,12 @@
 use parity_scale_codec::{Decode, Encode};
-use pallas_codec::minicbor::{self, Decode as MiniDecode, Encode as MiniEncode};
+use pallas_codec::minicbor::{
+    self, Encoder, Decoder,
+    decode::Error as MiniDecError,
+    encode::Error as MiniEncError,
+    encode::Write as MiniWrite,
+    Decode as MiniDecode,
+    Encode as MiniEncode,
+};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
@@ -8,7 +15,7 @@ use sp_runtime::{
     transaction_validity::InvalidTransaction,
 };
 use alloc::{vec::Vec, string::ToString};
-use core::{fmt, str::FromStr};
+use core::fmt;
 use pallas_crypto::hash::Hash as PallasHash;
 use hex::FromHex;
 
@@ -33,32 +40,30 @@ pub struct Input {
     pub index: u32,
 }
 
-impl<'b, C> minicbor::decode::Decode<'b, C> for Input {
+impl<'b, C> MiniDecode<'b, C> for Input {
     fn decode(
-        d: &mut minicbor::Decoder<'b>, ctx: &mut C
-    ) -> Result<Self, minicbor::decode::Error> {
+        d: &mut Decoder<'b>, ctx: &mut C
+    ) -> Result<Self, MiniDecError> {
         d.tag()?;
         d.array()?;
 
         let tx_hash32: PallasHash::<32> = d.decode_with(ctx)?;
         Ok(Input {
-            // FIXME: Find a neater way to do this.
-            tx_hash: H256::from_slice(&<[u8; 32]>::from_hex(tx_hash32.to_string()).unwrap()),
+            tx_hash: H256::from(tx_hash32.deref()),
             index: d.u32()?,
         })
     }
 }
 
-impl<C> minicbor::encode::Encode<C> for Input {
-    fn encode<W: minicbor::encode::Write>(
+impl<C> MiniEncode<C> for Input {
+    fn encode<W: MiniWrite>(
         &self,
-        e: &mut minicbor::Encoder<W>,
+        e: &mut Encoder<W>,
         ctx: &mut C,
-    ) -> Result<(), minicbor::encode::Error<W::Error>> {
+    ) -> Result<(), MiniEncError<W::Error>> {
         e.array(2)?;
 
-        // FIXME: Find a neater way to do this.
-        let tx_hash32 = PallasHash::<32>::from_str(&self.tx_hash.to_string()[..]).unwrap();
+        let tx_hash32 = PallasHash::<32>::from(self.tx_hash.as_bytes());
         e.encode_with(tx_hash32, ctx)?;
         e.u32(self.index)?;
         
@@ -76,8 +81,20 @@ pub struct TransactionBody {
 }
 
 /// Bytes of a Cardano witness set.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, Default, MiniEncode, MiniDecode)]
-pub struct WitnessSet(#[n(0)] pub Vec<u8>);
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, Default)]
+pub struct WitnessSet(pub Vec<u8>);
+
+impl<C> MiniDecode<'_, C> for WitnessSet {
+    fn decode(d: &mut Decoder<'_>, _: &mut C) -> Result<Self, MiniDecError> {
+        d.bytes().map(|xs| Self(xs.to_vec()))
+    }
+}
+
+impl<C> MiniEncode<C> for WitnessSet {
+    fn encode<W: MiniWrite>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), MiniEncError<W::Error>> {
+        e.bytes(&self.0)?.ok()
+    }
+}
 
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
 pub struct Transaction {
@@ -92,8 +109,8 @@ pub struct Transaction {
 // so that its encoding is the same as an opaque Vec<u8>.
 impl Encode for Transaction {
     fn encode_to<T: parity_scale_codec::Output + ?Sized>(&self, dest: &mut T) {
-        let transaction_body = parity_scale_codec::Encode::encode(&self.transaction_body);
-        let transaction_witness_set = parity_scale_codec::Encode::encode(&self.transaction_witness_set);
+        let transaction_body = Encode::encode(&self.transaction_body);
+        let transaction_witness_set = Encode::encode(&self.transaction_witness_set);
 
         let total_len = (transaction_body.len() + transaction_witness_set.len()) as u32;
         let size = parity_scale_codec::Compact::<u32>(total_len).encode();
@@ -111,8 +128,8 @@ impl Decode for Transaction {
         // Throw away the length of the vec. We just want the bytes.
         <parity_scale_codec::Compact<u32>>::skip(input)?;
 
-        let transaction_body = <TransactionBody as parity_scale_codec::Decode>::decode(input)?;
-        let transaction_witness_set = <WitnessSet as parity_scale_codec::Decode>::decode(input)?;
+        let transaction_body = <TransactionBody as Decode>::decode(input)?;
+        let transaction_witness_set = <WitnessSet as Decode>::decode(input)?;
 
         Ok(Transaction { transaction_body, transaction_witness_set })
     }
@@ -162,8 +179,20 @@ impl From<UtxoError> for InvalidTransaction {
 pub type DispatchResult = Result<(), UtxoError>;
 
 /// Bytes of the Plutus Data.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
-pub struct Datum(#[n(0)] pub Vec<u8>);
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+pub struct Datum(pub Vec<u8>);
+
+impl<C> MiniDecode<'_, C> for Datum {
+    fn decode(d: &mut Decoder<'_>, _: &mut C) -> Result<Self, MiniDecError> {
+        d.bytes().map(|xs| Self(xs.to_vec()))
+    }
+}
+
+impl<C> MiniEncode<C> for Datum {
+    fn encode<W: MiniWrite>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), MiniEncError<W::Error>> {
+        e.bytes(&self.0)?.ok()
+    }
+}
 
 /// Fake data to be decoded from the Datum.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
@@ -176,10 +205,22 @@ pub enum FakeDatum {
 }
 
 /// Bytes of a Cardano address.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
-pub struct Address(#[n(0)] pub Vec<u8>);
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
+pub struct Address(pub Vec<u8>);
 
-/// An opaque piece of Transaction output data. This is how the data appears at the Runtime level.
+impl<C> MiniDecode<'_, C> for Address {
+    fn decode(d: &mut Decoder<'_>, _: &mut C) -> Result<Self, MiniDecError> {
+        d.bytes().map(|xs| Self(xs.to_vec()))
+    }
+}
+
+impl<C> MiniEncode<C> for Address {
+    fn encode<W: MiniWrite>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), MiniEncError<W::Error>> {
+        e.bytes(&self.0)?.ok()
+    }
+}
+
+/// Transaction outputs.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
 pub struct Output {
     #[n(0)]
@@ -199,14 +240,14 @@ impl fmt::Display for Address {
 }
 
 impl From<(Address, Coin)> for Output {
-    fn from(p_o: (Address, Coin)) -> Self {
-        Self { address: p_o.0, value: p_o.1, datum_option: None }
+    fn from(a_c: (Address, Coin)) -> Self {
+        Self { address: a_c.0, value: a_c.1, datum_option: None }
     }
 }
 
 impl From<(Address, Coin, Datum)> for Output {
-    fn from(p_o: (Address, Coin, Datum)) -> Self {
-        Self { address: p_o.0, value: p_o.1, datum_option: Some(p_o.2) }
+    fn from(a_c_d: (Address, Coin, Datum)) -> Self {
+        Self { address: a_c_d.0, value: a_c_d.1, datum_option: Some(a_c_d.2) }
     }
 }
 

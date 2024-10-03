@@ -5,6 +5,9 @@ use crate::{cli::MintCoinArgs, cli::SpendArgs, rpc::fetch_storage, sync};
 use anyhow::anyhow;
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use parity_scale_codec::Encode;
+use pallas_codec::minicbor::{
+    encode,
+};
 use sc_keystore::LocalKeystore;
 use sled::Db;
 use sp_runtime::traits::{BlakeTwo256, Hash};
@@ -29,7 +32,7 @@ pub async fn mint_coins(
     transaction.transaction_body.inputs.push(args.input.clone());
     transaction.transaction_body.outputs.push(utxo);
     
-    let encoded_tx = hex::encode(transaction.encode());
+    let encoded_tx = hex::encode(Encode::encode(&transaction));
     let params = rpc_params![encoded_tx];
     let spawn_response: Result<String, _> = client.request("author_submitExtrinsic", params).await;
 
@@ -39,14 +42,14 @@ pub async fn mint_coins(
     );
 
     let minted_coin_ref = Input {
-        tx_hash: <BlakeTwo256 as Hash>::hash_of(&transaction.encode()),
+        tx_hash: <BlakeTwo256 as Hash>::hash_of(&Encode::encode(&transaction)),
         index: 0,
     };
     let output = &transaction.transaction_body.outputs[0];
     let amount = output.value;
     println!(
         "Minted {:?} worth {amount}. ",
-        hex::encode(minted_coin_ref.encode())
+        hex::encode(Encode::encode(&minted_coin_ref))
     );
 
     Ok(())
@@ -97,8 +100,13 @@ pub async fn spend_coins(
 
     log::debug!("signed transactions is: {:#?}", transaction);
 
+    let mut tx_encoded: Vec<u8> = Vec::new();
+    let _ = encode(&transaction, &mut tx_encoded);
+
+    log::debug!("CBOR of Tx is:\n{:x?}", tx_encoded);
+
     // Send the transaction
-    let genesis_spend_hex = hex::encode(transaction.encode());
+    let genesis_spend_hex = hex::encode(Encode::encode(&transaction));
     let params = rpc_params![genesis_spend_hex];
     let genesis_spend_response: Result<String, _> =
         client.request("author_submitExtrinsic", params).await;
@@ -108,7 +116,7 @@ pub async fn spend_coins(
     );
 
     // Print new output refs for user to check later
-    let tx_hash = <BlakeTwo256 as Hash>::hash_of(&transaction.encode());
+    let tx_hash = <BlakeTwo256 as Hash>::hash_of(&Encode::encode(&transaction));
     for (i, output) in transaction.transaction_body.outputs.iter().enumerate() {
         let new_coin_ref = Input {
             tx_hash,
@@ -118,7 +126,7 @@ pub async fn spend_coins(
 
         println!(
             "Created {:?} worth {amount}. ",
-            hex::encode(new_coin_ref.encode())
+            hex::encode(Encode::encode(&new_coin_ref))
         );
     }
 
