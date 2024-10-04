@@ -71,6 +71,7 @@ impl<C> MiniEncode<C> for Input {
 }
 
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, MiniEncode, MiniDecode)]
+#[cbor(map)]
 pub struct TransactionBody {
     #[n(0)]
     pub inputs: Vec<Input>,
@@ -80,8 +81,15 @@ pub struct TransactionBody {
 }
 
 /// Bytes of a Cardano witness set.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, Default)]
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct WitnessSet(pub Vec<u8>);
+
+impl Default for WitnessSet {
+    fn default() -> Self {
+        Self(alloc::vec![0xA0])
+    }
+}
+
 
 impl<C> MiniDecode<'_, C> for WitnessSet {
     fn decode(d: &mut Decoder<'_>, _: &mut C) -> Result<Self, MiniDecError> {
@@ -181,6 +189,7 @@ pub type DispatchResult = Result<(), UtxoError>;
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub struct Datum(pub Vec<u8>);
 
+// TODO: Write a macro for this and similar `impl`s of opaque data.
 impl<C> MiniDecode<'_, C> for Datum {
     fn decode(d: &mut Decoder<'_>, _: &mut C) -> Result<Self, MiniDecError> {
         d.bytes().map(|xs| Self(xs.to_vec()))
@@ -238,6 +247,7 @@ impl fmt::Display for Address {
     }
 }
 
+// TODO: Is this reasonable? Should it be a more faithful repr?
 impl fmt::Debug for Address {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", hex::encode(self.0.as_slice()))

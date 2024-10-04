@@ -12,6 +12,7 @@ mod executive;
 pub mod support_macros;
 pub mod genesis;
 pub mod types;
+pub mod pallas_interface;
 pub mod utxo_set;
 pub use executive::Executive;
 

@@ -9964,6 +9964,7 @@ dependencies = [
  "jsonrpsee",
  "log",
  "pallas-codec",
+ "pallas-primitives",
  "parity-scale-codec",
  "sc-keystore",
  "serde_json",
