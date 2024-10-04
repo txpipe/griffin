@@ -14,10 +14,9 @@ use sp_runtime::{
     traits::{BlakeTwo256, Extrinsic, Hash as HashT},
     transaction_validity::InvalidTransaction,
 };
-use alloc::{vec::Vec, string::ToString};
-use core::fmt;
+use alloc::vec::Vec;
+use core::{fmt, ops::Deref};
 use pallas_crypto::hash::Hash as PallasHash;
-use hex::FromHex;
 
 pub type Coin = u64;
 
@@ -205,7 +204,7 @@ pub enum FakeDatum {
 }
 
 /// Bytes of a Cardano address.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
+#[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct Address(pub Vec<u8>);
 
 impl<C> MiniDecode<'_, C> for Address {
@@ -234,6 +233,12 @@ pub struct Output {
 }
 
 impl fmt::Display for Address {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", hex::encode(self.0.as_slice()))
+    }
+}
+
+impl fmt::Debug for Address {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", hex::encode(self.0.as_slice()))
     }

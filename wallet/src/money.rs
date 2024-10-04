@@ -98,12 +98,12 @@ pub async fn spend_coins(
         transaction.transaction_body.inputs.push(input.clone());
     }
 
-    log::debug!("signed transactions is: {:#?}", transaction);
+    log::debug!("signed transactions is: {:#x?}", transaction);
 
     let mut tx_encoded: Vec<u8> = Vec::new();
     let _ = encode(&transaction, &mut tx_encoded);
 
-    log::debug!("CBOR of Tx is:\n{:x?}", tx_encoded);
+    log::debug!("CBOR of Tx is:\n{:x?}", hex::encode(tx_encoded));
 
     // Send the transaction
     let genesis_spend_hex = hex::encode(Encode::encode(&transaction));
