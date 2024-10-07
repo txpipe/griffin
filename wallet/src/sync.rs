@@ -24,7 +24,7 @@ use sp_runtime::{
     OpaqueExtrinsic,
 };
 use griffin_core::types::{
-    Transaction, Coin, Input, OpaqueBlock, Address, Datum, FakeDatum
+    Transaction, Coin, Value, Input, OpaqueBlock, Address, Datum, FakeDatum
 };
 use jsonrpsee::http_client::HttpClient;
 
@@ -171,13 +171,13 @@ pub(crate) async fn synchronize_helper(
 pub(crate) fn get_unspent(
     db: &Db,
     input: &Input,
-) -> anyhow::Result<Option<(Address, Coin, Option<Datum>)>> {
+) -> anyhow::Result<Option<(Address, Value, Option<Datum>)>> {
     let wallet_unspent_tree = db.open_tree(UNSPENT)?;
     let Some(ivec) = wallet_unspent_tree.get(input.encode())? else {
         return Ok(None);
     };
 
-    Ok(Some(<(Address, Coin, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &ivec[..])?))
+    Ok(Some(<(Address, Value, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &ivec[..])?))
 }
 
 /// Gets the block hash from the local database given a block height. Similar the Node's RPC.
@@ -249,7 +249,7 @@ pub(crate) fn add_unspent_output(
     db: &Db,
     input: &Input,
     owner_pubkey: &Address,
-    amount: &Coin,
+    amount: &Value,
     datum_option: &Option<Datum>,
 ) -> anyhow::Result<()> {
     let unspent_tree = db.open_tree(UNSPENT)?;
@@ -276,7 +276,7 @@ fn spend_output(db: &Db, input: &Input) -> anyhow::Result<()> {
     let Some(ivec) = unspent_tree.remove(input.encode())? else {
         return Ok(());
     };
-    let (owner, amount, datum_option) = <(Address, Coin, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &ivec[..])?;
+    let (owner, amount, datum_option) = <(Address, Value, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &ivec[..])?;
     spent_tree.insert(input.encode(), (owner, amount, datum_option).encode())?;
 
     Ok(())
@@ -290,7 +290,7 @@ fn unspend_output(db: &Db, input: &Input) -> anyhow::Result<()> {
     let Some(ivec) = spent_tree.remove(input.encode())? else {
         return Ok(());
     };
-    let (owner, amount, datum_option) = <(Address, Coin, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &ivec[..])?;
+    let (owner, amount, datum_option) = <(Address, Value, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &ivec[..])?;
     unspent_tree.insert(input.encode(), (owner, amount, datum_option).encode())?;
 
     Ok(())
@@ -375,13 +375,13 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
         let (input_ivec, owner_amount_datum_ivec) = x?;
         let input = hex::encode(input_ivec);
         let (owner_pubkey, amount, datum_option) =
-            <(Address, Coin, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &owner_amount_datum_ivec[..])?;
+            <(Address, Value, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &owner_amount_datum_ivec[..])?;
         let fake_option: Option<FakeDatum> = match datum_option {
             None => None,
             Some(d) => MiniDecode::decode(&mut MiniDecoder::new(d.0.as_slice()), &mut ()).unwrap(),
         };
         
-        println!("{input}: owner {owner_pubkey}, amount {amount}, datum {fake_option:?}.");
+        println!("{input}: owner {owner_pubkey}, amount {amount:?}, datum {fake_option:?}.");
     }
 
     Ok(())
@@ -397,12 +397,16 @@ pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (Addr
     for raw_data in wallet_unspent_tree.iter() {
         let (_ , owner_amount_datum_ivec) = raw_data?;
         let (owner, amount, _) =
-            <(Address, Coin, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &owner_amount_datum_ivec[..])?;
-
+            <(Address, Value, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &owner_amount_datum_ivec[..])?;
+        let coins: Coin = match amount {
+            Value::Coin(c) => c,
+            _ => 0
+        };
+        
         balances
             .entry(owner)
-            .and_modify(|old| *old += amount)
-            .or_insert(amount);
+            .and_modify(|old| *old += coins)
+            .or_insert(coins);
     }
 
     Ok(balances.into_iter())

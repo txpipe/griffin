@@ -12,7 +12,7 @@ use sc_keystore::LocalKeystore;
 use sled::Db;
 use sp_runtime::traits::{BlakeTwo256, Hash};
 use griffin_core::{
-    types::{Coin, Input, Output, Transaction},
+    types::{Value, Input, Output, Transaction},
 };
 
 /// Create and send a transaction that mints the coins on the network
@@ -46,9 +46,9 @@ pub async fn mint_coins(
         index: 0,
     };
     let output = &transaction.transaction_body.outputs[0];
-    let amount = output.value;
+    let amount = &output.value;
     println!(
-        "Minted {:?} worth {amount}. ",
+        "Minted {:?} worth {amount:?}. ",
         hex::encode(Encode::encode(&minted_coin_ref))
     );
 
@@ -82,7 +82,10 @@ pub async fn spend_coins(
         let (_owner_pubkey, amount, _) = sync::get_unspent(db, input)?.ok_or(anyhow!(
             "user-specified output ref not found in local database"
         ))?;
-        total_input_amount += amount;
+        total_input_amount += match amount {
+            Value::Coin(c) => c,
+            _ => 0
+        };
     }
 
     // If the supplied inputs are not valuable enough to cover the output amount
@@ -131,10 +134,10 @@ pub async fn spend_coins(
             tx_hash,
             index: i as u32,
         };
-        let amount = output.value;
+        let amount = &output.value;
 
         println!(
-            "Created {:?} worth {amount}. ",
+            "Created {:?} worth {amount:?}. ",
             hex::encode(Encode::encode(&new_coin_ref))
         );
     }
@@ -147,9 +150,9 @@ pub async fn spend_coins(
 pub async fn get_coin_from_storage(
     input: &Input,
     client: &HttpClient,
-) -> anyhow::Result<Coin> {
+) -> anyhow::Result<Value> {
     let utxo = fetch_storage(input, client).await?;
-    let coin_in_storage: Coin = utxo.value;
+    let coin_in_storage: Value = utxo.value;
 
     Ok(coin_in_storage)
 }

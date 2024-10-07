@@ -105,7 +105,7 @@ async fn main() -> anyhow::Result<()> {
             // Print the details from the local db
             match sync::get_unspent(&db, &input)? {
                 Some((owner, amount, _)) => {
-                    println!("Found in local db. Value: {amount}, owned by {owner}");
+                    println!("Found in local db. Value: {amount:?}, owned by {owner}");
                 }
                 None => {
                     println!("Not found in local db");

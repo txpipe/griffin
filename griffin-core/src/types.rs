@@ -14,7 +14,7 @@ use sp_runtime::{
     traits::{BlakeTwo256, Extrinsic, Hash as HashT},
     transaction_validity::InvalidTransaction,
 };
-use alloc::vec::Vec;
+use alloc::{vec::Vec, collections::BTreeMap};
 use core::{fmt, ops::Deref};
 use pallas_crypto::hash::Hash as PallasHash;
 
@@ -78,6 +78,68 @@ pub struct TransactionBody {
 
     #[n(1)]
     pub outputs: Vec<Output>,
+}
+
+/// Zero-padded hash of a 28-byte Cardano policy ID.
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, PartialOrd, Ord)]
+pub struct PolicyId(pub H256);
+
+impl<'b, C> MiniDecode<'b, C> for PolicyId {
+    fn decode(
+        d: &mut Decoder<'b>, ctx: &mut C
+    ) -> Result<Self, MiniDecError> {
+        let tx_hash28: PallasHash::<28> = d.decode_with(ctx)?;
+        let mut tx_hash32: [u8; 32] = [0; 32];
+        for (i, b) in tx_hash28.deref().iter().enumerate() {
+            tx_hash32[i] = *b;
+        };
+
+        Ok(PolicyId(H256::from(&tx_hash32)))
+    }
+}
+
+impl<C> MiniEncode<C> for PolicyId {
+    fn encode<W: MiniWrite>(
+        &self,
+        e: &mut Encoder<W>,
+        ctx: &mut C,
+    ) -> Result<(), MiniEncError<W::Error>> {
+        let tx_hash28 = PallasHash::<28>::from(&self.0.as_bytes()[0..27]);
+        e.encode_with(tx_hash28, ctx)?;
+
+        Ok(())
+    }
+}
+
+
+/// Name of a Cardano asset as byte sequence.
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, PartialOrd, Ord, MiniEncode, MiniDecode)]
+pub struct AssetName(#[n(0)] pub Vec<u8>);
+
+/// `BTreeMap`, encapsulated in order to implement relevant traits.
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, PartialOrd, Ord, MiniEncode, MiniDecode)]
+pub struct EncapBTree<K: Ord, V>(#[n(0)] pub BTreeMap<K, V>);
+
+impl<K: Ord, V> EncapBTree<K, V> {
+    pub fn new() -> Self {
+        Self(BTreeMap::new())
+    }
+}
+
+/// Port of Cardano `Multiasset`s by using encapsulated `BTreeMap`s instead of
+/// `KeyValuePairs`.
+pub type Multiasset<A> = EncapBTree<PolicyId, EncapBTree<AssetName, A>>;
+
+pub type Mint = Multiasset<i64>;
+
+/// Port of Cardano `Value` using `BTreeMap`-based Multiassets
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
+pub enum Value {
+    #[n(0)]
+    Coin(#[n(0)] Coin),
+
+    #[n(1)]
+    Multiasset(#[n(0)] Coin, #[n(1)] Multiasset<Coin>),
 }
 
 /// Bytes of a Cardano witness set.
@@ -235,7 +297,7 @@ pub struct Output {
     pub address: Address,
 
     #[n(1)]
-    pub value: Coin,
+    pub value: Value,
 
     #[n(2)]
     pub datum_option: Option<Datum>,
@@ -254,15 +316,17 @@ impl fmt::Debug for Address {
     }
 }
 
+// TODO: Upgrade to Value
 impl From<(Address, Coin)> for Output {
     fn from(a_c: (Address, Coin)) -> Self {
-        Self { address: a_c.0, value: a_c.1, datum_option: None }
+        Self { address: a_c.0, value: Value::Coin(a_c.1), datum_option: None }
     }
 }
 
+// TODO: Upgrade to Value
 impl From<(Address, Coin, Datum)> for Output {
     fn from(a_c_d: (Address, Coin, Datum)) -> Self {
-        Self { address: a_c_d.0, value: a_c_d.1, datum_option: Some(a_c_d.2) }
+        Self { address: a_c_d.0, value: Value::Coin(a_c_d.1), datum_option: Some(a_c_d.2) }
     }
 }
 

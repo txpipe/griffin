@@ -5,18 +5,19 @@ use pallas_codec::{
         encode, Decode, Decoder
     },
     utils::{
-        Bytes, Nullable, // CborWrap, KeepRaw, KeyValuePairs, MaybeIndefArray,
+        Bytes, Nullable, KeyValuePairs, // CborWrap, KeepRaw, MaybeIndefArray,
     }
 };
 use pallas_crypto::hash::Hash as PallasHash;
 use pallas_primitives::babbage::{
+    AssetName as PallasAssetName,
     DatumOption,
     // Mint as PallasMint,
-    // Multiasset as PallasMultiasset,
+    Multiasset as PallasMultiasset,
     // PlutusData as PallasPlutusData,
     // PlutusV1Script as PallasPlutusV1Script,
     // PlutusV2Script as PallasPlutusV2Script,
-    // PolicyId as PallasPolicyId,
+    PolicyId as PallasPolicyId,
     PostAlonzoTransactionOutput,
     // Redeemer as PallasRedeemer,
     Tx as PallasTransaction,
@@ -27,7 +28,7 @@ use pallas_primitives::babbage::{
     Value as PallasValue,
     WitnessSet as PallasWitnessSet,
 };
-use alloc::vec::Vec;
+use alloc::{vec::Vec, collections::BTreeMap};
 use core::{ops::Deref, default::Default};
 
 impl From<Input> for PallasInput {
@@ -48,6 +49,104 @@ impl From<PallasInput> for Input {
     }
 }
 
+impl From<PolicyId> for PallasPolicyId {
+    fn from(val: PolicyId) -> Self {
+        PallasHash::<28>::from(&val.0.as_bytes()[0..27])
+    }
+}
+
+impl From<PallasPolicyId> for PolicyId {
+    fn from(val: PallasPolicyId) -> Self {
+        let mut tx_hash32: [u8; 32] = [0; 32];
+        for (i, b) in val.deref().iter().enumerate() {
+            tx_hash32[i] = *b;
+        };
+        
+        Self(H256::from(&tx_hash32))
+    }
+}
+
+impl From<AssetName> for PallasAssetName {
+    fn from(val: AssetName) -> Self {
+        Bytes::from(val.0)
+    }
+}
+
+impl From<PallasAssetName> for AssetName {
+    fn from(val: PallasAssetName) -> Self {
+        Self(Vec::from(val))
+    }
+}
+
+impl<K: Clone + Ord, V: Clone> From<EncapBTree<K, V>> for KeyValuePairs<K, V> {
+    fn from(val: EncapBTree<K, V>) -> Self {
+        let res: KeyValuePairs<K, V> = KeyValuePairs::from(val.0
+                                                           .into_iter()
+                                                           .collect::<Vec<_>>());
+        res
+    }
+}
+
+impl<K: Clone + Ord, V: Clone> From<KeyValuePairs<K, V>> for EncapBTree<K, V> {
+    fn from(val: KeyValuePairs<K, V>) -> Self {
+        let tree: BTreeMap<K, V> = BTreeMap::from_iter(Vec::from(val).into_iter());
+
+        Self(tree)
+    }
+}
+
+impl<A: Clone> From<Multiasset<A>> for PallasMultiasset<A> {
+    fn from(val: Multiasset<A>) -> Self {
+        let mut res: Vec<(PallasPolicyId, KeyValuePairs<PallasAssetName, A>)> =
+                      Vec::new();
+        
+        for (k, v) in val.0.into_iter() {
+            res.push((PallasPolicyId::from(k),
+                      KeyValuePairs::from(v
+                                          .0
+                                          .into_iter()
+                                          .map(|(k, v)| (PallasAssetName::from(k), v))
+                                          .collect::<Vec<_>>())))
+        }
+
+        KeyValuePairs::from(res)
+    }
+}
+
+impl<A: Clone> From<PallasMultiasset<A>> for Multiasset<A> {
+    fn from(val: PallasMultiasset<A>) -> Self {
+        let mut res: Vec<(PolicyId, EncapBTree<AssetName, A>)> =
+                      Vec::new();
+        
+        for (k, v) in val.iter() {
+            res.push((PolicyId::from(k.clone()),
+                      EncapBTree(BTreeMap::from_iter(v.clone()
+                                          .iter()
+                                          .map(|(k, v)| (AssetName::from(k.clone()), v.clone()))))))
+        }
+
+        EncapBTree(BTreeMap::from_iter(res.into_iter()))
+    }
+}
+
+impl From<Value> for PallasValue {
+    fn from(val: Value) -> Self {
+        match val {
+            Value::Coin(c) => Self::Coin(c),
+            Value::Multiasset(c, m) => Self::Multiasset(c, PallasMultiasset::from(m)),
+        }
+    }
+}
+
+impl From<PallasValue> for Value {
+    fn from(val: PallasValue) -> Self {
+        match val {
+            PallasValue::Coin(c) => Self::Coin(c),
+            PallasValue::Multiasset(c, m) => Self::Multiasset(c, Multiasset::from(m)),
+        }
+    }
+}
+
 impl From<Output> for PostAlonzoTransactionOutput {
     fn from(val: Output) -> Self {
         // FIXME: Add error handling
@@ -58,7 +157,7 @@ impl From<Output> for PostAlonzoTransactionOutput {
 
         Self {
             address: Bytes::from(val.address.0),
-            value: PallasValue::Coin(val.value),
+            value: PallasValue::from(val.value),
             datum_option,
             script_ref: Default::default(),
         }
@@ -67,11 +166,6 @@ impl From<Output> for PostAlonzoTransactionOutput {
 
 impl From<PostAlonzoTransactionOutput> for Output {
     fn from(val: PostAlonzoTransactionOutput) -> Self {
-        let value: Coin = match val.value {
-            PallasValue::Coin(c) => c,
-            _ => 0,
-        };
-
         let mut datum_option: Option<Datum> = None;
         let mut datum: Vec<u8> = Vec::new();
         if let Some(data) = val.datum_option {
@@ -85,7 +179,7 @@ impl From<PostAlonzoTransactionOutput> for Output {
         
         Self {
             address: Address(Vec::from(val.address)),
-            value,
+            value: Value::from(val.value),
             datum_option,
         }
     }
