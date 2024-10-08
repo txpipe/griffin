@@ -79,6 +79,9 @@ pub struct TransactionBody {
 
     #[n(1)]
     pub outputs: Vec<Output>,
+
+    #[n(9)]
+    pub mint: Option<Mint>,
 }
 
 /// Hash of a 28-byte Cardano policy ID.
@@ -339,6 +342,7 @@ impl From<(Vec<Input>, Vec<Output>)> for Transaction {
             {
                 inputs: i_o.0,
                 outputs: i_o.1,
+                mint: None,
             },
             transaction_witness_set: WitnessSet::default(),
         }

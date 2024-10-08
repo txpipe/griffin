@@ -12,7 +12,6 @@ use pallas_crypto::hash::Hash as PallasHash;
 use pallas_primitives::babbage::{
     AssetName as PallasAssetName,
     DatumOption,
-    // Mint as PallasMint,
     Multiasset as PallasMultiasset,
     // PlutusData as PallasPlutusData,
     // PlutusV1Script as PallasPlutusV1Script,
@@ -227,7 +226,10 @@ impl From<TransactionBody> for PallasTransactionBody {
             update: None,
             auxiliary_data_hash: None,
             validity_interval_start: None,
-            mint: None,
+            mint: match val.mint {
+                None => None,
+                Some(m) => Some(PallasMultiasset::from(m)),
+            },
             script_data_hash: None,
             collateral: None,
             required_signers: None,
@@ -244,6 +246,10 @@ impl From<PallasTransactionBody> for TransactionBody {
         Self {
             inputs: val.inputs.into_iter().map(|i| Input::from(i)).collect(),
             outputs: val.outputs.into_iter().map(|i| Output::from(i)).collect(),
+            mint: match val.mint {
+                None => None,
+                Some(m) => Some(Multiasset::from(m)),
+            },
         }
     }
 }
