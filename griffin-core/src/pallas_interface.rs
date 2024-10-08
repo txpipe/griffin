@@ -51,13 +51,13 @@ impl From<PallasInput> for Input {
 
 impl From<PolicyId> for PallasPolicyId {
     fn from(val: PolicyId) -> Self {
-        PallasHash::<28>::from(val.0.as_bytes())
+        PallasHash::<28>::from(val.as_bytes())
     }
 }
 
 impl From<PallasPolicyId> for PolicyId {
     fn from(val: PallasPolicyId) -> Self {
-        Self(H224::from(val.deref()))
+        H224::from(val.deref())
     }
 }
 

@@ -82,8 +82,7 @@ pub struct TransactionBody {
 }
 
 /// Hash of a 28-byte Cardano policy ID.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, PartialOrd, Ord)]
-pub struct PolicyId(pub H224);
+pub type PolicyId = H224;
 
 impl<'b, C> MiniDecode<'b, C> for PolicyId {
     fn decode(
@@ -91,7 +90,7 @@ impl<'b, C> MiniDecode<'b, C> for PolicyId {
     ) -> Result<Self, MiniDecError> {
         let tx_hash28: PallasHash::<28> = d.decode_with(ctx)?;
 
-        Ok(PolicyId(H224::from(tx_hash28.deref())))
+        Ok(H224::from(tx_hash28.deref()))
     }
 }
 
@@ -101,7 +100,7 @@ impl<C> MiniEncode<C> for PolicyId {
         e: &mut Encoder<W>,
         ctx: &mut C,
     ) -> Result<(), MiniEncError<W::Error>> {
-        let tx_hash28 = PallasHash::<28>::from(&self.0.as_bytes()[0..27]);
+        let tx_hash28 = PallasHash::<28>::from(self.as_bytes());
         e.encode_with(tx_hash28, ctx)?;
 
         Ok(())
