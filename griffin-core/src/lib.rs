@@ -14,6 +14,7 @@ pub mod genesis;
 pub mod types;
 pub mod pallas_interface;
 pub mod h224;
+use h224::H224;
 pub mod utxo_set;
 pub use executive::Executive;
 
