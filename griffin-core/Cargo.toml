@@ -38,8 +38,22 @@ pallas-codec.workspace = true
 pallas-crypto.workspace = true
 hex.workspace = true
 
+### H224 dependencies
+fixed-hash = { version = "0.8", default-features = false }
+# uint = { version = "0.10.0", default-features = false }
+impl-serde = { version = "0.5.0", default-features = false, optional = true }
+impl-codec = { version = "0.7.0", default-features = false, optional = true }
+# impl-num-traits = { version = "0.2.0", default-features = false, optional = true }
+impl-rlp = { version = "0.4", default-features = false, optional = true }
+schemars = { version = ">=0.8.12", default-features = true, optional = true }
+# [dev-dependencies]
+# num-traits = "0.2"
+# serde_json = { version = "1.0", default-features = false }
+# jsonschema = { version = "0.17", default-features = false }
+
+
 [features]
-default = ["std"]
+default = ["std", "rand"]
 std = [
 	"async-trait",
 	"sp-debug-derive/std",
@@ -56,4 +70,21 @@ std = [
 	"sc-chain-spec",
 	"sc-executor",
 	"sp-blockchain",
+	### H224 features
+	"fixed-hash/std",
+	"impl-codec?/std",
 ]
+
+### H224 features, cont'd
+rand = ["fixed-hash/rand"]
+serde = ["std", "impl-serde", "impl-serde/std"]
+json-schema = ["dep:schemars"]
+serde_no_std = ["impl-serde"]
+scale-info = ["codec"]
+rlp = ["impl-rlp"]
+codec = ["impl-codec"]
+fp-conversion = ["std"]
+# arbitrary = ["fixed-hash/arbitrary"]
+# byteorder = ["fixed-hash/byteorder"]
+# rustc-hex = ["fixed-hash/rustc-hex"]
+
