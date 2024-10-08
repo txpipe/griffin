@@ -10,6 +10,7 @@ use pallas_codec::minicbor::{
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_core::H256;
+use crate::h224::H224;
 use sp_runtime::{
     traits::{BlakeTwo256, Extrinsic, Hash as HashT},
     transaction_validity::InvalidTransaction,
@@ -80,21 +81,17 @@ pub struct TransactionBody {
     pub outputs: Vec<Output>,
 }
 
-/// Zero-padded hash of a 28-byte Cardano policy ID.
+/// Hash of a 28-byte Cardano policy ID.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, PartialOrd, Ord)]
-pub struct PolicyId(pub H256);
+pub struct PolicyId(pub H224);
 
 impl<'b, C> MiniDecode<'b, C> for PolicyId {
     fn decode(
         d: &mut Decoder<'b>, ctx: &mut C
     ) -> Result<Self, MiniDecError> {
         let tx_hash28: PallasHash::<28> = d.decode_with(ctx)?;
-        let mut tx_hash32: [u8; 32] = [0; 32];
-        for (i, b) in tx_hash28.deref().iter().enumerate() {
-            tx_hash32[i] = *b;
-        };
 
-        Ok(PolicyId(H256::from(&tx_hash32)))
+        Ok(PolicyId(H224::from(tx_hash28.deref())))
     }
 }
 

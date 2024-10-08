@@ -73,11 +73,13 @@ std = [
 	### H224 features
 	"fixed-hash/std",
 	"impl-codec?/std",
+	### H224 `serde` feature
+	"impl-serde",
+	"impl-serde/std",
 ]
 
 ### H224 features, cont'd
 rand = ["fixed-hash/rand"]
-serde = ["std", "impl-serde", "impl-serde/std"]
 json-schema = ["dep:schemars"]
 serde_no_std = ["impl-serde"]
 scale-info = ["codec"]
@@ -87,4 +89,3 @@ fp-conversion = ["std"]
 # arbitrary = ["fixed-hash/arbitrary"]
 # byteorder = ["fixed-hash/byteorder"]
 # rustc-hex = ["fixed-hash/rustc-hex"]
-
