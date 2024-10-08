@@ -1,4 +1,4 @@
-use crate::types::*;
+use crate::{types::*, H224};
 use sp_core::H256;
 use pallas_codec::{
     minicbor::{
@@ -51,18 +51,13 @@ impl From<PallasInput> for Input {
 
 impl From<PolicyId> for PallasPolicyId {
     fn from(val: PolicyId) -> Self {
-        PallasHash::<28>::from(&val.0.as_bytes()[0..27])
+        PallasHash::<28>::from(val.as_bytes())
     }
 }
 
 impl From<PallasPolicyId> for PolicyId {
     fn from(val: PallasPolicyId) -> Self {
-        let mut tx_hash32: [u8; 32] = [0; 32];
-        for (i, b) in val.deref().iter().enumerate() {
-            tx_hash32[i] = *b;
-        };
-        
-        Self(H256::from(&tx_hash32))
+        H224::from(val.deref())
     }
 }
 
