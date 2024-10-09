@@ -315,17 +315,27 @@ impl fmt::Debug for Address {
     }
 }
 
-// TODO: Upgrade to Value
 impl From<(Address, Coin)> for Output {
     fn from(a_c: (Address, Coin)) -> Self {
         Self { address: a_c.0, value: Value::Coin(a_c.1), datum_option: None }
     }
 }
 
-// TODO: Upgrade to Value
+impl From<(Address, Value)> for Output {
+    fn from((address, value): (Address, Value)) -> Self {
+        Self { address, value, datum_option: None }
+    }
+}
+
 impl From<(Address, Coin, Datum)> for Output {
     fn from(a_c_d: (Address, Coin, Datum)) -> Self {
         Self { address: a_c_d.0, value: Value::Coin(a_c_d.1), datum_option: Some(a_c_d.2) }
+    }
+}
+
+impl From<(Address, Value, Datum)> for Output {
+    fn from((address, value, datum): (Address, Value, Datum)) -> Self {
+        Self { address, value, datum_option: Some(datum) }
     }
 }
 
@@ -336,12 +346,12 @@ impl From<Vec<u8>> for Datum {
 }
 
 impl From<(Vec<Input>, Vec<Output>)> for Transaction {
-    fn from(i_o: (Vec<Input>, Vec<Output>)) -> Self {
+    fn from((inputs, outputs): (Vec<Input>, Vec<Output>)) -> Self {
         Self {
             transaction_body: TransactionBody
             {
-                inputs: i_o.0,
-                outputs: i_o.1,
+                inputs,
+                outputs,
                 mint: None,
             },
             transaction_witness_set: WitnessSet::default(),

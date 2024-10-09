@@ -18,6 +18,7 @@ use pallas_primitives::babbage::{
     // PlutusV2Script as PallasPlutusV2Script,
     PolicyId as PallasPolicyId,
     PostAlonzoTransactionOutput,
+    LegacyTransactionOutput,
     // Redeemer as PallasRedeemer,
     Tx as PallasTransaction,
     TransactionBody as PallasTransactionBody,
@@ -144,10 +145,9 @@ impl From<PallasValue> for Value {
 impl From<Output> for PostAlonzoTransactionOutput {
     fn from(val: Output) -> Self {
         // FIXME: Add error handling
-        let datum_option: Option<DatumOption> = match val.datum_option {
-            None => None,
-            Some(d) => Decode::decode(&mut Decoder::new(d.0.as_slice()), &mut ()).unwrap(),
-        };
+        let datum_option: Option<DatumOption> = val.datum_option.map(
+            |d| Decode::decode(&mut Decoder::new(d.0.as_slice()), &mut ()).unwrap()
+        );
 
         Self {
             address: Bytes::from(val.address.0),
@@ -179,6 +179,27 @@ impl From<PostAlonzoTransactionOutput> for Output {
     }
 }
 
+impl From<LegacyTransactionOutput> for Output {
+    fn from(val: LegacyTransactionOutput) -> Self {
+        let mut datum_option: Option<Datum> = None;
+        let mut datum: Vec<u8> = Vec::new();
+        if let Some(data) = val.datum_hash {
+            match encode(&data, &mut datum) {
+                Ok(_) =>  {
+                    datum_option = Some(Datum(datum));
+                },
+                Err(err) => log::info!("Unable to encode datum ({:?})", err),
+            };
+        };
+        
+        Self {
+            address: Address(Vec::from(val.address)),
+            value: Value::from(val.amount),
+            datum_option,
+        }
+    }
+}
+
 impl From<Output> for PallasOutput {
     fn from(val: Output) -> Self {
         PallasOutput::PostAlonzo(PostAlonzoTransactionOutput::from(val))
@@ -189,7 +210,7 @@ impl From<PallasOutput> for Output {
     fn from(val: PallasOutput) -> Self {
         match val {
             PallasOutput::PostAlonzo(pat) => Output::from(pat),
-            _ => todo!("Legacy (Alonzo) transactions not considered yet."),
+            PallasOutput::Legacy(leg) => Output::from(leg),
         }
     }
 }
@@ -226,10 +247,7 @@ impl From<TransactionBody> for PallasTransactionBody {
             update: None,
             auxiliary_data_hash: None,
             validity_interval_start: None,
-            mint: match val.mint {
-                None => None,
-                Some(m) => Some(PallasMultiasset::from(m)),
-            },
+            mint: val.mint.map(|m| PallasMultiasset::from(m)),
             script_data_hash: None,
             collateral: None,
             required_signers: None,
@@ -246,10 +264,7 @@ impl From<PallasTransactionBody> for TransactionBody {
         Self {
             inputs: val.inputs.into_iter().map(|i| Input::from(i)).collect(),
             outputs: val.outputs.into_iter().map(|i| Output::from(i)).collect(),
-            mint: match val.mint {
-                None => None,
-                Some(m) => Some(Multiasset::from(m)),
-            },
+            mint: val.mint.map(|m| Multiasset::from(m)),
         }
     }
 }
