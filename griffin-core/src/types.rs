@@ -141,26 +141,37 @@ pub enum Value {
     Multiasset(#[n(0)] Coin, #[n(1)] Multiasset<Coin>),
 }
 
-/// Bytes of a Cardano witness set.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
-pub struct WitnessSet(pub Vec<u8>);
+/// Verification using public key and signature (both encoded as byte
+/// sequences).
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
+pub struct VKeyWitness {
+    #[n(0)]
+    pub vkey: Vec<u8>,
+
+    #[n(1)]
+    pub signature: Vec<u8>,
+}
+
+/// Fragment of a Cardano witness set.
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
+#[cbor(map)]
+pub struct WitnessSet {
+    #[n(0)]
+    pub vkeywitness: Option<Vec<VKeyWitness>>,
+
+    // #[n(3)]
+    // pub plutus_v1_script: Option<Vec<PlutusV1Script>>,
+    // 
+    // #[n(5)]
+    // pub redeemer: Option<Vec<Redeemer>>,
+    // 
+    // #[n(6)]
+    // pub plutus_v2_script: Option<Vec<PlutusV2Script>>,
+}
 
 impl Default for WitnessSet {
     fn default() -> Self {
-        Self(alloc::vec![0xA0])
-    }
-}
-
-
-impl<C> MiniDecode<'_, C> for WitnessSet {
-    fn decode(d: &mut Decoder<'_>, _: &mut C) -> Result<Self, MiniDecError> {
-        d.bytes().map(|xs| Self(xs.to_vec()))
-    }
-}
-
-impl<C> MiniEncode<C> for WitnessSet {
-    fn encode<W: MiniWrite>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), MiniEncError<W::Error>> {
-        e.bytes(&self.0)?.ok()
+        Self{ vkeywitness: None }
     }
 }
 

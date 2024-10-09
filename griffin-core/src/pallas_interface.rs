@@ -1,3 +1,5 @@
+//! Interface between Griffin and Pallas Transaction type.
+
 use crate::{types::*, H224};
 use sp_core::H256;
 use pallas_codec::{
@@ -24,7 +26,7 @@ use pallas_primitives::babbage::{
     TransactionBody as PallasTransactionBody,
     TransactionInput as PallasInput,
     TransactionOutput as PallasOutput,
-    // VKeyWitness as PallasVKeyWitness,
+    VKeyWitness as PallasVKeyWitness,
     Value as PallasValue,
     WitnessSet as PallasWitnessSet,
 };
@@ -215,23 +217,49 @@ impl From<PallasOutput> for Output {
     }
 }
 
+impl From<VKeyWitness> for PallasVKeyWitness {
+    fn from(val: VKeyWitness) -> Self {
+        Self{
+            vkey: Bytes::from(val.vkey),
+            signature: Bytes::from(val.signature),
+        }
+    }
+}
+
+impl From<PallasVKeyWitness> for VKeyWitness {
+    fn from(val: PallasVKeyWitness) -> Self {
+        Self{
+            vkey: Vec::from(val.vkey),
+            signature: Vec::from(val.signature),
+        }
+    }
+}
+
 impl From<WitnessSet> for PallasWitnessSet {
     fn from(val: WitnessSet) -> Self {
-        // FIXME: Add error handling
-        Decode::decode(&mut Decoder::new(val.0.as_slice()), &mut ()).unwrap()
+        let vkeywitness: Option<Vec<PallasVKeyWitness>> =
+            val
+            .vkeywitness
+            .map(
+                |vks| vks.into_iter().map(|vk| PallasVKeyWitness::from(vk)).collect());
+        Self {
+            vkeywitness,
+            native_script: None,
+            bootstrap_witness: None,
+            plutus_v1_script: None,
+            plutus_data: None,
+            redeemer: None,
+            plutus_v2_script: None,
+        }
     }
 }
 
 impl From<PallasWitnessSet> for WitnessSet {
     fn from(val: PallasWitnessSet) -> Self {
-        let mut witnesses: Vec<u8> = Vec::new();
-        
-        match encode(&val, &mut witnesses) {
-            Ok(_) =>  (),
-            Err(err) => log::info!("Unable to encode witnesses ({:?})", err),
+        Self {
+            vkeywitness: val.vkeywitness
+                .map(|v| v.into_iter().map(|y| VKeyWitness::from(y)).collect())
         }
-
-        WitnessSet(witnesses)
     }
 }
 
