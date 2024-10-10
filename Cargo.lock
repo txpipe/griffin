@@ -5221,6 +5221,7 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 [[package]]
 name = "pallas-codec"
 version = "0.30.1"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#be5bfa1d7d9869fb581589f2412eb1e5cb675b9f"
 dependencies = [
  "hex",
  "minicbor",
@@ -5231,6 +5232,7 @@ dependencies = [
 [[package]]
 name = "pallas-crypto"
 version = "0.30.1"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#be5bfa1d7d9869fb581589f2412eb1e5cb675b9f"
 dependencies = [
  "cryptoxide",
  "hex",
@@ -5243,6 +5245,7 @@ dependencies = [
 [[package]]
 name = "pallas-primitives"
 version = "0.30.1"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#be5bfa1d7d9869fb581589f2412eb1e5cb675b9f"
 dependencies = [
  "base58",
  "bech32",

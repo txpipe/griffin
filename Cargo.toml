@@ -82,6 +82,6 @@ sc-chain-spec = { version = "37.0.0" }
 sc-keystore = "33.0.0"
 sp-keystore = "0.40.0"
 
-pallas-codec = { version = "=0.30.1", path = "../pallas-no-std/pallas-codec" }
-pallas-crypto = { version = "=0.30.1", path = "../pallas-no-std/pallas-crypto" }
-pallas-primitives = { version = "=0.30.1", path = "../pallas-no-std/pallas-primitives" }
+pallas-codec = { git = "https://github.com/francolq/pallas.git", branch = "no-std" }
+pallas-crypto = { git = "https://github.com/francolq/pallas.git", branch = "no-std" }
+pallas-primitives = { git = "https://github.com/francolq/pallas.git", branch = "no-std" }
