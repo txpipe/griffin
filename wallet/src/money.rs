@@ -89,7 +89,7 @@ pub async fn spend_coins(
     }
 
     // If the supplied inputs are not valuable enough to cover the output amount
-    // we select the rest arbitrarily from the local db. (In many cases, this will be all the inputs.)
+    // we abort in error.
     if total_input_amount < total_amount {
         Err(anyhow!("Inputs not enough for given outputs."))?;
     }
@@ -113,7 +113,7 @@ pub async fn spend_coins(
         &mut tx_encoded
     );
     log::debug!(
-        "CBOR of Tx converted to Babbage is: {}",
+        "MiniCBOR of Tx: {}",
         hex::encode(tx_encoded)
     );
 
@@ -126,22 +126,25 @@ pub async fn spend_coins(
         "Node's response to spend transaction: {:?}",
         genesis_spend_response
     );
+    if let Err(_) = genesis_spend_response {
+        Err(anyhow!("Node did not accept the transaction"))?; 
+    } else {
+        // Print new output refs for user to check later
+        let tx_hash = <BlakeTwo256 as Hash>::hash_of(&Encode::encode(&transaction));
+        for (i, output) in transaction.transaction_body.outputs.iter().enumerate() {
+            let new_coin_ref = Input {
+                tx_hash,
+                index: i as u32,
+            };
+            let amount = &output.value;
 
-    // Print new output refs for user to check later
-    let tx_hash = <BlakeTwo256 as Hash>::hash_of(&Encode::encode(&transaction));
-    for (i, output) in transaction.transaction_body.outputs.iter().enumerate() {
-        let new_coin_ref = Input {
-            tx_hash,
-            index: i as u32,
-        };
-        let amount = &output.value;
-
-        println!(
-            "Created {:?} worth {amount:?}. ",
-            hex::encode(Encode::encode(&new_coin_ref))
-        );
+            println!(
+                "Created {:?} worth {amount:?}. ",
+                hex::encode(Encode::encode(&new_coin_ref))
+            );
+        }
     }
-
+    
     Ok(())
 }
 

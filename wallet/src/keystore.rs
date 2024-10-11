@@ -3,8 +3,9 @@
 use anyhow::anyhow;
 use sc_keystore::LocalKeystore;
 use sp_core::{
-    crypto::{Pair as PairT, KeyTypeId},
-    sr25519::Pair,
+    // The `Pair` trait is used to have `Pair::{generate_with,from}_phrase`
+    crypto::{Pair as _, KeyTypeId},
+    ed25519::Pair,
 };
 use sp_keystore::Keystore;
 use std::path::Path;
@@ -18,7 +19,7 @@ const KEY_TYPE: KeyTypeId = KeyTypeId(*b"_gri");
 pub fn insert_development_key_for_this_session(
     keystore: &LocalKeystore
 ) -> anyhow::Result<()> {
-    keystore.sr25519_generate_new(KEY_TYPE, Some(SHAWN_PHRASE))?;
+    keystore.ed25519_generate_new(KEY_TYPE, Some(SHAWN_PHRASE))?;
 
     Ok(())
 }

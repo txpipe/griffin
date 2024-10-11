@@ -7,12 +7,20 @@
 
 use crate::{
     ensure,
-    types::{Block, BlockNumber, DispatchResult, Header, Input, Transaction, UtxoError},
+    types::{
+        Block, BlockNumber, DispatchResult, Header, Input, Transaction,
+        UtxoError,
+    },
     utxo_set::TransparentUtxoSet,
     EXTRINSIC_KEY,
     HEADER_KEY,
     HEIGHT_KEY,
     LOG_TARGET,
+    checks_interface::{
+        mk_utxo_for_babbage_tx,
+        babbage_tx_to_cbor,
+        babbage_minted_tx_from_cbor,
+    },
 };
 use log::debug;
 use parity_scale_codec::{Decode, Encode};
@@ -24,7 +32,23 @@ use sp_runtime::{
     },
     ApplyExtrinsicResult, ExtrinsicInclusionMode, StateVersion,
 };
-use alloc::{collections::btree_set::BTreeSet, vec::Vec};
+use alloc::{
+    collections::btree_set::BTreeSet,
+    vec::Vec,
+    string::String,
+};
+use pallas_applying::{
+    UTxOs,
+    babbage::{
+        check_all_ins_in_utxos,
+        check_preservation_of_value,
+    },
+};
+use pallas_primitives::babbage::{
+    Tx as PallasTransaction, MintedScriptRef, MintedDatumOption, MintedTx,
+    Value as PallasValue, MintedTransactionBody,
+};
+use pallas_codec::utils::CborWrap;
 
 /// The executive. Each runtime is encouraged to make a type alias called `Executive` that fills
 /// in the proper generic types.
@@ -59,10 +83,25 @@ where
             );
         }
 
+        let mut tx_outs_info: Vec<(
+            String, // address in string format
+            PallasValue,
+            Option<MintedDatumOption>,
+            Option<CborWrap<MintedScriptRef>>,
+        )> = Vec::new();
+        
+        // Add present inputs to a list to be used to produce the local UTxO set.
         // Keep track of any missing inputs for use in the tagged transaction pool
         let mut missing_inputs = Vec::new();
         for input in transaction.transaction_body.inputs.iter() {
-            if None == TransparentUtxoSet::peek_utxo(&input) {
+            if let Some(u) = TransparentUtxoSet::peek_utxo(&input) {
+                tx_outs_info.push((
+                    hex::encode(u.address.0.as_slice()),
+                    PallasValue::from(u.value),
+                    None,
+                    None,
+                ));
+            } else {
                 missing_inputs.push(input.clone().encode());
             }
         }
@@ -86,6 +125,18 @@ where
             );
         }
 
+        // Griffin Tx -> Pallas Tx -> CBOR -> Minted Pallas Tx
+        // This last one is used to produce the local UTxO.
+        let pallas_tx: PallasTransaction = PallasTransaction::from(transaction.clone());
+        let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
+        let mtx: MintedTx = babbage_minted_tx_from_cbor(&cbor_bytes);
+
+        let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
+        let utxos: UTxOs = mk_utxo_for_babbage_tx(tx_body, tx_outs_info.as_slice()); 
+        
+        check_all_ins_in_utxos(tx_body, &utxos)?;
+        check_preservation_of_value(tx_body, &utxos)?;
+        
         // Calculate the tx-pool tags provided by this transaction, which
         // are just the encoded Inputs
         let provides = (0..transaction.transaction_body.outputs.len())

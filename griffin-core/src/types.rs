@@ -240,16 +240,24 @@ pub enum UtxoError {
     MissingInput,
     /// The transaction has no inputs
     NoInputs,
+    /// Preservation of value is violated
+    PreservationOfValue,
+    /// Pallas error not implemented yet
+    Unimplemented,
 }
 
 // `UtxoError`s are mapped to Substrate errors.
 impl From<UtxoError> for InvalidTransaction {
     fn from(utxo_error: UtxoError) -> Self {
+        use UtxoError::*;
+            
         match utxo_error {
-            UtxoError::DuplicateInput => InvalidTransaction::Custom(255),
-            UtxoError::PreExistingOutput => InvalidTransaction::Custom(254),
-            UtxoError::NoInputs => InvalidTransaction::Custom(253),
-            UtxoError::MissingInput => InvalidTransaction::Future,
+            DuplicateInput => InvalidTransaction::Custom(255),
+            PreExistingOutput => InvalidTransaction::Custom(254),
+            NoInputs => InvalidTransaction::Custom(253),
+            MissingInput => InvalidTransaction::Future,
+            PreservationOfValue => InvalidTransaction::Custom(252),
+            Unimplemented => InvalidTransaction::Custom(128),
         }
     }
 }

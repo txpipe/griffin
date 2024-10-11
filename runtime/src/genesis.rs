@@ -18,7 +18,7 @@ pub const SHAWN_PHRASE: &str =
     "news slush supreme milk chapter athlete soap sausage put clutch what kitten";
 
 /// The public key corresponding to the default seed above.
-pub const SHAWN_PUB_KEY: &str = "d2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67";
+pub const SHAWN_PUB_KEY: &str = "7b155093789404780735f4501c576e9f6e2b0a486cdec70e03e1ef8b9ef99274";
 
 /// This function returns a list of valid transactions to be included in the genesis block.
 /// It is called by the `ChainSpec::build` method, via the `development_genesis_config` function.

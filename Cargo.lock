@@ -589,6 +589,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d86b93f97252c47b41663388e6d155714a9d0c398b99f1005cbc5f978b29f445"
 
 [[package]]
+name = "bech32-no_std"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4756f018d917ebf7d60361ce6b48e88a9f1904525429e501bc0841b9436d416e"
+
+[[package]]
 name = "beef"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2675,14 +2681,17 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "fixed-hash",
+ "hashbrown 0.14.5",
  "hex",
  "impl-codec 0.7.0",
  "impl-rlp 0.4.0",
  "impl-serde 0.5.0",
  "log",
+ "pallas-applying",
  "pallas-codec",
  "pallas-crypto",
  "pallas-primitives",
+ "pallas-traverse",
  "parity-scale-codec",
  "parity-util-mem",
  "sc-chain-spec",
@@ -3461,6 +3470,15 @@ name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba291022dbbd398a455acf126c1e341954079855bc60dfdda641363bd6922569"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
 dependencies = [
  "either",
 ]
@@ -5219,9 +5237,39 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
+name = "pallas-addresses"
+version = "0.30.1"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#a843c6a8af7ffc58756a82dd71be3183574932d1"
+dependencies = [
+ "base58",
+ "bech32-no_std",
+ "core2",
+ "crc",
+ "cryptoxide",
+ "hex",
+ "pallas-codec",
+ "pallas-crypto",
+ "thiserror-no-std",
+]
+
+[[package]]
+name = "pallas-applying"
+version = "0.30.1"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#a843c6a8af7ffc58756a82dd71be3183574932d1"
+dependencies = [
+ "hashbrown 0.14.5",
+ "hex",
+ "pallas-addresses",
+ "pallas-codec",
+ "pallas-crypto",
+ "pallas-primitives",
+ "pallas-traverse",
+]
+
+[[package]]
 name = "pallas-codec"
 version = "0.30.1"
-source = "git+https://github.com/francolq/pallas.git?branch=no-std#be5bfa1d7d9869fb581589f2412eb1e5cb675b9f"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#a843c6a8af7ffc58756a82dd71be3183574932d1"
 dependencies = [
  "hex",
  "minicbor",
@@ -5232,7 +5280,7 @@ dependencies = [
 [[package]]
 name = "pallas-crypto"
 version = "0.30.1"
-source = "git+https://github.com/francolq/pallas.git?branch=no-std#be5bfa1d7d9869fb581589f2412eb1e5cb675b9f"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#a843c6a8af7ffc58756a82dd71be3183574932d1"
 dependencies = [
  "cryptoxide",
  "hex",
@@ -5245,7 +5293,7 @@ dependencies = [
 [[package]]
 name = "pallas-primitives"
 version = "0.30.1"
-source = "git+https://github.com/francolq/pallas.git?branch=no-std#be5bfa1d7d9869fb581589f2412eb1e5cb675b9f"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#a843c6a8af7ffc58756a82dd71be3183574932d1"
 dependencies = [
  "base58",
  "bech32",
@@ -5255,6 +5303,23 @@ dependencies = [
  "pallas-crypto",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "pallas-traverse"
+version = "0.30.1"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#a843c6a8af7ffc58756a82dd71be3183574932d1"
+dependencies = [
+ "hashbrown 0.14.5",
+ "hex",
+ "itertools 0.13.0",
+ "pallas-addresses",
+ "pallas-codec",
+ "pallas-crypto",
+ "pallas-primitives",
+ "paste",
+ "serde",
+ "thiserror-no-std",
 ]
 
 [[package]]
