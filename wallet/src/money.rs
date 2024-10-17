@@ -101,7 +101,7 @@ pub async fn spend_coins(
             };
         } else {
             log::info!(
-                "Warning: User-specified utxo {:x?} not found in local database",
+                "Warning: User-specified utxo {:x?} not found in wallet database",
                 input
             );
         }
@@ -111,10 +111,9 @@ pub async fn spend_coins(
     // we abort in error.
     if total_input_amount < total_amount {
         println!(
-            "Warning: Total input amount insufficient to pay for outputs."
+            "Warning: Total input amount (in wallet database) insufficient to pay for outputs."
         );
     }
-
 
     // Make sure each input decodes and is still present in the node's storage,
     // and then push to transaction.
@@ -142,17 +141,14 @@ pub async fn spend_coins(
 
     let mut tx_encoded: Vec<u8> = Vec::new();
     let _ = encode(&transaction, &mut tx_encoded);
-    log::debug!("CBOR of Tx is: {}", hex::encode(tx_encoded));
+    log::debug!("SCALE-encoding of Tx is: {}", hex::encode(tx_encoded));
     
     tx_encoded = Vec::new();
     let _ = encode(
         &pallas_primitives::babbage::Tx::from(transaction.clone()),
         &mut tx_encoded
     );
-    log::debug!(
-        "MiniCBOR of Tx: {}",
-        hex::encode(tx_encoded)
-    );
+    log::debug!("MiniCBOR of Tx: {}", hex::encode(tx_encoded));
 
     // Send the transaction
     let genesis_spend_hex = hex::encode(Encode::encode(&transaction));

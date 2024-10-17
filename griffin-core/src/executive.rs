@@ -40,6 +40,7 @@ use alloc::{
 use pallas_applying::{
     UTxOs,
     babbage::{
+        check_ins_not_empty,
         check_all_ins_in_utxos,
         check_preservation_of_value,
         check_witness_set,
@@ -70,10 +71,11 @@ where
     /// Checks performed to enter the transaction pool. The response of the node
     /// is essentially determined by the outcome of this function. 
     fn pool_checks(
-        _mtx: &MintedTx,
+        mtx: &MintedTx,
         _utxos: &UTxOs,
     ) -> Result<(), UtxoError> {
 
+        check_ins_not_empty(&mtx.transaction_body.clone())?;
         Ok(())
     }
 
@@ -106,9 +108,6 @@ where
             target: LOG_TARGET,
             "validating griffin transaction",
         );
-
-        // There must be at least one input
-        ensure!(!transaction.transaction_body.inputs.is_empty(), UtxoError::NoInputs);
 
         // Make sure there are no duplicate inputs
         {
