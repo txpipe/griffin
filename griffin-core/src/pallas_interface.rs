@@ -30,7 +30,7 @@ use pallas_primitives::babbage::{
     Value as PallasValue,
     WitnessSet as PallasWitnessSet,
 };
-use alloc::{vec::Vec, collections::BTreeMap};
+use alloc::{vec::Vec, vec, collections::BTreeMap};
 use core::{ops::Deref, default::Default};
 
 impl From<Input> for PallasInput {
@@ -150,9 +150,12 @@ impl From<Output> for PostAlonzoTransactionOutput {
         let datum_option: Option<DatumOption> = val.datum_option.map(
             |d| Decode::decode(&mut Decoder::new(d.0.as_slice()), &mut ()).unwrap()
         );
-
+        // Adding header `0x61` to indicate a "mainnet" enterprise (no staking) address
+        let mut hash_with_header: Vec<u8> = vec![0x61];
+        hash_with_header.append(&mut val.address.0.clone());
+        
         Self {
-            address: Bytes::from(val.address.0),
+            address: Bytes::from(hash_with_header),
             value: PallasValue::from(val.value),
             datum_option,
             script_ref: Default::default(),

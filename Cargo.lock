@@ -5239,7 +5239,7 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 [[package]]
 name = "pallas-addresses"
 version = "0.30.1"
-source = "git+https://github.com/francolq/pallas.git?branch=no-std#a843c6a8af7ffc58756a82dd71be3183574932d1"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#19b3cbbd8cfaff4997f63824181b2798d222610f"
 dependencies = [
  "base58",
  "bech32-no_std",
@@ -5255,7 +5255,7 @@ dependencies = [
 [[package]]
 name = "pallas-applying"
 version = "0.30.1"
-source = "git+https://github.com/francolq/pallas.git?branch=no-std#a843c6a8af7ffc58756a82dd71be3183574932d1"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#19b3cbbd8cfaff4997f63824181b2798d222610f"
 dependencies = [
  "hashbrown 0.14.5",
  "hex",
@@ -5269,7 +5269,7 @@ dependencies = [
 [[package]]
 name = "pallas-codec"
 version = "0.30.1"
-source = "git+https://github.com/francolq/pallas.git?branch=no-std#a843c6a8af7ffc58756a82dd71be3183574932d1"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#19b3cbbd8cfaff4997f63824181b2798d222610f"
 dependencies = [
  "hex",
  "minicbor",
@@ -5280,7 +5280,7 @@ dependencies = [
 [[package]]
 name = "pallas-crypto"
 version = "0.30.1"
-source = "git+https://github.com/francolq/pallas.git?branch=no-std#a843c6a8af7ffc58756a82dd71be3183574932d1"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#19b3cbbd8cfaff4997f63824181b2798d222610f"
 dependencies = [
  "cryptoxide",
  "hex",
@@ -5293,7 +5293,7 @@ dependencies = [
 [[package]]
 name = "pallas-primitives"
 version = "0.30.1"
-source = "git+https://github.com/francolq/pallas.git?branch=no-std#a843c6a8af7ffc58756a82dd71be3183574932d1"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#19b3cbbd8cfaff4997f63824181b2798d222610f"
 dependencies = [
  "base58",
  "bech32",
@@ -5308,7 +5308,7 @@ dependencies = [
 [[package]]
 name = "pallas-traverse"
 version = "0.30.1"
-source = "git+https://github.com/francolq/pallas.git?branch=no-std#a843c6a8af7ffc58756a82dd71be3183574932d1"
+source = "git+https://github.com/francolq/pallas.git?branch=no-std#19b3cbbd8cfaff4997f63824181b2798d222610f"
 dependencies = [
  "hashbrown 0.14.5",
  "hex",

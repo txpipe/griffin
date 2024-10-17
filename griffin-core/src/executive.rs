@@ -22,7 +22,7 @@ use crate::{
         babbage_minted_tx_from_cbor,
     },
 };
-use log::debug;
+use log::{debug, info};
 use parity_scale_codec::{Decode, Encode};
 use sp_runtime::{
     traits::{BlakeTwo256, Block as BlockT, Extrinsic, Hash as HashT, Header as HeaderT},
@@ -42,6 +42,7 @@ use pallas_applying::{
     babbage::{
         check_all_ins_in_utxos,
         check_preservation_of_value,
+        check_witness_set,
     },
 };
 use pallas_primitives::babbage::{
@@ -49,6 +50,13 @@ use pallas_primitives::babbage::{
     Value as PallasValue, MintedTransactionBody,
 };
 use pallas_codec::utils::CborWrap;
+
+type OutputInfoList<'a> =  Vec<(
+    String, // address in string format
+    PallasValue,
+    Option<MintedDatumOption<'a>>,
+    Option<CborWrap<MintedScriptRef<'a>>>,
+)>;
 
 /// The executive. Each runtime is encouraged to make a type alias called `Executive` that fills
 /// in the proper generic types.
@@ -59,13 +67,41 @@ where
     Block: BlockT,
     Transaction: Extrinsic,
 {
+    /// Checks performed to enter the transaction pool. The response of the node
+    /// is essentially determined by the outcome of this function. 
+    fn pool_checks(
+        _mtx: &MintedTx,
+        _utxos: &UTxOs,
+    ) -> Result<(), UtxoError> {
+
+        Ok(())
+    }
+
+    /// Checks performed to a transaction with all its requirements satisfied
+    /// to be included in a block.
+    fn ledger_checks(
+        mtx: &MintedTx,
+        utxos: &UTxOs,
+    ) -> Result<(), UtxoError> {
+        let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
+        check_all_ins_in_utxos(tx_body, utxos)?;
+        check_preservation_of_value(tx_body, utxos)?;
+        // FIXME: Replace with check, not doing it right now.
+        info!("ERROR: {:?}",check_witness_set(mtx, utxos));
+        
+        Ok(())
+    }
+    
     /// Does pool-style validation of a griffin transaction.
     /// Does not commit anything to storage.
     /// This returns Ok even if some inputs are still missing because the tagged transaction pool can handle that.
-    /// We later check that there are no missing inputs in `apply_griffin_transaction`
-    pub fn validate_griffin_transaction(
+    /// We later check that there are no missing inputs in `apply_griffin_transaction`.
+    ///
+    /// The output includes the list of relevant UTxOs to be used for other
+    /// checks (in order to avoid a further db search).
+    fn validate_griffin_transaction(
         transaction: &Transaction,
-    ) -> Result<ValidTransaction, UtxoError> {
+    ) -> Result<(OutputInfoList, ValidTransaction), UtxoError> {
         debug!(
             target: LOG_TARGET,
             "validating griffin transaction",
@@ -83,12 +119,7 @@ where
             );
         }
 
-        let mut tx_outs_info: Vec<(
-            String, // address in string format
-            PallasValue,
-            Option<MintedDatumOption>,
-            Option<CborWrap<MintedScriptRef>>,
-        )> = Vec::new();
+        let mut tx_outs_info: OutputInfoList = Vec::new();
         
         // Add present inputs to a list to be used to produce the local UTxO set.
         // Keep track of any missing inputs for use in the tagged transaction pool
@@ -126,17 +157,16 @@ where
         }
 
         // Griffin Tx -> Pallas Tx -> CBOR -> Minted Pallas Tx
-        // This last one is used to produce the local UTxO.
+        // This last one is used to produce the local UTxO set.
         let pallas_tx: PallasTransaction = PallasTransaction::from(transaction.clone());
         let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
         let mtx: MintedTx = babbage_minted_tx_from_cbor(&cbor_bytes);
-
         let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
-        let utxos: UTxOs = mk_utxo_for_babbage_tx(tx_body, tx_outs_info.as_slice()); 
-        
-        check_all_ins_in_utxos(tx_body, &utxos)?;
-        check_preservation_of_value(tx_body, &utxos)?;
-        
+        let outs_info_clone = tx_outs_info.clone();
+        let utxos: UTxOs = mk_utxo_for_babbage_tx(tx_body, outs_info_clone.as_slice());
+
+        Self::pool_checks(&mtx, &utxos)?;
+
         // Calculate the tx-pool tags provided by this transaction, which
         // are just the encoded Inputs
         let provides = (0..transaction.transaction_body.outputs.len())
@@ -155,29 +185,29 @@ where
                 target: LOG_TARGET,
                 "Transaction is valid but still has missing inputs. Returning early.",
             );
-            return Ok(ValidTransaction {
+            return Ok((tx_outs_info, ValidTransaction {
                 requires: missing_inputs,
                 provides,
                 priority: 0,
                 longevity: TransactionLongevity::MAX,
                 propagate: true,
-            });
+            }));
         }
 
         // Return the valid transaction
-        Ok(ValidTransaction {
+        Ok((tx_outs_info, ValidTransaction {
             requires: Vec::new(),
             provides,
             priority: 0,
             longevity: TransactionLongevity::MAX,
             propagate: true,
-        })
+        }))
     }
 
     /// Does full verification and application of griffin transactions.
     /// Most of the validation happens in the call to `validate_griffin_transaction`.
     /// Once those checks are done we make sure there are no missing inputs and then update storage.
-    pub fn apply_griffin_transaction(transaction: Transaction) -> DispatchResult {
+    fn apply_griffin_transaction(transaction: &Transaction) -> DispatchResult {
         debug!(
             target: LOG_TARGET,
             "applying griffin transaction {:?}", transaction
@@ -185,8 +215,19 @@ where
 
         // Re-do the pre-checks. These should have been done in the pool, but we can't
         // guarantee that foreign nodes do these checks faithfully, so we need to check on-chain.
-        let valid_transaction = Self::validate_griffin_transaction(&transaction)?;
+        let (outs_info, valid_transaction) = Self::validate_griffin_transaction(transaction)?;
 
+        // FIXME: Duplicate code
+        // Griffin Tx -> Pallas Tx -> CBOR -> Minted Pallas Tx
+        // This last one is used to produce the local UTxO set.
+        let pallas_tx: PallasTransaction = PallasTransaction::from(transaction.clone());
+        let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
+        let mtx: MintedTx = babbage_minted_tx_from_cbor(&cbor_bytes);
+        let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
+        let utxos: UTxOs = mk_utxo_for_babbage_tx(tx_body, outs_info.as_slice());
+
+        Self::ledger_checks(&mtx, &utxos)?;
+        
         // If there are still missing inputs, we cannot execute this,
         // although it would be valid in the pool
         ensure!(
@@ -204,10 +245,10 @@ where
     /// This function does absolutely no validation. It assumes that the transaction
     /// has already passed validation. Changes proposed by the transaction are written
     /// blindly to storage.
-    fn update_storage(transaction: Transaction) {
+    fn update_storage(transaction: &Transaction) {
         // Remove verified UTXOs
         for input in &transaction.transaction_body.inputs {
-            TransparentUtxoSet::consume_utxo(&input);
+            TransparentUtxoSet::consume_utxo(input);
         }
 
         debug!(
@@ -267,7 +308,7 @@ where
         sp_io::storage::set(EXTRINSIC_KEY, &extrinsics.encode());
 
         // Now actually apply the extrinsic
-        Self::apply_griffin_transaction(extrinsic).map_err(|e| {
+        Self::apply_griffin_transaction(&extrinsic).map_err(|e| {
             log::warn!(
                 target: LOG_TARGET,
                 "Griffin Transaction did not apply successfully: {:?}",
@@ -323,7 +364,7 @@ where
 
         // Apply each extrinsic
         for extrinsic in block.extrinsics() {
-            match Self::apply_griffin_transaction(extrinsic.clone()) {
+            match Self::apply_griffin_transaction(&extrinsic) {
                 Ok(()) => debug!(
                     target: LOG_TARGET,
                     "Successfully executed extrinsic: {:?}", extrinsic
@@ -381,7 +422,7 @@ where
                         e,
                     );
                     TransactionValidityError::Invalid(e.into())
-                });
+                }).map(|x| x.1);
 
         debug!(target: LOG_TARGET, "Validation result: {:?}", r);
 

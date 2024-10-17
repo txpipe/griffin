@@ -29,9 +29,13 @@ pub fn development_genesis_transactions() -> Vec<Transaction> {
         Ok(_) => (),
         Err(err) => panic!("Unable to encode datum ({:?})", err),
     };
+    // FIXME: Duplicate code in pallas_interface.rs
+    // Adding header `0x61` to indicate a "mainnet" enterprise (no staking) address
+    let mut hash_with_header: Vec<u8> = vec![0x61];
+    hash_with_header.append(&mut Vec::from(<[u8; 32]>::from_hex(SHAWN_PUB_KEY).unwrap()));
 
     let output = Output::from((
-        Address(Vec::from(<[u8; 32]>::from_hex(SHAWN_PUB_KEY).unwrap())),
+        Address(hash_with_header),
         314,
         Datum::from(datum.clone()),
     ));

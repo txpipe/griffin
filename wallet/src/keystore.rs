@@ -5,7 +5,7 @@ use sc_keystore::LocalKeystore;
 use sp_core::{
     // The `Pair` trait is used to have `Pair::{generate_with,from}_phrase`
     crypto::{Pair as _, KeyTypeId},
-    ed25519::Pair,
+    ed25519::{Pair, Public, Signature},
 };
 use sp_keystore::Keystore;
 use std::path::Path;
@@ -22,6 +22,19 @@ pub fn insert_development_key_for_this_session(
     keystore.ed25519_generate_new(KEY_TYPE, Some(SHAWN_PHRASE))?;
 
     Ok(())
+}
+
+/// Sign a given message with the private key that corresponds to the given public key.
+///
+/// Returns an error if the keystore itself errors, or does not contain the requested key.
+pub fn sign_with(
+    keystore: &LocalKeystore,
+    public: &Public,
+    message: &[u8],
+) -> anyhow::Result<Signature> {
+    keystore
+        .ed25519_sign(KEY_TYPE, public, message)?
+        .ok_or(anyhow!("Key doesn't exist in keystore"))
 }
 
 /// Insert the private key associated with the given seed into the keystore for later use.
