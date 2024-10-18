@@ -28,8 +28,7 @@ use sp_core::{
 };
 use hex::FromHex;
 use std::{vec, str::FromStr};
-
-// use core::convert::From;
+use pallas_traverse::OriginalHash;
 
 /// Create and send a transaction that mints the coins on the network
 pub async fn mint_coins(
@@ -126,12 +125,14 @@ pub async fn spend_coins(
     let pallas_tx: PallasTransaction = PallasTransaction::from(transaction.clone());
     let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
     let mtx: MintedTx = babbage_minted_tx_from_cbor(&cbor_bytes);
-    let tx_body_cbor: &[u8] = &mtx.transaction_body.raw_cbor();    
+    let tx_hash: &Vec<u8> = &Vec::from(mtx.transaction_body.original_hash().as_ref());
+    log::debug!("Original tx_body hash is: {:#x?}", tx_hash);
 
+    // FIXME: All transactions are signed by Shawn!
     let vkey: Vec<u8> = Vec::from(<[u8; 32]>::from_hex(SHAWN_PUB_KEY).unwrap());
     let public = Public::from_h256(H256::from_str(SHAWN_PUB_KEY).unwrap());
     let signature: Vec<u8> = Vec::from(crate::keystore::sign_with(
-        keystore, &public, tx_body_cbor
+        keystore, &public, tx_hash
     )?.0);
 
     transaction.transaction_witness_set.vkeywitness = Some(vec![VKeyWitness{ vkey, signature }]);

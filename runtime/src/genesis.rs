@@ -7,10 +7,11 @@ use super::{
     Output
 };
 use alloc::{ vec::Vec, vec };
-use hex::FromHex;
 use core::convert::From;
 use griffin_core::types::{ Address, FakeDatum, Datum };
 use pallas_codec::minicbor::encode;
+use pallas_crypto::hash::{Hasher as PallasHasher};
+use hex::FromHex;
 
 /// A default seed phrase for signing inputs when none is provided
 /// Corresponds to the default pubkey.
@@ -32,7 +33,8 @@ pub fn development_genesis_transactions() -> Vec<Transaction> {
     // FIXME: Duplicate code in pallas_interface.rs
     // Adding header `0x61` to indicate a "mainnet" enterprise (no staking) address
     let mut hash_with_header: Vec<u8> = vec![0x61];
-    hash_with_header.append(&mut Vec::from(<[u8; 32]>::from_hex(SHAWN_PUB_KEY).unwrap()));
+    let mut hash: Vec<u8>  = PallasHasher::<224>::hash(&<[u8; 32]>::from_hex(SHAWN_PUB_KEY).unwrap()).to_vec();
+    hash_with_header.append(&mut hash);
 
     let output = Output::from((
         Address(hash_with_header),

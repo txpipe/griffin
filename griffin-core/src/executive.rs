@@ -22,7 +22,7 @@ use crate::{
         babbage_minted_tx_from_cbor,
     },
 };
-use log::{debug, info};
+use log::debug;
 use parity_scale_codec::{Decode, Encode};
 use sp_runtime::{
     traits::{BlakeTwo256, Block as BlockT, Extrinsic, Hash as HashT, Header as HeaderT},
@@ -88,8 +88,7 @@ where
         let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
         check_all_ins_in_utxos(tx_body, utxos)?;
         check_preservation_of_value(tx_body, utxos)?;
-        // FIXME: Replace with check, not doing it right now.
-        info!("ERROR: {:?}",check_witness_set(mtx, utxos));
+        check_witness_set(mtx, utxos)?;
         
         Ok(())
     }
