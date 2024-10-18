@@ -11,10 +11,11 @@ repository = "https://github.com/txpipe/griffin"
 edition = "2021"
 
 [workspace]
-members = ["node", "runtime", "griffin-core", "wallet"]
+members = ["node", "runtime", "griffin-core", "wallet", "uplc"]
 resolver = "2"
 
 [workspace.dependencies]
+uplc = { path = './uplc', version = "1.1.4" }
 griffin-solochain-runtime = { path = "./runtime", default-features = false }
 clap = { version = "4.5.3" }
 frame-benchmarking-cli = { version = "42.0.0", default-features = false }
@@ -36,7 +37,9 @@ sc-service = { version = "0.45.0", default-features = false }
 sc-telemetry = { version = "24.0.0", default-features = false }
 sc-transaction-pool = { version = "37.0.0", default-features = false }
 sc-transaction-pool-api = { version = "37.0.0", default-features = false }
-serde_json = { version = "1.0.114", default-features = false }
+serde_json = { version = "1.0.114", features = [
+	"alloc",
+], default-features = false }
 sp-api = { version = "34.0.0", default-features = false }
 sp-block-builder = { version = "34.0.0", default-features = false }
 sp-blockchain = { version = "37.0.0", default-features = false }
@@ -78,3 +81,13 @@ serde = { version = "1.0.209", default-features = false }
 sp-application-crypto = { version = "38.0.0", default-features = false }
 sp-debug-derive = { version = "14.0.0", default-features = false }
 sc-chain-spec = { version = "37.0.0" }
+hex = { version = "0.4.3", default-features = false }
+
+pallas-addresses = { git = "https://github.com/francolq/pallas.git", branch = "no-std" }
+pallas-applying = { git = "https://github.com/francolq/pallas.git", branch = "no-std" }
+pallas-codec = { git = "https://github.com/francolq/pallas.git", branch = "no-std", features = [
+	"num-bigint",
+] }
+pallas-crypto = { git = "https://github.com/francolq/pallas.git", branch = "no-std" }
+pallas-primitives = { git = "https://github.com/francolq/pallas.git", branch = "no-std" }
+pallas-traverse = { git = "https://github.com/francolq/pallas.git", branch = "no-std" }
