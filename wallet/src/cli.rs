@@ -9,7 +9,10 @@ use crate::{
     DEFAULT_ENDPOINT,
     address_from_string,
 };
-use runtime::genesis::SHAWN_PUB_KEY;
+use runtime::genesis::{
+    SHAWN_PUB_KEY,
+    SHAWN_ADDRESS,
+};
 
 /// The default number of coins to be minted.
 pub const DEFAULT_MINT_VALUE: &str = "100";
@@ -127,7 +130,7 @@ pub struct SpendArgs {
     pub input: Vec<Input>,
 
     /// Hex encoded address (sr25519 pubkey) of the recipient.
-    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_PUB_KEY)]
+    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS)]
     pub recipient: Address,
 
     /// An output amount. For the transaction to be valid, the outputs must add up to less than the sum of the inputs.

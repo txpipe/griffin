@@ -197,7 +197,7 @@ pub(crate) fn h256_from_string(s: &str) -> anyhow::Result<H256> {
 pub(crate) fn address_from_string(s: &str) -> anyhow::Result<Address> {
     let s = strip_0x_prefix(s);
 
-    let mut bytes: [u8; 32] = [0; 32];
+    let mut bytes: [u8; 29] = [0; 29];
     hex::decode_to_slice(s, &mut bytes as &mut [u8])
         .map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
     Ok(Address(Vec::from(bytes)))
