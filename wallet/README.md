@@ -32,47 +32,73 @@ To list the whole UTxO set, run
 When this is done for the first, the output will look like this:
 
 ```bash
-[2024-09-19T21:27:40Z INFO  utxo_wallet] Number of blocks in the db: 0
-[2024-09-19T21:27:41Z INFO  utxo_wallet] Wallet database synchronized with node to height 26
+[2024-10-22T20:29:28Z INFO  utxo_wallet::sync] Initializing fresh sync from genesis 0x71e3eafccc87760b45bd08fd4bbdd4317346440166575e0b2b659fd289f05f45
+[2024-10-22T20:29:28Z INFO  utxo_wallet] Number of blocks in the db: 0
+[2024-10-22T20:29:28Z INFO  utxo_wallet] Wallet database synchronized with node to height 11
 ###### Unspent outputs ###########
-149b3e2702eef1055ee08362b22638305fcb751f4fde6bbef763af89f9c84c7900000000: owner 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67, amount 314
+701616402ad8899e0fa03de3aa496ea432bbd923eddcf5d588af16fd0cbc230c00000000: owner address 6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4, amount Coin(314), datum Some(CuteOutput).
 ```
-
-The following splits that UTxO in three parts (assigned to Shawn by default). The remaining 14 coins are lost.
+This “genesis” UTxO belongs to Shawn's address. In order to spend it, we need to add his public/secret key pair (pk/sk) to the wallet keystore. We do this by generating the pair with the corresponding seed phrase:
 
 ```bash
-$ ./target/release/utxo-wallet spend-coins --input 149b3e2702eef1055ee08362b22638305fcb751f4fde6bbef763af89f9c84c7900000000 --amount 100 --amount 150 --amount 50
+$ ./target/release/utxo-wallet insert-key "news slush supreme milk chapter athlete soap sausage put clutch what kitten"
 
-[2024-09-19T21:28:08Z INFO  utxo_wallet] Number of blocks in the db: 26
-[2024-09-19T21:28:08Z INFO  utxo_wallet] Wallet database synchronized with node to height 35
-[2024-09-19T21:28:08Z INFO  utxo_wallet::money] Node's response to spend transaction: Ok("0x0de44857fb6301e0e9f316c54de527f6fee1893a533c4273ea0f1497581d039c")
-Created "16a0afadf19d6b7e62784a1441271d1f731260623be423c33187a96e3cc8d29700000000" worth 100. 
-Created "16a0afadf19d6b7e62784a1441271d1f731260623be423c33187a96e3cc8d29701000000" worth 150. 
-Created "16a0afadf19d6b7e62784a1441271d1f731260623be423c33187a96e3cc8d29702000000" worth 50. 
+[2024-10-22T20:29:34Z INFO  utxo_wallet] Number of blocks in the db: 11
+[2024-10-22T20:29:34Z INFO  utxo_wallet] Wallet database synchronized with node to height 13
+The generated public key is 7b155093789404780735f4501c576e9f6e2b0a486cdec70e03e1ef8b9ef99274 (5Er65XH4...)
+Associated address is 0x6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4
 ```
 
-All command-line arguments admit short versions (run `./target/release/utxo-wallet -h` for details). The next one sends 60 coins from the second output to some arbitrary key:
+We use the `generate-key` command to have another pk/sk and address available for experimenting.
+
+```
+$ ./target/release/utxo-wallet generate-key
+
+[2024-10-22T20:30:46Z INFO  utxo_wallet] Number of blocks in the db: 34
+[2024-10-22T20:30:46Z INFO  utxo_wallet] Wallet database synchronized with node to height 37
+Generated public key is aa2d29beac05bc17cd9e866848d85ae285b5041209d3e4fc81544f8f6e402d67 (5FuqQxFe...)
+Generated Phrase is "grain feel nothing sail illness glue fashion soap brief chase cat march"
+Associated address is 0x619d65450a97939f93bca4d2f691587ee080276d210e80b8312c727a66
+```
+
+Now we spend the output, generating two new UTxOs for the last address:
+
+```
+$ ./target/release/utxo-wallet spend-coins --input 701616402ad8899e0fa03de3aa496ea432bbd923eddcf5d588af16fd0cbc230c00000000 --amount 50 --amount 264 --recipient 0x619d65450a97939f93bca4d2f691587ee080276d210e80b8312c727a66 
+[2024-10-22T20:31:46Z INFO  utxo_wallet] Number of blocks in the db: 45
+[2024-10-22T20:31:46Z INFO  utxo_wallet] Wallet database synchronized with node to height 57
+[2024-10-22T20:31:46Z INFO  utxo_wallet::money] Node's response to spend transaction: Ok("0xb9a07073ea5a5c6c9fa6c9d987424f9725dc219e5d5e57e6f4d4f31e5d6f3579")
+Transaction queued. When accepted, the following UTxOs will become available:
+"53dcda420d866f644026e35c75040f202e3e081d61b34e47b45a2fbf8768049900000000" worth Coin(50).
+"53dcda420d866f644026e35c75040f202e3e081d61b34e47b45a2fbf8768049901000000" worth Coin(264).
+```
+
+All command-line arguments admit short versions (run `./target/release/utxo-wallet -h` for details). The next invocation splits the first UTxO and send the resulting ones back to Shawn: 
 
 ```bash
-$ ./target/release/utxo-wallet spend-coins --input 16a0afadf19d6b7e62784a1441271d1f731260623be423c33187a96e3cc8d29701000000 --amount 60 --recipient 0x524414d5af095bcb4cadc0cf9f8bfbeeeaa8cc34f2df41c3bc4ed953cf8a4367
+$ ./target/release/utxo-wallet spend-coins --input 53dcda420d866f644026e35c75040f202e3e081d61b34e47b45a2fbf8768049900000000 --amount 20 --amount 30 --witness aa2d29beac05bc17cd9e866848d85ae285b5041209d3e4fc81544f8f6e402d67
 
-[2024-09-19T21:28:55Z INFO  utxo_wallet] Number of blocks in the db: 35
-[2024-09-19T21:28:55Z INFO  utxo_wallet] Wallet database synchronized with node to height 51
-[2024-09-19T21:28:55Z INFO  utxo_wallet::money] Node's response to spend transaction: Ok("0x2e71606dc18aeb4ba948b1e0cd6cb5b85bbb29589b83e68169d416e1ac17dbc6")
-Created "d054364bdba58df9fae05e2388e09b607ed7767e91cc7d3af9bf4776f1a87b9f00000000" worth 60. 
+[2024-10-22T20:32:42Z INFO  utxo_wallet] Number of blocks in the db: 59
+[2024-10-22T20:32:42Z INFO  utxo_wallet] Wallet database synchronized with node to height 76
+[2024-10-22T20:32:42Z INFO  utxo_wallet::money] Node's response to spend transaction: Ok("0x3296de7b720ab7d77384758ca666e19dadc9690b84a20a313c3f1914480f41ee")
+Transaction queued. When accepted, the following UTxOs will become available:
+"898857a441840938cdf58c68b5e4d9ac3e894f4d89c157d6111cb05c26ea84a100000000" worth Coin(20). 
+"898857a441840938cdf58c68b5e4d9ac3e894f4d89c157d6111cb05c26ea84a101000000" worth Coin(30). 
 ```
+
+In this second example, we had to explicitly state the pk of the owning address to allow spenditure; in order to be successful, the sk must be stored in the wallet's keystore. (If the `--witness` argument is missing, Shawns pk is implied, cf. the first spend.)
 
 The UTxO set at this point is
 
 ```bash
 $ ./target/release/utxo-wallet show-all-outputs
 
-[2024-09-19T21:29:14Z INFO  utxo_wallet] Number of blocks in the db: 51
-[2024-09-19T21:29:14Z INFO  utxo_wallet] Wallet database synchronized with node to height 57
+[2024-10-22T20:32:54Z INFO  utxo_wallet] Number of blocks in the db: 76
+[2024-10-22T20:32:54Z INFO  utxo_wallet] Wallet database synchronized with node to height 80
 ###### Unspent outputs ###########
-16a0afadf19d6b7e62784a1441271d1f731260623be423c33187a96e3cc8d29700000000: owner 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67, amount 100
-16a0afadf19d6b7e62784a1441271d1f731260623be423c33187a96e3cc8d29702000000: owner 0xd2bf4b844dfefd6772a8843e669f943408966a977e3ae2af1dd78e0f55f4df67, amount 50
-d054364bdba58df9fae05e2388e09b607ed7767e91cc7d3af9bf4776f1a87b9f00000000: owner 0x524414d5af095bcb4cadc0cf9f8bfbeeeaa8cc34f2df41c3bc4ed953cf8a4367, amount 60
+53dcda420d866f644026e35c75040f202e3e081d61b34e47b45a2fbf8768049901000000: owner address 619d65450a97939f93bca4d2f691587ee080276d210e80b8312c727a66, amount Coin(264), datum None.
+898857a441840938cdf58c68b5e4d9ac3e894f4d89c157d6111cb05c26ea84a100000000: owner address 6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4, amount Coin(20), datum None.
+898857a441840938cdf58c68b5e4d9ac3e894f4d89c157d6111cb05c26ea84a101000000: owner address 6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4, amount Coin(30), datum None.
 ```
 
 The *balance* summarizes coins for each address:
@@ -80,32 +106,11 @@ The *balance* summarizes coins for each address:
 ```bash
 $ ./target/release/utxo-wallet show-balance
 
-[2024-09-19T21:29:34Z INFO  utxo_wallet] Number of blocks in the db: 57
-[2024-09-19T21:29:34Z INFO  utxo_wallet] Wallet database synchronized with node to height 64
+[2024-10-22T20:33:29Z INFO  utxo_wallet] Number of blocks in the db: 80
+[2024-10-22T20:33:29Z INFO  utxo_wallet] Wallet database synchronized with node to height 91
 Balance Summary
-0x5244…4367: 60
-0xd2bf…df67: 150
+6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4: 50
+619d65450a97939f93bca4d2f691587ee080276d210e80b8312c727a66: 264
 --------------------
-total      : 210
-```
-
-At this development stage, coin minting is allowed. As with every other transaction, an input is required, whose coins are channeled back as a new UTxO.
-
-```bash
-$ ./target/release/utxo-wallet mint-coins --amount 1000 --recipient 524414d5af095bcb4cadc0cf9f8bfbeeeaa8cc34f2df41c3bc4ed953cf8a4367 --input 16a0afadf19d6b7e62784a1441271d1f731260623be423c33187a96e3cc8d29700000000
-
-[2024-09-19T21:43:59Z INFO  utxo_wallet] Number of blocks in the db: 64
-[2024-09-19T21:43:59Z INFO  utxo_wallet] Wallet database synchronized with node to height 352
-[2024-09-19T21:43:59Z INFO  utxo_wallet::money] Node's response to mint-coin transaction: Ok("0x8e2f5536cefe8f5443b59da404fdc7997f2f922b777812a3de63092d98cab3c6")
-Minted "290428f8a6b202aaba22c6db9693394fa02a03c130846f3d23f8eca1f262506200000000" worth 1000. 
-
-$ ./target/release/utxo-wallet show-balance
-
-[2024-09-19T21:45:14Z INFO  utxo_wallet] Number of blocks in the db: 352
-[2024-09-19T21:45:14Z INFO  utxo_wallet] Wallet database synchronized with node to height 377
-Balance Summary
-0xd2bf…df67: 150
-0x5244…4367: 1060
---------------------
-total      : 1210
+total      : 314
 ```

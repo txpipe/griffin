@@ -10,7 +10,7 @@ We want to provide the tools for Cardano developers to leverage their Plutus exp
 
 We'll build a Substrate-compatible runtime with the following special capabilities:
 
-- UTxO-based ledger: this ledger will resemble as much as possible the Cardano ledger, with the exception of any stacking, delegation or governance primitives.
+- UTxO-based ledger: this ledger will resemble as much as possible the Cardano ledger, with the exception of any staking, delegation or governance primitives.
 - Extended UTxO primitives: we'll replicate the programability primitives around UTxO (datums, redeemers, scripts, etc) so that these concepts remains analogous to Cardano.
 - Plutus VM: we'll integrate a virtual machine capable of executing Plutus scripts that can be created using existing Plutus tooling and languages, such as Aiken.
 

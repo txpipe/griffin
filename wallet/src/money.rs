@@ -172,7 +172,7 @@ pub async fn spend_coins(
             let amount = &output.value;
 
             println!(
-                "{:?} worth {amount:?}. ",
+                "{:?} worth {amount:?}.",
                 hex::encode(Encode::encode(&new_coin_ref))
             );
         }
