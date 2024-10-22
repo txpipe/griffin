@@ -6,11 +6,11 @@ use sp_core::{
     // The `Pair` trait is used to have `Pair::{generate_with,from}_phrase`
     crypto::{Pair as _, KeyTypeId},
     ed25519::{Pair, Public, Signature},
+    H256,
 };
 use sp_keystore::Keystore;
 use std::path::Path;
 use runtime::genesis::SHAWN_PHRASE;
-use griffin_core::types::Address;
 
 /// A KeyTypeId to use in the keystore for Griffin transactions.
 const KEY_TYPE: KeyTypeId = KeyTypeId(*b"_gri");
@@ -72,7 +72,7 @@ pub fn get_keys(
 }
 
 /// Removes key from keystore. Call with care.
-pub fn remove_key(keystore_path: &Path, pub_key: &Address) -> anyhow::Result<()> {
+pub fn remove_key(keystore_path: &Path, pub_key: &H256) -> anyhow::Result<()> {
     // The keystore doesn't provide an API for removing keys, so we
     // remove them from the filesystem directly
     let filename = format!("{}{}", hex::encode(KEY_TYPE.0), hex::encode(pub_key.0.clone()));

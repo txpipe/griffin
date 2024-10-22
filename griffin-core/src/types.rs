@@ -175,6 +175,12 @@ impl Default for WitnessSet {
     }
 }
 
+impl From<Vec<VKeyWitness>> for WitnessSet {
+    fn from(wits: Vec<VKeyWitness>) -> Self {
+        Self{ vkeywitness: Some(wits) }
+    }
+}
+
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
 pub struct Transaction {
     #[n(0)]
@@ -361,6 +367,12 @@ impl From<(Address, Value, Datum)> for Output {
 impl From<Vec<u8>> for Datum {
     fn from(bytes: Vec<u8>) -> Self {
         Self(bytes)
+    }
+}
+
+impl From<(Vec<u8>, Vec<u8>)> for VKeyWitness {
+    fn from((vkey, signature): (Vec<u8>, Vec<u8>)) -> Self {
+        Self { vkey, signature }
     }
 }
 

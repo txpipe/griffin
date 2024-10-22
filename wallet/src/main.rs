@@ -6,6 +6,8 @@ use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 use std::path::PathBuf;
 use griffin_core::types::{Input, Address};
+use pallas_crypto::hash::{Hasher as PallasHasher};
+use hex::FromHex;
 
 mod cli;
 mod keystore;
@@ -124,7 +126,9 @@ async fn main() -> anyhow::Result<()> {
         }
         Some(Command::ShowKeys) => {
             crate::keystore::get_keys(&keystore)?.for_each(|pubkey| {
-                println!("key: 0x{}", hex::encode(pubkey));
+                let pk_str: &str = &hex::encode(pubkey);
+                let hash: String  = PallasHasher::<224>::hash(&<[u8; 32]>::from_hex(pk_str).unwrap()).to_string();
+                println!("key: 0x{}; addr: 0x61{}", pk_str, hash);
             });
 
             Ok(())

@@ -21,13 +21,8 @@ use griffin_core::{
 use pallas_primitives::babbage::{
     Tx as PallasTransaction, MintedTx,
 };
-use runtime::genesis::SHAWN_PUB_KEY;
-use sp_core::{
-    ed25519::{Public, },
-    H256,
-};
-use hex::FromHex;
-use std::{vec, str::FromStr};
+use sp_core::ed25519::Public;
+use std::vec;
 use pallas_traverse::OriginalHash;
 
 /// Create and send a transaction that mints the coins on the network
@@ -128,14 +123,17 @@ pub async fn spend_coins(
     let tx_hash: &Vec<u8> = &Vec::from(mtx.transaction_body.original_hash().as_ref());
     log::debug!("Original tx_body hash is: {:#x?}", tx_hash);
 
-    // FIXME: All transactions are signed by Shawn!
-    let vkey: Vec<u8> = Vec::from(<[u8; 32]>::from_hex(SHAWN_PUB_KEY).unwrap());
-    let public = Public::from_h256(H256::from_str(SHAWN_PUB_KEY).unwrap());
-    let signature: Vec<u8> = Vec::from(crate::keystore::sign_with(
-        keystore, &public, tx_hash
-    )?.0);
-
-    transaction.transaction_witness_set.vkeywitness = Some(vec![VKeyWitness{ vkey, signature }]);
+    let mut witnesses: Vec<VKeyWitness> = Vec::new();
+    for witness in &args.witnesses {
+        let vkey: Vec<u8> = Vec::from(witness.0);
+        let public = Public::from_h256(*witness);
+        let signature: Vec<u8> = Vec::from(crate::keystore::sign_with(
+            keystore, &public, tx_hash
+        )?.0);
+        witnesses.push(VKeyWitness::from((vkey, signature)));
+    }
+    transaction.transaction_witness_set = <_>::from(witnesses);
+    
     log::debug!("Griffin transaction is: {:#x?}", transaction);
     let pallas_tx: PallasTransaction = PallasTransaction::from(transaction.clone());
     log::debug!("Babbage transaction is: {:#x?}", pallas_tx);

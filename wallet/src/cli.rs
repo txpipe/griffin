@@ -8,6 +8,8 @@ use crate::{
     input_from_string,
     DEFAULT_ENDPOINT,
     address_from_string,
+    h256_from_string,
+    H256,
 };
 use runtime::genesis::{
     SHAWN_PUB_KEY,
@@ -95,8 +97,8 @@ pub enum Command {
     #[command(verbatim_doc_comment)]
     RemoveKey {
         /// The public key to remove
-        #[arg(value_parser = address_from_string)]
-        pub_key: Address,
+        #[arg(value_parser = h256_from_string)]
+        pub_key: H256,
     },
 
     /// For each key tracked by the wallet, shows the sum of all UTXO values owned by that key.
@@ -118,8 +120,8 @@ pub struct MintCoinArgs {
     #[arg(long, short, verbatim_doc_comment, action = Append,default_value = DEFAULT_MINT_VALUE)]
     pub amount: Coin,
 
-    /// Hex encoded address (sr25519 pubkey) of the owner.
-    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_PUB_KEY)]
+    /// 28-byte hash-address of the recipient.
+    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS)]
     pub recipient: Address,
 }
 
@@ -129,12 +131,17 @@ pub struct SpendArgs {
     #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true)]
     pub input: Vec<Input>,
 
-    /// Hex encoded address (sr25519 pubkey) of the recipient.
+    /// 32-byte H256 public key of an input owner.
+    /// Their pk/sk pair must be registered in the wallet's keystore.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
+    pub witnesses: Vec<H256>,
+
+    /// 29-byte hash-address of the recipient.
     #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS)]
     pub recipient: Address,
 
-    /// An output amount. For the transaction to be valid, the outputs must add up to less than the sum of the inputs.
-    /// The wallet will not enforce this and will gladly send an invalid which will then be rejected by the node.
+    /// An output amount (only supports `Coin`). For the transaction to be
+    /// accepted by the node, the sum of the outputs must equal the sum of the inputs.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub amount: Vec<Coin>,
 }
