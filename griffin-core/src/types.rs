@@ -237,7 +237,7 @@ impl Extrinsic for Transaction {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum UtxoError {
     /// This transaction defines the same input multiple times
     DuplicateInput,
@@ -248,6 +248,8 @@ pub enum UtxoError {
     NoInputs,
     /// Preservation of value is violated
     PreservationOfValue,
+    /// Wrong VK signature
+    VKWrongSignature,
     /// Pallas error not implemented yet
     Unimplemented,
 }
@@ -263,6 +265,7 @@ impl From<UtxoError> for InvalidTransaction {
             NoInputs => InvalidTransaction::Custom(253),
             MissingInput => InvalidTransaction::Future,
             PreservationOfValue => InvalidTransaction::Custom(252),
+            VKWrongSignature => InvalidTransaction::Custom(251),
             Unimplemented => InvalidTransaction::Custom(128),
         }
     }

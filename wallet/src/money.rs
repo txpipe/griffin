@@ -117,14 +117,14 @@ pub async fn spend_coins(
     }
 
     // FIXME: Duplicate code
-    let pallas_tx: PallasTransaction = PallasTransaction::from(transaction.clone());
+    let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
     let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
     let mtx: MintedTx = babbage_minted_tx_from_cbor(&cbor_bytes);
     let tx_hash: &Vec<u8> = &Vec::from(mtx.transaction_body.original_hash().as_ref());
     log::debug!("Original tx_body hash is: {:#x?}", tx_hash);
 
     let mut witnesses: Vec<VKeyWitness> = Vec::new();
-    for witness in &args.witnesses {
+    for witness in &args.witness {
         let vkey: Vec<u8> = Vec::from(witness.0);
         let public = Public::from_h256(*witness);
         let signature: Vec<u8> = Vec::from(crate::keystore::sign_with(
@@ -135,7 +135,7 @@ pub async fn spend_coins(
     transaction.transaction_witness_set = <_>::from(witnesses);
     
     log::debug!("Griffin transaction is: {:#x?}", transaction);
-    let pallas_tx: PallasTransaction = PallasTransaction::from(transaction.clone());
+    let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
     log::debug!("Babbage transaction is: {:#x?}", pallas_tx);
 
     let mut tx_encoded: Vec<u8> = Vec::new();

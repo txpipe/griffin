@@ -134,7 +134,7 @@ pub struct SpendArgs {
     /// 32-byte H256 public key of an input owner.
     /// Their pk/sk pair must be registered in the wallet's keystore.
     #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
-    pub witnesses: Vec<H256>,
+    pub witness: Vec<H256>,
 
     /// 29-byte hash-address of the recipient.
     #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS)]

@@ -77,16 +77,16 @@ impl From<PallasAssetName> for AssetName {
 
 impl<K: Clone + Ord, V: Clone> From<EncapBTree<K, V>> for KeyValuePairs<K, V> {
     fn from(val: EncapBTree<K, V>) -> Self {
-        let res: KeyValuePairs<K, V> = KeyValuePairs::from(val.0
-                                                           .into_iter()
-                                                           .collect::<Vec<_>>());
+        let res: KeyValuePairs<K, V> = <_>::from(val.0
+                                                 .into_iter()
+                                                 .collect::<Vec<_>>());
         res
     }
 }
 
 impl<K: Clone + Ord, V: Clone> From<KeyValuePairs<K, V>> for EncapBTree<K, V> {
     fn from(val: KeyValuePairs<K, V>) -> Self {
-        let tree: BTreeMap<K, V> = BTreeMap::from_iter(Vec::from(val).into_iter());
+        let tree: BTreeMap<K, V> = <_>::from_iter(Vec::from(val).into_iter());
 
         Self(tree)
     }
@@ -98,12 +98,12 @@ impl<A: Clone> From<Multiasset<A>> for PallasMultiasset<A> {
                       Vec::new();
         
         for (k, v) in val.0.into_iter() {
-            res.push((PallasPolicyId::from(k),
-                      KeyValuePairs::from(v
-                                          .0
-                                          .into_iter()
-                                          .map(|(k, v)| (PallasAssetName::from(k), v))
-                                          .collect::<Vec<_>>())))
+            res.push((<_>::from(k),
+                      <_>::from(v
+                                .0
+                                .into_iter()
+                                .map(|(k, v)| (<_>::from(k), v))
+                                .collect::<Vec<_>>())))
         }
 
         KeyValuePairs::from(res)
@@ -117,12 +117,12 @@ impl<A: Clone> From<PallasMultiasset<A>> for Multiasset<A> {
         
         for (k, v) in val.iter() {
             res.push((PolicyId::from(k.clone()),
-                      EncapBTree(BTreeMap::from_iter(v.clone()
+                      EncapBTree(<_>::from_iter(v.clone()
                                           .iter()
-                                          .map(|(k, v)| (AssetName::from(k.clone()), v.clone()))))))
+                                          .map(|(k, v)| (<_>::from(k.clone()), v.clone()))))))
         }
 
-        EncapBTree(BTreeMap::from_iter(res.into_iter()))
+        EncapBTree(<_>::from_iter(res.into_iter()))
     }
 }
 
@@ -130,7 +130,7 @@ impl From<Value> for PallasValue {
     fn from(val: Value) -> Self {
         match val {
             Value::Coin(c) => Self::Coin(c),
-            Value::Multiasset(c, m) => Self::Multiasset(c, PallasMultiasset::from(m)),
+            Value::Multiasset(c, m) => Self::Multiasset(c, <_>::from(m)),
         }
     }
 }
@@ -139,7 +139,7 @@ impl From<PallasValue> for Value {
     fn from(val: PallasValue) -> Self {
         match val {
             PallasValue::Coin(c) => Self::Coin(c),
-            PallasValue::Multiasset(c, m) => Self::Multiasset(c, Multiasset::from(m)),
+            PallasValue::Multiasset(c, m) => Self::Multiasset(c, <_>::from(m)),
         }
     }
 }
@@ -152,8 +152,8 @@ impl From<Output> for PostAlonzoTransactionOutput {
         );
         
         Self {
-            address: Bytes::from(val.address.0),
-            value: PallasValue::from(val.value),
+            address: <_>::from(val.address.0),
+            value: <_>::from(val.value),
             datum_option,
             script_ref: Default::default(),
         }
@@ -204,7 +204,7 @@ impl From<LegacyTransactionOutput> for Output {
 
 impl From<Output> for PallasOutput {
     fn from(val: Output) -> Self {
-        PallasOutput::PostAlonzo(PostAlonzoTransactionOutput::from(val))
+        PallasOutput::PostAlonzo(<_>::from(val))
     }
 }
 
@@ -241,7 +241,7 @@ impl From<WitnessSet> for PallasWitnessSet {
             val
             .vkeywitness
             .map(
-                |vks| vks.into_iter().map(|vk| PallasVKeyWitness::from(vk)).collect());
+                |vks| vks.into_iter().map(|vk| <_>::from(vk)).collect());
         Self {
             vkeywitness,
             native_script: None,
@@ -258,7 +258,7 @@ impl From<PallasWitnessSet> for WitnessSet {
     fn from(val: PallasWitnessSet) -> Self {
         Self {
             vkeywitness: val.vkeywitness
-                .map(|v| v.into_iter().map(|y| VKeyWitness::from(y)).collect())
+                .map(|v| v.into_iter().map(|y| <_>::from(y)).collect())
         }
     }
 }
@@ -266,8 +266,8 @@ impl From<PallasWitnessSet> for WitnessSet {
 impl From<TransactionBody> for PallasTransactionBody {
     fn from(val: TransactionBody) -> Self {
         Self {
-            inputs: val.inputs.into_iter().map(|i| PallasInput::from(i)).collect(),
-            outputs: val.outputs.into_iter().map(|i| PallasOutput::from(i)).collect(),
+            inputs: val.inputs.into_iter().map(|i| <_>::from(i)).collect(),
+            outputs: val.outputs.into_iter().map(|i| <_>::from(i)).collect(),
             fee: 0,
             ttl: None,
             certificates: None,
@@ -300,8 +300,8 @@ impl From<PallasTransactionBody> for TransactionBody {
 impl From<Transaction> for PallasTransaction {
     fn from(val: Transaction) -> Self {
         Self {
-            transaction_body: PallasTransactionBody::from(val.transaction_body),
-            transaction_witness_set: PallasWitnessSet::from(val.transaction_witness_set),
+            transaction_body: <_>::from(val.transaction_body),
+            transaction_witness_set: <_>::from(val.transaction_witness_set),
             success: true,
             auxiliary_data: Nullable::Undefined,
         }
@@ -311,8 +311,8 @@ impl From<Transaction> for PallasTransaction {
 impl From<PallasTransaction> for Transaction {
     fn from(val: PallasTransaction) -> Self {
         Self {
-            transaction_body: TransactionBody::from(val.transaction_body),
-            transaction_witness_set: WitnessSet::from(val.transaction_witness_set),
+            transaction_body: <_>::from(val.transaction_body),
+            transaction_witness_set: <_>::from(val.transaction_witness_set),
         }
     }
 }

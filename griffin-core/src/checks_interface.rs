@@ -27,6 +27,7 @@ impl From<ValidationError> for UtxoError {
             Babbage(BabbageError::InputNotInUTxO) => MissingInput,
             Babbage(BabbageError::PreservationOfValue) => PreservationOfValue,
             Babbage(BabbageError::NegativeValue) => PreservationOfValue,
+            Babbage(BabbageError::VKWrongSignature) => VKWrongSignature,
             _ => Unimplemented,
         }
     }

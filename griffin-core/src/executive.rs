@@ -41,7 +41,7 @@ use pallas_applying::{
     UTxOs,
     babbage::{
         check_ins_not_empty,
-        check_all_ins_in_utxos,
+        // check_all_ins_in_utxos,
         check_preservation_of_value,
         check_witness_set,
     },
@@ -86,7 +86,8 @@ where
         utxos: &UTxOs,
     ) -> Result<(), UtxoError> {
         let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
-        check_all_ins_in_utxos(tx_body, utxos)?;
+        // Next unneeded since already checked at `apply_griffin_transaction`
+        // check_all_ins_in_utxos(tx_body, utxos)?;
         check_preservation_of_value(tx_body, utxos)?;
         check_witness_set(mtx, utxos)?;
         
@@ -156,7 +157,7 @@ where
 
         // Griffin Tx -> Pallas Tx -> CBOR -> Minted Pallas Tx
         // This last one is used to produce the local UTxO set.
-        let pallas_tx: PallasTransaction = PallasTransaction::from(transaction.clone());
+        let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
         let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
         let mtx: MintedTx = babbage_minted_tx_from_cbor(&cbor_bytes);
         let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
@@ -215,17 +216,6 @@ where
         // guarantee that foreign nodes do these checks faithfully, so we need to check on-chain.
         let (outs_info, valid_transaction) = Self::validate_griffin_transaction(transaction)?;
 
-        // FIXME: Duplicate code
-        // Griffin Tx -> Pallas Tx -> CBOR -> Minted Pallas Tx
-        // This last one is used to produce the local UTxO set.
-        let pallas_tx: PallasTransaction = PallasTransaction::from(transaction.clone());
-        let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
-        let mtx: MintedTx = babbage_minted_tx_from_cbor(&cbor_bytes);
-        let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
-        let utxos: UTxOs = mk_utxo_for_babbage_tx(tx_body, outs_info.as_slice());
-
-        Self::ledger_checks(&mtx, &utxos)?;
-        
         // If there are still missing inputs, we cannot execute this,
         // although it would be valid in the pool
         ensure!(
@@ -233,6 +223,17 @@ where
             UtxoError::MissingInput
         );
 
+        // FIXME: Duplicate code
+        // Griffin Tx -> Pallas Tx -> CBOR -> Minted Pallas Tx
+        // This last one is used to produce the local UTxO set.
+        let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
+        let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
+        let mtx: MintedTx = babbage_minted_tx_from_cbor(&cbor_bytes);
+        let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
+        let utxos: UTxOs = mk_utxo_for_babbage_tx(tx_body, outs_info.as_slice());
+
+        Self::ledger_checks(&mtx, &utxos)?;
+        
         // At this point, all validation is complete, so we can commit the storage changes.
         Self::update_storage(transaction);
 
