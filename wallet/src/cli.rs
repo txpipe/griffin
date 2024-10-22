@@ -3,14 +3,18 @@
 use std::path::PathBuf;
 
 use clap::{ArgAction::Append, Args, Parser, Subcommand};
-use sp_core::H256;
-use griffin_core::types::{Coin, OutputRef};
+use griffin_core::types::{Coin, Input, Address};
 use crate::{
+    input_from_string,
+    DEFAULT_ENDPOINT,
+    address_from_string,
     h256_from_string,
-    output_ref_from_string,
-    DEFAULT_ENDPOINT
+    H256,
 };
-use runtime::genesis::SHAWN_PUB_KEY;
+use runtime::genesis::{
+    SHAWN_PUB_KEY,
+    SHAWN_ADDRESS,
+};
 
 /// The default number of coins to be minted.
 pub const DEFAULT_MINT_VALUE: &str = "100";
@@ -64,8 +68,8 @@ pub enum Command {
     #[command(verbatim_doc_comment)]
     VerifyCoin {
         /// A hex-encoded output reference
-        #[arg(value_parser = output_ref_from_string)]
-        output_ref: OutputRef,
+        #[arg(value_parser = input_from_string)]
+        input: Input,
     },
 
     /// Spend some coins.
@@ -109,30 +113,35 @@ pub enum Command {
 #[derive(Debug, Args)]
 pub struct MintCoinArgs {
     /// An input to be consumed by this transaction.
-    #[arg(long, short, verbatim_doc_comment, value_parser = output_ref_from_string)]
-    pub input: OutputRef,
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string)]
+    pub input: Input,
 
     /// Pass the amount to be minted.
     #[arg(long, short, verbatim_doc_comment, action = Append,default_value = DEFAULT_MINT_VALUE)]
     pub amount: Coin,
 
-    /// Hex encoded address (sr25519 pubkey) of the owner.
-    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
-    pub recipient: H256,
+    /// 28-byte hash-address of the recipient.
+    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS)]
+    pub recipient: Address,
 }
 
 #[derive(Debug, Args)]
 pub struct SpendArgs {
     /// An input to be consumed by this transaction. This argument may be specified multiple times.
-    #[arg(long, short, verbatim_doc_comment, value_parser = output_ref_from_string, required = true)]
-    pub input: Vec<OutputRef>,
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true)]
+    pub input: Vec<Input>,
 
-    /// Hex encoded address (sr25519 pubkey) of the recipient.
+    /// 32-byte H256 public key of an input owner.
+    /// Their pk/sk pair must be registered in the wallet's keystore.
     #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
-    pub recipient: H256,
+    pub witness: Vec<H256>,
 
-    /// An output amount. For the transaction to be valid, the outputs must add up to less than the sum of the inputs.
-    /// The wallet will not enforce this and will gladly send an invalid which will then be rejected by the node.
+    /// 29-byte hash-address of the recipient.
+    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS)]
+    pub recipient: Address,
+
+    /// An output amount (only supports `Coin`). For the transaction to be
+    /// accepted by the node, the sum of the outputs must equal the sum of the inputs.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub amount: Vec<Coin>,
 }

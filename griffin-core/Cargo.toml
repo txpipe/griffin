@@ -33,8 +33,23 @@ sc-executor = { optional = true, workspace = true }
 sp-blockchain = { optional = true, workspace = true }
 sp-genesis-builder = { default-features = false, workspace = true }
 
+pallas-primitives.workspace = true
+pallas-codec.workspace = true
+pallas-crypto.workspace = true
+pallas-applying.workspace = true
+pallas-traverse.workspace = true
+hex.workspace = true
+hashbrown = { version = "0.14" }
+
+### H224 dependencies
+fixed-hash = { version = "0.8", default-features = false }
+impl-serde = { version = "0.5.0", default-features = false }
+impl-codec = { version = "0.7.0", default-features = false }
+impl-rlp = { version = "0.4", default-features = false }
+schemars = { version = ">=0.8.12", default-features = true, optional = true }
+
 [features]
-default = ["std"]
+default = ["std", "rand"]
 std = [
 	"async-trait",
 	"sp-debug-derive/std",
@@ -51,4 +66,14 @@ std = [
 	"sc-chain-spec",
 	"sc-executor",
 	"sp-blockchain",
+	### H224 features
+	"fixed-hash/std",
+	"impl-codec/std",
+	### H224 `serde` feature
+	"impl-serde/std",
 ]
+
+### H224 features, cont'd
+rand = ["fixed-hash/rand"]
+json-schema = ["dep:schemars"]
+fp-conversion = ["std"]

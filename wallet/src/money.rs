@@ -5,12 +5,25 @@ use crate::{cli::MintCoinArgs, cli::SpendArgs, rpc::fetch_storage, sync};
 use anyhow::anyhow;
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use parity_scale_codec::Encode;
+use pallas_codec::minicbor::{
+    encode,
+};
 use sc_keystore::LocalKeystore;
 use sled::Db;
 use sp_runtime::traits::{BlakeTwo256, Hash};
 use griffin_core::{
-    types::{Coin, Input, Output, OutputRef, Transaction},
+    types::{Value, Input, Output, Transaction, VKeyWitness},
+    checks_interface::{
+        babbage_tx_to_cbor,
+        babbage_minted_tx_from_cbor,
+    },
 };
+use pallas_primitives::babbage::{
+    Tx as PallasTransaction, MintedTx,
+};
+use sp_core::ed25519::Public;
+use std::vec;
+use pallas_traverse::OriginalHash;
 
 /// Create and send a transaction that mints the coins on the network
 pub async fn mint_coins(
@@ -19,22 +32,17 @@ pub async fn mint_coins(
 ) -> anyhow::Result<()> {
     log::debug!("The args are:: {:?}", args);
 
-    let mut transaction: griffin_core::types::Transaction = Transaction {
-        inputs: Vec::new(),
-        outputs: vec![Output {
-            payload: args.amount,
-            owner: args.recipient,
-        }],
-    };
+    let mut transaction = Transaction::from((
+            Vec::new(),
+            vec![Output::from((args.recipient, args.amount))]
+    ));
   
     // The input appears as a new output.
     let utxo = fetch_storage(&args.input, client).await?;
-    transaction.inputs.push(Input {
-        output_ref: args.input.clone(),
-    });
-    transaction.outputs.push(utxo);
+    transaction.transaction_body.inputs.push(args.input.clone());
+    transaction.transaction_body.outputs.push(utxo);
     
-    let encoded_tx = hex::encode(transaction.encode());
+    let encoded_tx = hex::encode(Encode::encode(&transaction));
     let params = rpc_params![encoded_tx];
     let spawn_response: Result<String, _> = client.request("author_submitExtrinsic", params).await;
 
@@ -43,15 +51,15 @@ pub async fn mint_coins(
         spawn_response
     );
 
-    let minted_coin_ref = OutputRef {
-        tx_hash: <BlakeTwo256 as Hash>::hash_of(&transaction.encode()),
+    let minted_coin_ref = Input {
+        tx_hash: <BlakeTwo256 as Hash>::hash_of(&Encode::encode(&transaction)),
         index: 0,
     };
-    let output = &transaction.outputs[0];
-    let amount = output.payload;
+    let output = &transaction.transaction_body.outputs[0];
+    let amount = &output.value;
     println!(
-        "Minted {:?} worth {amount}. ",
-        hex::encode(minted_coin_ref.encode())
+        "Minted {:?} worth {amount:?}. ",
+        hex::encode(Encode::encode(&minted_coin_ref))
     );
 
     Ok(())
@@ -61,57 +69,88 @@ pub async fn mint_coins(
 pub async fn spend_coins(
     db: &Db,
     client: &HttpClient,
-    _keystore: &LocalKeystore,
+    keystore: &LocalKeystore,
     args: SpendArgs,
 ) -> anyhow::Result<()> {
     log::debug!("The args are:: {:?}", args);
 
     // Construct a template Transaction to push coins into later
-    let mut transaction: Transaction = Transaction {
-        inputs: Vec::new(),
-        outputs: Vec::new(),
-    };
+    let mut transaction = Transaction::from((Vec::new(), Vec::new()));
 
     // Construct each output and then push to the transaction
     let mut total_amount: u64 = 0;
     for amount in &args.amount {
-        let output = Output {
-            payload: *amount,
-            owner: args.recipient,
-        };
+        let output = Output::from((args.recipient.clone(), *amount));
         total_amount += *amount;
-        transaction.outputs.push(output);
+        transaction.transaction_body.outputs.push(output);
     }
 
     // The total input set will consist of any manually chosen inputs
-    // plus any automatically chosen to make the input amount high enough
     let mut total_input_amount: u64 = 0;
-    for output_ref in &args.input {
-        let (_owner_pubkey, amount) = sync::get_unspent(db, output_ref)?.ok_or(anyhow!(
-            "user-specified output ref not found in local database"
-        ))?;
-        total_input_amount += amount;
+    for input in &args.input {
+        if let Some((_owner_pubkey, amount, _)) = sync::get_unspent(db, input)? {
+            total_input_amount += match amount {
+                Value::Coin(c) => c,
+                _ => 0
+            };
+        } else {
+            log::info!(
+                "Warning: User-specified utxo {:x?} not found in wallet database",
+                input
+            );
+        }
     }
 
     // If the supplied inputs are not valuable enough to cover the output amount
-    // we select the rest arbitrarily from the local db. (In many cases, this will be all the inputs.)
+    // we abort in error.
     if total_input_amount < total_amount {
-        Err(anyhow!("Inputs not enough for given outputs."))?;
+        println!(
+            "Warning: Total input amount (in wallet database) insufficient to pay for outputs."
+        );
     }
 
     // Make sure each input decodes and is still present in the node's storage,
     // and then push to transaction.
-    for output_ref in &args.input {
-        get_coin_from_storage(output_ref, client).await?;
-        transaction.inputs.push(Input {
-            output_ref: output_ref.clone(),
-        });
+    for input in &args.input {
+        //  get_coin_from_storage(input, client).await?;
+        transaction.transaction_body.inputs.push(input.clone());
     }
 
-    log::debug!("signed transactions is: {:#?}", transaction);
+    // FIXME: Duplicate code
+    let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
+    let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
+    let mtx: MintedTx = babbage_minted_tx_from_cbor(&cbor_bytes);
+    let tx_hash: &Vec<u8> = &Vec::from(mtx.transaction_body.original_hash().as_ref());
+    log::debug!("Original tx_body hash is: {:#x?}", tx_hash);
+
+    let mut witnesses: Vec<VKeyWitness> = Vec::new();
+    for witness in &args.witness {
+        let vkey: Vec<u8> = Vec::from(witness.0);
+        let public = Public::from_h256(*witness);
+        let signature: Vec<u8> = Vec::from(crate::keystore::sign_with(
+            keystore, &public, tx_hash
+        )?.0);
+        witnesses.push(VKeyWitness::from((vkey, signature)));
+    }
+    transaction.transaction_witness_set = <_>::from(witnesses);
+    
+    log::debug!("Griffin transaction is: {:#x?}", transaction);
+    let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
+    log::debug!("Babbage transaction is: {:#x?}", pallas_tx);
+
+    let mut tx_encoded: Vec<u8> = Vec::new();
+    let _ = encode(&transaction, &mut tx_encoded);
+    log::debug!("SCALE-encoding of Tx is: {}", hex::encode(tx_encoded));
+    
+    tx_encoded = Vec::new();
+    let _ = encode(
+        &pallas_primitives::babbage::Tx::from(transaction.clone()),
+        &mut tx_encoded
+    );
+    log::debug!("MiniCBOR of Tx: {}", hex::encode(tx_encoded));
 
     // Send the transaction
-    let genesis_spend_hex = hex::encode(transaction.encode());
+    let genesis_spend_hex = hex::encode(Encode::encode(&transaction));
     let params = rpc_params![genesis_spend_hex];
     let genesis_spend_response: Result<String, _> =
         client.request("author_submitExtrinsic", params).await;
@@ -119,33 +158,37 @@ pub async fn spend_coins(
         "Node's response to spend transaction: {:?}",
         genesis_spend_response
     );
+    if let Err(_) = genesis_spend_response {
+        Err(anyhow!("Node did not accept the transaction"))?; 
+    } else {
+        println!("Transaction queued. When accepted, the following UTxOs will become available:"); 
+        // Print new output refs for user to check later
+        let tx_hash = <BlakeTwo256 as Hash>::hash_of(&Encode::encode(&transaction));
+        for (i, output) in transaction.transaction_body.outputs.iter().enumerate() {
+            let new_coin_ref = Input {
+                tx_hash,
+                index: i as u32,
+            };
+            let amount = &output.value;
 
-    // Print new output refs for user to check later
-    let tx_hash = <BlakeTwo256 as Hash>::hash_of(&transaction.encode());
-    for (i, output) in transaction.outputs.iter().enumerate() {
-        let new_coin_ref = OutputRef {
-            tx_hash,
-            index: i as u32,
-        };
-        let amount = output.payload;
-
-        println!(
-            "Created {:?} worth {amount}. ",
-            hex::encode(new_coin_ref.encode())
-        );
+            println!(
+                "{:?} worth {amount:?}. ",
+                hex::encode(Encode::encode(&new_coin_ref))
+            );
+        }
     }
-
+    
     Ok(())
 }
 
 /// Given an output ref, fetch the details about this coin from the node's
 /// storage.
 pub async fn get_coin_from_storage(
-    output_ref: &OutputRef,
+    input: &Input,
     client: &HttpClient,
-) -> anyhow::Result<Coin> {
-    let utxo = fetch_storage(output_ref, client).await?;
-    let coin_in_storage: Coin = utxo.payload;
+) -> anyhow::Result<Value> {
+    let utxo = fetch_storage(input, client).await?;
+    let coin_in_storage: Value = utxo.value;
 
     Ok(coin_in_storage)
 }
@@ -157,8 +200,12 @@ pub(crate) fn apply_transaction(
     index: u32,
     output: &Output,
 ) -> anyhow::Result<()> {
-    let amount = output.payload;
-    let output_ref = OutputRef { tx_hash, index };
-    let owner_pubkey = output.owner;
-    crate::sync::add_unspent_output(db, &output_ref, &owner_pubkey, &amount)
+    let input = Input { tx_hash, index };
+
+    crate::sync::add_unspent_output(db,
+                                    &input,
+                                    &output.address,
+                                    &output.value,
+                                    &output.datum_option
+    )
 }

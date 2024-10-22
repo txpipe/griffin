@@ -8,7 +8,7 @@ This is a minimized version of the [Tuxedo wallet](https://github.com/Off-Narrat
 You should have a properly installed Griffin node to build the wallet. After following the [instructions to do that](https://github.com/txpipe/griffin/blob/main/README.md#installation), run
 
 ```bash
-cargo build --release -p utxo-wallet
+cargo +nightly build --release -p utxo-wallet
 ```
 
 As explained in the node installation instructions, omitting the `--release` will build the "debug" version.

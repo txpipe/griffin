@@ -5,7 +5,9 @@ use jsonrpsee::http_client::HttpClientBuilder;
 use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 use std::path::PathBuf;
-use griffin_core::types::OutputRef;
+use griffin_core::types::{Input, Address};
+use pallas_crypto::hash::{Hasher as PallasHasher};
+use hex::FromHex;
 
 mod cli;
 mod keystore;
@@ -95,17 +97,17 @@ async fn main() -> anyhow::Result<()> {
         Some(Command::MintCoins(args)) => {
             money::mint_coins(&client, args).await
         }
-        Some(Command::VerifyCoin { output_ref }) => {
-            println!("Details of coin {}:", hex::encode(output_ref.encode()));
+        Some(Command::VerifyCoin { input }) => {
+            println!("Details of coin {}:", hex::encode(input.encode()));
 
             // Print the details from storage
-            let coin_from_storage = money::get_coin_from_storage(&output_ref, &client).await?;
+            let coin_from_storage = money::get_coin_from_storage(&input, &client).await?;
             print!("Found in storage.  Value: {:?}, ", coin_from_storage);
 
             // Print the details from the local db
-            match sync::get_unspent(&db, &output_ref)? {
-                Some((owner, amount)) => {
-                    println!("Found in local db. Value: {amount}, owned by {owner}");
+            match sync::get_unspent(&db, &input)? {
+                Some((owner, amount, _)) => {
+                    println!("Found in local db. Value: {amount:?}, owned by {owner}");
                 }
                 None => {
                     println!("Not found in local db");
@@ -124,7 +126,9 @@ async fn main() -> anyhow::Result<()> {
         }
         Some(Command::ShowKeys) => {
             crate::keystore::get_keys(&keystore)?.for_each(|pubkey| {
-                println!("key: 0x{}", hex::encode(pubkey));
+                let pk_str: &str = &hex::encode(pubkey);
+                let hash: String  = PallasHasher::<224>::hash(&<[u8; 32]>::from_hex(pk_str).unwrap()).to_string();
+                println!("key: 0x{}; addr: 0x61{}", pk_str, hash);
             });
 
             Ok(())
@@ -193,13 +197,23 @@ pub(crate) fn h256_from_string(s: &str) -> anyhow::Result<H256> {
     Ok(H256::from(bytes))
 }
 
+/// Parse a string into an Address that represents a public key
+pub(crate) fn address_from_string(s: &str) -> anyhow::Result<Address> {
+    let s = strip_0x_prefix(s);
+
+    let mut bytes: [u8; 29] = [0; 29];
+    hex::decode_to_slice(s, &mut bytes as &mut [u8])
+        .map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
+    Ok(Address(Vec::from(bytes)))
+}
+
 /// Parse an output ref from a string
-fn output_ref_from_string(s: &str) -> Result<OutputRef, clap::Error> {
+fn input_from_string(s: &str) -> Result<Input, clap::Error> {
     let s = strip_0x_prefix(s);
     let bytes =
         hex::decode(s).map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
 
-    OutputRef::decode(&mut &bytes[..])
+    Input::decode(&mut &bytes[..])
         .map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))
 }
 

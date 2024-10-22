@@ -72,9 +72,18 @@ sp-version = { version = "37.0.0", default-features = false }
 substrate-wasm-builder = { version = "24.0.0", default-features = false }
 
 hex-literal = "0.4.1"
+hex = { version = "0.4.3", default-features = false }
 log = "0.4"
 parity-scale-codec = { version = "3.6", default-features = false }
 serde = { version = "1.0.209", default-features = false }
 sp-application-crypto = { version = "38.0.0", default-features = false }
 sp-debug-derive = { version = "14.0.0", default-features = false }
 sc-chain-spec = { version = "37.0.0" }
+sc-keystore = "33.0.0"
+sp-keystore = "0.40.0"
+
+pallas-codec = { git = "https://github.com/francolq/pallas.git", branch = "no-std" }
+pallas-crypto = { git = "https://github.com/francolq/pallas.git", branch = "no-std" }
+pallas-primitives = { git = "https://github.com/francolq/pallas.git", branch = "no-std" }
+pallas-applying = { git = "https://github.com/francolq/pallas.git", branch = "no-std" }
+pallas-traverse = { git = "https://github.com/francolq/pallas.git", branch = "no-std" }

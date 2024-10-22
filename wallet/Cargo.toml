@@ -26,10 +26,12 @@ anyhow = "1.0.69"
 directories = "5.0.0"
 env_logger = "0.11.0"
 futures = "0.3"
-hex = "0.4.3"
+hex.workspace = true
 sled = "0.34.7"
 tokio = "1.25.0"
-
-# TODO: Maybe put in workspace Cargo to centralize `psvm` updates
-sc-keystore = "33.0.0"
-sp-keystore = "0.40.0"
+pallas-codec.workspace = true
+pallas-primitives.workspace = true
+pallas-traverse.workspace = true
+pallas-crypto.workspace = true
+sc-keystore.workspace = true
+sp-keystore.workspace = true

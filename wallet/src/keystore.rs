@@ -3,8 +3,9 @@
 use anyhow::anyhow;
 use sc_keystore::LocalKeystore;
 use sp_core::{
-    crypto::{Pair as PairT, KeyTypeId},
-    sr25519::Pair,
+    // The `Pair` trait is used to have `Pair::{generate_with,from}_phrase`
+    crypto::{Pair as _, KeyTypeId},
+    ed25519::{Pair, Public, Signature},
     H256,
 };
 use sp_keystore::Keystore;
@@ -18,9 +19,22 @@ const KEY_TYPE: KeyTypeId = KeyTypeId(*b"_gri");
 pub fn insert_development_key_for_this_session(
     keystore: &LocalKeystore
 ) -> anyhow::Result<()> {
-    keystore.sr25519_generate_new(KEY_TYPE, Some(SHAWN_PHRASE))?;
+    keystore.ed25519_generate_new(KEY_TYPE, Some(SHAWN_PHRASE))?;
 
     Ok(())
+}
+
+/// Sign a given message with the private key that corresponds to the given public key.
+///
+/// Returns an error if the keystore itself errors, or does not contain the requested key.
+pub fn sign_with(
+    keystore: &LocalKeystore,
+    public: &Public,
+    message: &[u8],
+) -> anyhow::Result<Signature> {
+    keystore
+        .ed25519_sign(KEY_TYPE, public, message)?
+        .ok_or(anyhow!("Key doesn't exist in keystore"))
 }
 
 /// Insert the private key associated with the given seed into the keystore for later use.
@@ -61,7 +75,7 @@ pub fn get_keys(
 pub fn remove_key(keystore_path: &Path, pub_key: &H256) -> anyhow::Result<()> {
     // The keystore doesn't provide an API for removing keys, so we
     // remove them from the filesystem directly
-    let filename = format!("{}{}", hex::encode(KEY_TYPE.0), hex::encode(pub_key.0));
+    let filename = format!("{}{}", hex::encode(KEY_TYPE.0), hex::encode(pub_key.0.clone()));
     let path = keystore_path.join(filename);
 
     std::fs::remove_file(path)?;
