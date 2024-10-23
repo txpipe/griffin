@@ -12,12 +12,13 @@ use sc_keystore::LocalKeystore;
 use sled::Db;
 use sp_runtime::traits::{BlakeTwo256, Hash};
 use griffin_core::{
-    types::{Value, Input, Output, Transaction, VKeyWitness},
+    types::{Value, Input, Output, Transaction, VKeyWitness, address_from_hex},
     checks_interface::{
         babbage_tx_to_cbor,
         babbage_minted_tx_from_cbor,
     },
 };
+use runtime::genesis::SHAWN_ADDRESS;
 use pallas_primitives::babbage::{
     Tx as PallasTransaction, MintedTx,
 };
@@ -107,6 +108,16 @@ pub async fn spend_coins(
         println!(
             "Warning: Total input amount (in wallet database) insufficient to pay for outputs."
         );
+    }
+
+    // If the supplied inputs surpass output amount, we redirect the rest to Shawn
+    let remainder = total_input_amount - total_amount;
+    if remainder > 0 {
+        println!(
+            "Note: Excess input amount goes to Shawn."
+        );
+        let output = Output::from((address_from_hex(SHAWN_ADDRESS), remainder));
+        transaction.transaction_body.outputs.push(output);
     }
 
     // Make sure each input decodes and is still present in the node's storage,

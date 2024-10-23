@@ -8,11 +8,10 @@ use sp_core::{
     ed25519::{Pair, Public, Signature},
     H256,
 };
+use griffin_core::types::{ address_from_pk };
 use sp_keystore::Keystore;
 use std::path::Path;
 use runtime::genesis::SHAWN_PHRASE;
-use hex::FromHex;
-use crate::PallasHasher;
 
 /// A KeyTypeId to use in the keystore for Griffin transactions.
 const KEY_TYPE: KeyTypeId = KeyTypeId(*b"_gri");
@@ -43,11 +42,8 @@ pub fn sign_with(
 pub fn insert_key(keystore: &LocalKeystore, seed: &str) -> anyhow::Result<()> {
     // We need to provide a public key to the keystore manually, so let's calculate it.
     let public_key = Pair::from_phrase(seed, None)?.0.public();
-    // FIXME: Duplicate code
-    let pk_str: &str = &hex::encode(public_key.clone());
-    let hash: String  = PallasHasher::<224>::hash(&<[u8; 32]>::from_hex(pk_str).unwrap()).to_string();
     println!("The generated public key is {:?}", public_key);
-    println!("Associated address is 0x61{}", hash);
+    println!("Associated address is 0x{}", address_from_pk(&public_key));
     keystore
         .insert(KEY_TYPE, seed, public_key.as_ref())
         .map_err(|()| anyhow!("Error inserting key"))?;
@@ -62,11 +58,9 @@ pub fn generate_key(
     password: Option<String>
 ) -> anyhow::Result<()> {
     let (pair, phrase, _) = Pair::generate_with_phrase(password.as_deref());
-    let pk_str: &str = &hex::encode(pair.public().clone());
-    let hash: String  = PallasHasher::<224>::hash(&<[u8; 32]>::from_hex(pk_str).unwrap()).to_string();
     println!("Generated public key is {:?}", pair.public());
     println!("Generated Phrase is {:?}", phrase);
-    println!("Associated address is 0x61{}", hash);
+    println!("Associated address is 0x{}", address_from_pk(&pair.public()));
     keystore
         .insert(KEY_TYPE, phrase.as_ref(), pair.public().as_ref())
         .map_err(|()| anyhow!("Error inserting key"))?;

@@ -7,10 +7,8 @@ use super::{
     Output
 };
 use alloc::{ vec::Vec, vec };
-use core::convert::From;
-use griffin_core::types::{ Address, FakeDatum, Datum };
+use griffin_core::types::{ FakeDatum, Datum, address_from_hex };
 use pallas_codec::minicbor::encode;
-use hex::FromHex;
 
 /// A default seed phrase for signing inputs when none is provided
 /// Corresponds to the default pubkey.
@@ -34,7 +32,7 @@ pub fn development_genesis_transactions() -> Vec<Transaction> {
     };
 
     let output = Output::from((
-        Address(<Vec<u8>>::from_hex(SHAWN_ADDRESS).unwrap()),
+        address_from_hex(SHAWN_ADDRESS),
         314,
         Datum::from(datum.clone()),
     ));

@@ -65,6 +65,7 @@ Now we spend the output, generating two new UTxOs for the last address:
 
 ```
 $ ./target/release/utxo-wallet spend-coins --input 701616402ad8899e0fa03de3aa496ea432bbd923eddcf5d588af16fd0cbc230c00000000 --amount 50 --amount 264 --recipient 0x619d65450a97939f93bca4d2f691587ee080276d210e80b8312c727a66 
+
 [2024-10-22T20:31:46Z INFO  utxo_wallet] Number of blocks in the db: 45
 [2024-10-22T20:31:46Z INFO  utxo_wallet] Wallet database synchronized with node to height 57
 [2024-10-22T20:31:46Z INFO  utxo_wallet::money] Node's response to spend transaction: Ok("0xb9a07073ea5a5c6c9fa6c9d987424f9725dc219e5d5e57e6f4d4f31e5d6f3579")

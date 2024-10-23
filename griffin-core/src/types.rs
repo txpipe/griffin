@@ -9,7 +9,10 @@ use pallas_codec::minicbor::{
 };
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
-use sp_core::H256;
+use sp_core::{
+    H256,
+    ed25519::Public,
+};
 use crate::h224::H224;
 use sp_runtime::{
     traits::{BlakeTwo256, Extrinsic, Hash as HashT},
@@ -373,6 +376,12 @@ impl From<Vec<u8>> for Datum {
     }
 }
 
+impl From<Vec<u8>> for Address {
+    fn from(bytes: Vec<u8>) -> Self {
+        Self(bytes)
+    }
+}
+
 impl From<(Vec<u8>, Vec<u8>)> for VKeyWitness {
     fn from((vkey, signature): (Vec<u8>, Vec<u8>)) -> Self {
         Self { vkey, signature }
@@ -391,4 +400,20 @@ impl From<(Vec<Input>, Vec<Output>)> for Transaction {
             transaction_witness_set: WitnessSet::default(),
         }
     }
+}
+
+pub fn address_from_hex(hex: &str) -> Address {
+    use hex::FromHex;
+
+    Address(<Vec<u8>>::from_hex(hex).unwrap())
+}
+
+pub fn address_from_pk(pk: &Public) -> Address {
+    use pallas_crypto::hash::{Hasher as PallasHasher};
+    
+    let mut keyhash_with_header: Vec<u8> = alloc::vec![0x61];
+    let mut keyhash: Vec<u8>  = PallasHasher::<224>::hash(&pk.0).to_vec();
+    keyhash_with_header.append(&mut keyhash);
+    
+    Address(keyhash_with_header)
 }
