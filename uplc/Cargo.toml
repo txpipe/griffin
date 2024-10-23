@@ -1,0 +1,51 @@
+[package]
+name = "uplc"
+description = "Utilities for working with Untyped Plutus Core"
+version = "1.1.4"
+edition = "2021"
+repository = "https://github.com/aiken-lang/aiken"
+homepage = "https://github.com/aiken-lang/aiken"
+license = "Apache-2.0"
+authors = ["Lucas Rosa <x@rvcas.dev>", "Kasey White <kwhitemsg@gmail.com>"]
+rust-version = "1.66.1"
+exclude = ["test_data/*"]
+
+[dependencies]
+cryptoxide = { version = "0.4.4", default-features = false }
+hex.workspace = true
+indexmap = { version = "1.9.2", default-features = false }
+itertools = { version = "0.10.5", default-features = false, features = [
+  "use_alloc",
+] }
+num-bigint = { version = "0.4.3", default-features = false }
+num-integer = { version = "0.1.45", default-features = false }
+num-traits = { version = "0.2.19", default-features = false }
+pallas-addresses.workspace = true
+pallas-codec.workspace = true
+pallas-crypto.workspace = true
+pallas-primitives.workspace = true
+pallas-traverse.workspace = true
+peg = { version = "0.8.1", default-features = false }
+pretty = { version = "0.11.3", default-features = false }
+serde = { version = "1.0.152", features = ["derive"], default-features = false }
+serde_json = { version = "1.0.94", default-features = false, features = [
+  "alloc",
+] }
+strum = { version = "0.24.1", default-features = false }
+strum_macros = { version = "0.24.3", default-features = false }
+thiserror-no-std = { version = "2.0.2", default-features = false }
+blst = { version = "0.3.11", default-features = false }
+hashbrown = { version = "0.13.2" }
+parking_lot = { version = "0.12.3", default-features = false }
+generic_once_cell = { version = "0.1.1", default-features = false }
+
+[target.'cfg(not(target_family="wasm"))'.dependencies]
+secp256k1 = { version = "0.26.0" }
+[target.'cfg(target_family="wasm")'.dependencies]
+k256 = { version = "0.13.0", default-features = false, features = [
+  "schnorr",
+  "pkcs8",
+] }
+
+[dev-dependencies]
+hex.workspace = true
