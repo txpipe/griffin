@@ -155,6 +155,10 @@ pub struct VKeyWitness {
     pub signature: Vec<u8>,
 }
 
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
+#[cbor(transparent)]
+pub struct PlutusV1Script(#[n(0)] pub Vec<u8>);
+
 /// Fragment of a Cardano witness set.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
 #[cbor(map)]
@@ -162,9 +166,9 @@ pub struct WitnessSet {
     #[n(0)]
     pub vkeywitness: Option<Vec<VKeyWitness>>,
 
-    // #[n(3)]
-    // pub plutus_v1_script: Option<Vec<PlutusV1Script>>,
-    // 
+    #[n(3)]
+    pub plutus_v1_script: Option<Vec<PlutusV1Script>>,
+    
     // #[n(5)]
     // pub redeemer: Option<Vec<Redeemer>>,
     // 
@@ -174,13 +178,13 @@ pub struct WitnessSet {
 
 impl Default for WitnessSet {
     fn default() -> Self {
-        Self{ vkeywitness: None }
+        Self{ vkeywitness: None, plutus_v1_script: None, }
     }
 }
 
 impl From<Vec<VKeyWitness>> for WitnessSet {
     fn from(wits: Vec<VKeyWitness>) -> Self {
-        Self{ vkeywitness: Some(wits) }
+        Self{ vkeywitness: Some(wits), plutus_v1_script: None,  }
     }
 }
 

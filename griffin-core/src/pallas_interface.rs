@@ -16,7 +16,7 @@ use pallas_primitives::babbage::{
     DatumOption,
     Multiasset as PallasMultiasset,
     // PlutusData as PallasPlutusData,
-    // PlutusV1Script as PallasPlutusV1Script,
+    PlutusV1Script as PallasPlutusV1Script,
     // PlutusV2Script as PallasPlutusV2Script,
     PolicyId as PallasPolicyId,
     PostAlonzoTransactionOutput,
@@ -242,11 +242,20 @@ impl From<WitnessSet> for PallasWitnessSet {
             .vkeywitness
             .map(
                 |vks| vks.into_iter().map(|vk| <_>::from(vk)).collect());
+        let plutus_v1_script: Option<Vec<PallasPlutusV1Script>> =
+            val
+            .plutus_v1_script
+            .map(
+                |vks| vks
+                    .into_iter()
+                    .map(|vk| PallasPlutusV1Script(<_>::from(vk.0)))
+                    .collect());
+
         Self {
             vkeywitness,
             native_script: None,
             bootstrap_witness: None,
-            plutus_v1_script: None,
+            plutus_v1_script,
             plutus_data: None,
             redeemer: None,
             plutus_v2_script: None,
@@ -258,7 +267,8 @@ impl From<PallasWitnessSet> for WitnessSet {
     fn from(val: PallasWitnessSet) -> Self {
         Self {
             vkeywitness: val.vkeywitness
-                .map(|v| v.into_iter().map(|y| <_>::from(y)).collect())
+                .map(|v| v.into_iter().map(|y| <_>::from(y)).collect()),
+            plutus_v1_script: None,
         }
     }
 }
