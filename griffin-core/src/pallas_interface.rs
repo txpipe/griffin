@@ -14,6 +14,7 @@ use pallas_crypto::hash::Hash as PallasHash;
 use pallas_primitives::babbage::{
     AssetName as PallasAssetName,
     DatumOption,
+    ExUnits as PallasExUnits,
     Multiasset as PallasMultiasset,
     // PlutusData as PallasPlutusData,
     PlutusV1Script as PallasPlutusV1Script,
@@ -21,7 +22,8 @@ use pallas_primitives::babbage::{
     PolicyId as PallasPolicyId,
     PostAlonzoTransactionOutput,
     LegacyTransactionOutput,
-    // Redeemer as PallasRedeemer,
+    Redeemer as PallasRedeemer,
+    RedeemerTag as PallasRedeemerTag,
     Tx as PallasTransaction,
     TransactionBody as PallasTransactionBody,
     TransactionInput as PallasInput,
@@ -268,7 +270,9 @@ impl From<PallasWitnessSet> for WitnessSet {
         Self {
             vkeywitness: val.vkeywitness
                 .map(|v| v.into_iter().map(|y| <_>::from(y)).collect()),
+            // FIXME: does not work as a `From`. Revise or eliminate all From<Pallas...>!
             plutus_v1_script: None,
+            redeemer: None,
         }
     }
 }
