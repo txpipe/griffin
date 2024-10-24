@@ -111,12 +111,11 @@ pub async fn spend_coins(
     }
 
     // If the supplied inputs surpass output amount, we redirect the rest to Shawn
-    let remainder = total_input_amount - total_amount;
-    if remainder > 0 {
+    if total_input_amount > total_amount {
         println!(
             "Note: Excess input amount goes to Shawn."
         );
-        let output = Output::from((address_from_hex(SHAWN_ADDRESS), remainder));
+        let output = Output::from((address_from_hex(SHAWN_ADDRESS), total_input_amount - total_amount));
         transaction.transaction_body.outputs.push(output);
     }
 
@@ -187,6 +186,7 @@ pub async fn spend_coins(
                 hex::encode(Encode::encode(&new_coin_ref))
             );
         }
+        println!("Note: If the spending tx is not accepted right away, the hashes above might differ.");
     }
     
     Ok(())
