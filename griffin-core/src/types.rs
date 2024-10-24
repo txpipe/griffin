@@ -21,6 +21,7 @@ use sp_runtime::{
 use alloc::{vec::Vec, collections::BTreeMap};
 use core::{fmt, ops::Deref};
 use pallas_crypto::hash::Hash as PallasHash;
+use pallas_applying::utils::BabbageError;
 
 pub type Coin = u64;
 
@@ -241,41 +242,75 @@ impl Extrinsic for Transaction {
 }
 
 #[derive(Debug)]
-pub enum UtxoError {
-    /// This transaction defines the same input multiple times
-    DuplicateInput,
-    /// This transaction defines an output that already existed in the UTXO set
-    PreExistingOutput,
-    MissingInput,
-    /// The transaction has no inputs
-    NoInputs,
-    /// Preservation of value is violated
-    PreservationOfValue,
-    /// Wrong VK signature
-    VKWrongSignature,
-    /// Pallas error not implemented yet
-    Unimplemented,
+pub enum UTxOError {
+    /// A Babbage era validation error returned by Pallas.
+    Babbage(BabbageError),
+    /// No other kind of error should be received.
+    Fail,
 }
 
-// `UtxoError`s are mapped to Substrate errors.
-impl From<UtxoError> for InvalidTransaction {
-    fn from(utxo_error: UtxoError) -> Self {
-        use UtxoError::*;
-            
+/// `UTxOError`s are mapped to custom Substrate errors.
+impl From<UTxOError> for InvalidTransaction {
+    fn from(utxo_error: UTxOError) -> Self {
+        use BabbageError::*;
+        use UTxOError::*;
+        use InvalidTransaction::Custom;
+
         match utxo_error {
-            DuplicateInput => InvalidTransaction::Custom(255),
-            PreExistingOutput => InvalidTransaction::Custom(254),
-            NoInputs => InvalidTransaction::Custom(253),
-            MissingInput => InvalidTransaction::Future,
-            PreservationOfValue => InvalidTransaction::Custom(252),
-            VKWrongSignature => InvalidTransaction::Custom(251),
-            Unimplemented => InvalidTransaction::Custom(128),
+            Fail => Custom(32),
+            Babbage(err) => match err {
+                TxWrongNetworkID => Custom(64),
+                OutputWrongNetworkID => Custom(65),
+                BlockPrecedesValInt => Custom(128),
+                BlockExceedsValInt => Custom(129),
+                AddressDecoding => Custom(192),
+                InputDecoding => Custom(193),
+                MaxTxSizeExceeded => Custom(194),
+                UnknownTxSize => Custom(195),
+                DuplicateInput => Custom(196),
+                TxInsEmpty => Custom(197),
+                OutputAlreadyInUTxO => Custom(198),
+                InputNotInUTxO => Custom(208),
+                CollateralNotInUTxO => Custom(209),
+                ReferenceInputNotInUTxO => Custom(210),
+                RefInputNotInUTxO => Custom(211),
+                CollateralMissing => Custom(212),
+                TooManyCollaterals => Custom(213),
+                CollateralNotVKeyLocked => Custom(214),
+                CollateralMinLovelace => Custom(215),
+                NonLovelaceCollateral => Custom(216),
+                CollateralWrongAssets => Custom(217),
+                CollateralAnnotation => Custom(218),
+                FeeBelowMin => Custom(219),
+                NegativeValue => Custom(220),
+                PreservationOfValue => Custom(221),
+                MinLovelaceUnreached => Custom(222),
+                MaxValSizeExceeded => Custom(223),
+                UnneededDatum => Custom(224),
+                UnneededNativeScript => Custom(225),
+                UnneededPlutusV1Script => Custom(226),
+                UnneededPlutusV2Script => Custom(227),
+                TxExUnitsExceeded => Custom(228),
+                MintingLacksPolicy => Custom(229),
+                MetadataHash => Custom(230),
+                DatumMissing => Custom(231),
+                UnsupportedPlutusLanguage => Custom(232),
+                ScriptIntegrityHash => Custom(233),
+                RedeemerMissing => Custom(240),
+                ReqSignerMissing => Custom(241),
+                VKWitnessMissing => Custom(242),
+                ScriptWitnessMissing => Custom(243),
+                UnneededRedeemer => Custom(244),
+                ReqSignerWrongSig => Custom(245),
+                VKWrongSignature => Custom(246),
+                _ => Custom(255),
+            },
         }
     }
 }
 
 /// The Result of dispatching a UTXO transaction.
-pub type DispatchResult = Result<(), UtxoError>;
+pub type DispatchResult = Result<(), UTxOError>;
 
 /// Bytes of the Plutus Data.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
