@@ -186,7 +186,6 @@ pub async fn spend_coins(
                 hex::encode(Encode::encode(&new_coin_ref))
             );
         }
-        println!("Note: If the spending tx is not accepted right away, the hashes above might differ.");
     }
     
     Ok(())

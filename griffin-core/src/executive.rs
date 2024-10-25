@@ -9,7 +9,7 @@ use crate::{
     ensure,
     types::{
         Block, BlockNumber, DispatchResult, Header, Input, Transaction,
-        UtxoError,
+        UTxOError,
     },
     utxo_set::TransparentUtxoSet,
     EXTRINSIC_KEY,
@@ -45,6 +45,7 @@ use pallas_applying::{
         check_preservation_of_value,
         check_witness_set,
     },
+    utils::BabbageError::*,
 };
 use pallas_primitives::babbage::{
     Tx as PallasTransaction, MintedScriptRef, MintedDatumOption, MintedTx,
@@ -73,7 +74,7 @@ where
     fn pool_checks(
         mtx: &MintedTx,
         _utxos: &UTxOs,
-    ) -> Result<(), UtxoError> {
+    ) -> DispatchResult {
 
         check_ins_not_empty(&mtx.transaction_body.clone())?;
         Ok(())
@@ -84,7 +85,7 @@ where
     fn ledger_checks(
         mtx: &MintedTx,
         utxos: &UTxOs,
-    ) -> Result<(), UtxoError> {
+    ) -> DispatchResult {
         let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
         // Next unneeded since already checked at `apply_griffin_transaction`
         // check_all_ins_in_utxos(tx_body, utxos)?;
@@ -103,7 +104,7 @@ where
     /// checks (in order to avoid a further db search).
     fn validate_griffin_transaction(
         transaction: &Transaction,
-    ) -> Result<(OutputInfoList, ValidTransaction), UtxoError> {
+    ) -> Result<(OutputInfoList, ValidTransaction), UTxOError> {
         debug!(
             target: LOG_TARGET,
             "validating griffin transaction",
@@ -114,7 +115,7 @@ where
             let input_set: BTreeSet<_> = transaction.transaction_body.inputs.iter().map(|o| o.encode()).collect();
             ensure!(
                 input_set.len() == transaction.transaction_body.inputs.len(),
-                UtxoError::DuplicateInput
+                UTxOError::Babbage(DuplicateInput)
             );
         }
 
@@ -151,7 +152,7 @@ where
 
             ensure!(
                 TransparentUtxoSet::peek_utxo(&input).is_none(),
-                UtxoError::PreExistingOutput
+                UTxOError::Babbage(OutputAlreadyInUTxO)
             );
         }
 
@@ -220,7 +221,7 @@ where
         // although it would be valid in the pool
         ensure!(
             valid_transaction.requires.is_empty(),
-            UtxoError::MissingInput
+            UTxOError::Babbage(InputNotInUTxO)
         );
 
         // FIXME: Duplicate code

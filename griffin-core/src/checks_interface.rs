@@ -1,8 +1,9 @@
 // Brought from pallas-applying/tests/
 use pallas_applying::{
-    UTxOs, utils::{ValidationError::{self, *}, BabbageError },
+    UTxOs,
+    utils::{ValidationError},
 };
-use crate::types::UtxoError::{self, *};
+use crate::types::UTxOError::{self, *};
 use pallas_codec::minicbor::encode;
 use pallas_primitives::{
     alonzo::Value,
@@ -21,14 +22,11 @@ use alloc::{
 use core::iter::zip;
 use pallas_codec::utils::{Bytes, CborWrap};
 
-impl From<ValidationError> for UtxoError {
-    fn from(err: ValidationError) -> UtxoError {
+impl From<ValidationError> for UTxOError {
+    fn from(err: ValidationError) -> UTxOError {
         match err {
-            Babbage(BabbageError::InputNotInUTxO) => MissingInput,
-            Babbage(BabbageError::PreservationOfValue) => PreservationOfValue,
-            Babbage(BabbageError::NegativeValue) => PreservationOfValue,
-            Babbage(BabbageError::VKWrongSignature) => VKWrongSignature,
-            _ => Unimplemented,
+            ValidationError::Babbage(err) => UTxOError::Babbage(err),
+            _ => Fail,
         }
     }
 }
