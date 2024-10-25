@@ -180,6 +180,9 @@ pub enum RedeemerTag {
     // Reward,
 }
 
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, PartialOrd, MiniEncode, MiniDecode)]
+pub struct PlutusData(#[n(0)] pub Vec<u8>);
+
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
 pub struct Redeemer {
     #[n(0)]
@@ -188,8 +191,8 @@ pub struct Redeemer {
     #[n(1)]
     pub index: u32,
 
-    // #[n(2)]
-    // pub data: PlutusData,
+    #[n(2)]
+    pub data: PlutusData,
 
     #[n(3)]
     pub ex_units: ExUnits,

@@ -13,15 +13,16 @@ use pallas_codec::{
 use pallas_crypto::hash::Hash as PallasHash;
 use pallas_primitives::babbage::{
     AssetName as PallasAssetName,
+    BigInt as PallasBigInt,
     DatumOption,
     ExUnits as PallasExUnits,
+    LegacyTransactionOutput,
     Multiasset as PallasMultiasset,
-    // PlutusData as PallasPlutusData,
+    PlutusData as PallasPlutusData,
     PlutusV1Script as PallasPlutusV1Script,
     // PlutusV2Script as PallasPlutusV2Script,
     PolicyId as PallasPolicyId,
     PostAlonzoTransactionOutput,
-    LegacyTransactionOutput,
     Redeemer as PallasRedeemer,
     RedeemerTag as PallasRedeemerTag,
     Tx as PallasTransaction,
@@ -237,11 +238,44 @@ impl From<PallasVKeyWitness> for VKeyWitness {
     }
 }
 
+impl From<ExUnits> for PallasExUnits {
+    fn from(ExUnits { mem, steps }: ExUnits) -> Self {
+        Self { mem, steps }
+    }
+}
+
+impl From<RedeemerTag> for PallasRedeemerTag {
+    fn from(val: RedeemerTag) -> Self {
+        match val {
+            RedeemerTag::Spend => PallasRedeemerTag::Spend,
+            RedeemerTag::Mint => PallasRedeemerTag::Mint,
+        }
+    }
+}
+
+impl From<Redeemer> for PallasRedeemer {
+    fn from(Redeemer { tag, index, ex_units, .. }: Redeemer) -> Self {
+        Self {
+            tag: <_>::from(tag),
+            index,
+            ex_units: <_>::from(ex_units),
+            data: PallasPlutusData::BigInt(
+                PallasBigInt::BigUInt(<_>::from(Vec::new()))
+            ),
+        }
+    }
+}
+
 impl From<WitnessSet> for PallasWitnessSet {
     fn from(val: WitnessSet) -> Self {
         let vkeywitness: Option<Vec<PallasVKeyWitness>> =
             val
             .vkeywitness
+            .map(
+                |vks| vks.into_iter().map(|vk| <_>::from(vk)).collect());
+        let redeemer: Option<Vec<PallasRedeemer>> =
+            val
+            .redeemer
             .map(
                 |vks| vks.into_iter().map(|vk| <_>::from(vk)).collect());
         let plutus_v1_script: Option<Vec<PallasPlutusV1Script>> =
@@ -252,14 +286,13 @@ impl From<WitnessSet> for PallasWitnessSet {
                     .into_iter()
                     .map(|vk| PallasPlutusV1Script(<_>::from(vk.0)))
                     .collect());
-
         Self {
             vkeywitness,
             native_script: None,
             bootstrap_witness: None,
             plutus_v1_script,
             plutus_data: None,
-            redeemer: None,
+            redeemer,
             plutus_v2_script: None,
         }
     }
