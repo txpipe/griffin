@@ -155,6 +155,49 @@ pub struct VKeyWitness {
     pub signature: Vec<u8>,
 }
 
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
+#[cbor(transparent)]
+pub struct PlutusV1Script(#[n(0)] pub Vec<u8>);
+
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
+pub struct ExUnits {
+    #[n(0)]
+    pub mem: u64,
+    #[n(1)]
+    pub steps: u64,
+}
+
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
+#[cbor(index_only)]
+pub enum RedeemerTag {
+    #[n(0)]
+    Spend,
+    #[n(1)]
+    Mint,
+    // #[n(2)]
+    // Cert,
+    // #[n(3)]
+    // Reward,
+}
+
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, PartialOrd, MiniEncode, MiniDecode)]
+pub struct PlutusData(#[n(0)] pub Vec<u8>);
+
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
+pub struct Redeemer {
+    #[n(0)]
+    pub tag: RedeemerTag,
+
+    #[n(1)]
+    pub index: u32,
+
+    #[n(2)]
+    pub data: PlutusData,
+
+    #[n(3)]
+    pub ex_units: ExUnits,
+}
+
 /// Fragment of a Cardano witness set.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
 #[cbor(map)]
@@ -162,11 +205,11 @@ pub struct WitnessSet {
     #[n(0)]
     pub vkeywitness: Option<Vec<VKeyWitness>>,
 
-    // #[n(3)]
-    // pub plutus_v1_script: Option<Vec<PlutusV1Script>>,
-    // 
-    // #[n(5)]
-    // pub redeemer: Option<Vec<Redeemer>>,
+    #[n(3)]
+    pub plutus_v1_script: Option<Vec<PlutusV1Script>>,
+    
+    #[n(5)]
+    pub redeemer: Option<Vec<Redeemer>>,
     // 
     // #[n(6)]
     // pub plutus_v2_script: Option<Vec<PlutusV2Script>>,
@@ -174,13 +217,13 @@ pub struct WitnessSet {
 
 impl Default for WitnessSet {
     fn default() -> Self {
-        Self{ vkeywitness: None }
+        Self{ vkeywitness: None, plutus_v1_script: None, redeemer: None }
     }
 }
 
 impl From<Vec<VKeyWitness>> for WitnessSet {
     fn from(wits: Vec<VKeyWitness>) -> Self {
-        Self{ vkeywitness: Some(wits) }
+        Self{ vkeywitness: Some(wits), plutus_v1_script: None, redeemer: None }
     }
 }
 

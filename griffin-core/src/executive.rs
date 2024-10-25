@@ -310,7 +310,7 @@ where
         Self::apply_griffin_transaction(&extrinsic).map_err(|e| {
             log::warn!(
                 target: LOG_TARGET,
-                "Griffin Transaction did not apply successfully: {:?}",
+                "⛔ Griffin Transaction did not validate to be applied due to: {:?}",
                 e,
             );
             TransactionValidityError::Invalid(e.into())
