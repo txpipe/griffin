@@ -33,7 +33,7 @@ use pallas_primitives::babbage::{
     Value as PallasValue,
     WitnessSet as PallasWitnessSet,
 };
-use alloc::{vec::Vec, collections::BTreeMap};
+use alloc::{vec::Vec, collections::BTreeMap, string::String};
 use core::{ops::Deref, default::Default};
 
 impl From<Input> for PallasInput {
@@ -68,13 +68,13 @@ impl From<PallasPolicyId> for PolicyId {
 
 impl From<AssetName> for PallasAssetName {
     fn from(val: AssetName) -> Self {
-        Bytes::from(val.0)
+        Bytes::from(Vec::<u8>::from(val.0.as_bytes()))
     }
 }
 
 impl From<PallasAssetName> for AssetName {
     fn from(val: PallasAssetName) -> Self {
-        Self(Vec::from(val))
+        Self(String::from(val))
     }
 }
 

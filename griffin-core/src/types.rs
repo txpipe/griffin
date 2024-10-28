@@ -18,7 +18,7 @@ use sp_runtime::{
     traits::{BlakeTwo256, Extrinsic, Hash as HashT},
     transaction_validity::InvalidTransaction,
 };
-use alloc::{vec::Vec, collections::BTreeMap};
+use alloc::{vec::Vec, collections::BTreeMap, string::String};
 use core::{fmt, ops::Deref};
 use pallas_crypto::hash::Hash as PallasHash;
 use pallas_applying::utils::BabbageError;
@@ -117,7 +117,7 @@ impl<C> MiniEncode<C> for PolicyId {
 
 /// Name of a Cardano asset as byte sequence.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, PartialOrd, Ord, MiniEncode, MiniDecode)]
-pub struct AssetName(#[n(0)] pub Vec<u8>);
+pub struct AssetName(#[n(0)] pub String);
 
 /// `BTreeMap`, encapsulated in order to implement relevant traits.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, PartialOrd, Ord, MiniEncode, MiniDecode)]
