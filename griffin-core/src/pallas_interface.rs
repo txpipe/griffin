@@ -13,7 +13,6 @@ use pallas_codec::{
 use pallas_crypto::hash::Hash as PallasHash;
 use pallas_primitives::babbage::{
     AssetName as PallasAssetName,
-    BigInt as PallasBigInt,
     DatumOption,
     ExUnits as PallasExUnits,
     LegacyTransactionOutput,
@@ -253,15 +252,32 @@ impl From<RedeemerTag> for PallasRedeemerTag {
     }
 }
 
+impl From<PlutusData> for PallasPlutusData {
+    fn from(data: PlutusData) -> Self {
+        // FIXME: Add error handling
+        Decode::decode(&mut Decoder::new(data.0.as_slice()), &mut ()).unwrap()
+    }
+}
+
+impl From<PallasPlutusData> for PlutusData {
+    fn from(data: PallasPlutusData) -> Self {
+        let mut plutus_data: Vec<u8> = Vec::new();
+        match encode(&data, &mut plutus_data) {
+            Err(err) => log::error!("Unable to encode Plutus Data ({:?})", err),
+            Ok(_) => (),
+        };
+
+        Self(plutus_data)
+    }
+}
+
 impl From<Redeemer> for PallasRedeemer {
-    fn from(Redeemer { tag, index, ex_units, .. }: Redeemer) -> Self {
+    fn from(Redeemer { tag, index, ex_units, data }: Redeemer) -> Self {
         Self {
             tag: <_>::from(tag),
             index,
             ex_units: <_>::from(ex_units),
-            data: PallasPlutusData::BigInt(
-                PallasBigInt::BigUInt(<_>::from(Vec::new()))
-            ),
+            data: <_>::from(data),
         }
     }
 }
