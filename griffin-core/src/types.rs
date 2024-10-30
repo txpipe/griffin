@@ -22,6 +22,7 @@ use alloc::{vec::Vec, collections::BTreeMap, string::String};
 use core::{fmt, ops::Deref};
 use pallas_crypto::hash::Hash as PallasHash;
 use pallas_applying::utils::BabbageError;
+use core::ops::{Add, AddAssign, Sub, SubAssign};
 
 pub type Coin = u64;
 
@@ -494,4 +495,88 @@ pub fn address_from_pk(pk: &Public) -> Address {
     keyhash_with_header.append(&mut keyhash);
     
     Address(keyhash_with_header)
+}
+
+/// Addition of `Value`s
+impl<K: Ord + Clone, V: Add<Output = V> + Clone> Add for EncapBTree::<K, V> {
+    type Output = Self;
+    
+    fn add(self, other: Self) -> Self {
+        let mut res = EncapBTree::<K, V>::new();
+
+        for (k, v) in self.0.into_iter() {
+            res.0.insert(k.clone(),
+                         other.0.get(&k).map_or(v.clone(), |w| v.clone() + w.clone()),
+            );
+        }
+
+        res
+    }
+}
+
+impl Add for Value {
+    type Output = Self;
+    
+    fn add(self, other: Self) -> Self {
+        use Value::*;
+        
+        match self {
+            Coin(c) => match other {
+                Coin(d)          => Coin(c+d),
+                Multiasset(d, ma) => Multiasset(c+d, ma),
+            },
+            Multiasset(c, ma) => match other {
+                Coin(d)          => Multiasset(c+d, ma),
+                Multiasset(d, mb) => Multiasset(c+d, ma+mb),
+            },
+        }
+    }
+}
+
+impl AddAssign for Value {
+    fn add_assign(&mut self, other: Self) {
+        *self = self.clone() + other;
+    }
+}
+
+/// Subtraction of Values
+impl<K: Ord + Clone, V: Sub<Output = V> + Clone> Sub for EncapBTree::<K, V> {
+    type Output = Self;
+    
+    fn sub(self, other: Self) -> Self {
+        let mut res = EncapBTree::<K, V>::new();
+
+        for (k, v) in self.0.into_iter() {
+            res.0.insert(k.clone(),
+                         other.0.get(&k).map_or(v.clone(), |w| v.clone() - w.clone()),
+            );
+        }
+
+        res
+    }
+}
+
+impl Sub for Value {
+    type Output = Self;
+    
+    fn sub(self, other: Self) -> Self {
+        use Value::*;
+        
+        match self {
+            Coin(c) => match other {
+                Coin(d)          => Coin(c-d),
+                Multiasset(d, ma) => Multiasset(c-d, ma),
+            },
+            Multiasset(c, ma) => match other {
+                Coin(d)          => Multiasset(c-d, ma),
+                Multiasset(d, mb) => Multiasset(c-d, ma-mb),
+            },
+        }
+    }
+}
+
+impl SubAssign for Value {
+    fn sub_assign(&mut self, other: Self) {
+        *self = self.clone() - other;
+    }
 }
