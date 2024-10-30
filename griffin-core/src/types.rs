@@ -381,6 +381,9 @@ pub enum FakeDatum {
 
     #[n(1)]
     UglyOutput,
+
+    #[n(2)]
+    ReceiverValue(#[n(0)] PolicyId, #[n(1)] AssetName, #[n(2)] Coin),
 }
 
 /// Bytes of a Cardano address.
@@ -495,6 +498,26 @@ pub fn address_from_pk(pk: &Public) -> Address {
     keyhash_with_header.append(&mut keyhash);
     
     Address(keyhash_with_header)
+}
+
+impl<A> From<(PolicyId, AssetName, A)> for Multiasset<A> {
+    fn from((policy, name, amount): (PolicyId, AssetName, A)) -> Self {
+        EncapBTree::<PolicyId, EncapBTree<AssetName, A>>(
+            BTreeMap::from([(policy, EncapBTree::<AssetName, A>(BTreeMap::from([(name, amount); 1]))); 1])
+        )
+    }
+}
+
+impl From<(PolicyId, AssetName, Coin)> for Value {
+    fn from((policy, name, amount): (PolicyId, AssetName, Coin)) -> Self {
+        Value::Multiasset(0, <_>::from((policy, name, amount)))
+    }
+}
+
+impl From<(Coin, PolicyId, AssetName, Coin)> for Value {
+    fn from((coin, policy, name, amount): (Coin, PolicyId, AssetName, Coin)) -> Self {
+        Value::Multiasset(coin, <_>::from((policy, name, amount)))
+    }
 }
 
 /// Addition of `Value`s
