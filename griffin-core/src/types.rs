@@ -604,6 +604,56 @@ impl SubAssign for Value {
     }
 }
 
+/// Decides if the first multiasset is orderly smaller than or equal to the
+/// second one. Useful before subtracting.
+pub fn multiasset_leq(
+    small: &Multiasset<Coin>,
+    big: &Multiasset<Coin>,
+) -> bool {
+    for (pol, names_big) in big.0.iter() {
+        if let Some(names_small) = small.0.get(pol) {
+            for (name_big, amount_big) in names_big.0.iter() {
+                if let Some(amount_small) = names_small.0.get(name_big) {
+                    if amount_small > amount_big {
+                        return false
+                    }
+                }
+            }
+        }
+    }
+    for (pol, names_small) in small.0.iter() {
+        if !big.0.contains_key(pol) {
+            for (_, amount_small) in names_small.0.iter() {
+                if *amount_small != 0 {
+                    return false
+                }
+            }
+        }
+    }
+    
+    true
+}
+    
+/// Decides if the first `Value` is orderly smaller than or equal to the
+/// second one. Useful before subtracting.
+pub fn value_leq(
+    small: &Value,
+    big: &Value,
+) -> bool {
+    use Value::*;
+    
+    match small {
+        Coin(c) => match big {
+            Coin(d)          => c <= d,
+            Multiasset(d, _) => c <= d,
+        },
+        Multiasset(c, ma) => match big {
+            Coin(d)           => (c <= d) & ma.is_null(),
+            Multiasset(d, mb) => (c <= d) & multiasset_leq(ma, mb),
+        },
+    }
+}
+
 impl Multiasset<Coin> {
     pub fn is_null(&self) -> bool {
         self.0

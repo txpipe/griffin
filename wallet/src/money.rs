@@ -19,7 +19,7 @@ use sp_runtime::traits::{BlakeTwo256, Hash};
 use griffin_core::{
     types::{
         Value, Input, Output, Transaction, VKeyWitness, address_from_hex,
-        PolicyId, AssetName,
+        PolicyId, AssetName, value_leq,
     },
     checks_interface::{
         babbage_tx_to_cbor,
@@ -269,17 +269,19 @@ pub async fn spend_value(
     // Construct the output and then push to the transaction
     let output = Output::from((args.recipient.clone(), output_value.clone()));
     transaction.transaction_body.outputs.push(output);
-
-    let remainder: Value = input_value - output_value;
+    
     // If the supplied inputs surpass output amount, we redirect the rest to Shawn
-    if !remainder.is_null() {
-        println!(
-            "Note: Excess input amount goes to Shawn."
-        );
-        let output = Output::from((address_from_hex(SHAWN_ADDRESS), remainder));
-        transaction.transaction_body.outputs.push(output);
+    if value_leq(&output_value, &input_value) {
+        let remainder: Value = input_value - output_value;
+        if !remainder.is_null() {
+            println!(
+                "Note: Excess input amount goes to Shawn."
+            );
+            let output = Output::from((address_from_hex(SHAWN_ADDRESS), remainder));
+            transaction.transaction_body.outputs.push(output);
+        }
     }
-
+      
     // Push each input to the transaction.
     for input in &args.input {
         transaction.transaction_body.inputs.push(input.clone());
