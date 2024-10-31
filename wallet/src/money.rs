@@ -242,7 +242,7 @@ pub async fn spend_value(
     // Total amount in outputs
     let mut output_value: Value = Value::Coin(coin_amount);
 
-    let last_policy: PolicyId = args.policy[num_pol-1].clone();
+    let last_policy: Option<&PolicyId> = args.policy.last().clone();
     for count in 0..num_pol {
         output_value += <_>::from((
             args.policy[count],
@@ -250,18 +250,18 @@ pub async fn spend_value(
             args.token_amount[count],
         ));
     }
-    let last_name: String = args.name[num_pol-1].clone();
+    let last_name: Option<&String> = args.name.last().clone();
     for count in num_pol..num_nam {
         output_value += <_>::from((
-            last_policy.clone(),
+            last_policy.unwrap().clone(),
             <_>::from(args.name[count].clone()),
             args.token_amount[count],
         ));
     }
     for count in num_nam..num_tok {
         output_value += <_>::from((
-            last_policy.clone(),
-            <AssetName>::from(last_name.clone()).clone(),
+            last_policy.unwrap().clone(),
+            <AssetName>::from(last_name.unwrap().clone()),
             args.token_amount[count],
         ));
     }
