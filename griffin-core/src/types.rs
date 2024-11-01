@@ -159,7 +159,7 @@ pub struct VKeyWitness {
 
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
 #[cbor(transparent)]
-pub struct PlutusV1Script(#[n(0)] pub Vec<u8>);
+pub struct PlutusScript(#[n(0)] pub Vec<u8>);
 
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
 pub struct ExUnits {
@@ -207,25 +207,22 @@ pub struct WitnessSet {
     #[n(0)]
     pub vkeywitness: Option<Vec<VKeyWitness>>,
 
-    #[n(3)]
-    pub plutus_v1_script: Option<Vec<PlutusV1Script>>,
-    
     #[n(5)]
     pub redeemer: Option<Vec<Redeemer>>,
-    // 
-    // #[n(6)]
-    // pub plutus_v2_script: Option<Vec<PlutusV2Script>>,
+
+    #[n(6)]
+    pub plutus_script: Option<Vec<PlutusScript>>,
 }
 
 impl Default for WitnessSet {
     fn default() -> Self {
-        Self{ vkeywitness: None, plutus_v1_script: None, redeemer: None }
+        Self{ vkeywitness: None, plutus_script: None, redeemer: None }
     }
 }
 
 impl From<Vec<VKeyWitness>> for WitnessSet {
     fn from(wits: Vec<VKeyWitness>) -> Self {
-        Self{ vkeywitness: Some(wits), plutus_v1_script: None, redeemer: None }
+        Self{ vkeywitness: Some(wits), plutus_script: None, redeemer: None }
     }
 }
 
@@ -374,7 +371,7 @@ impl<C> MiniEncode<C> for Datum {
 }
 
 /// Fake data to be decoded from the Datum.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
+#[derive(Debug, PartialEq, Eq, Clone, MiniEncode, MiniDecode)]
 pub enum FakeDatum {
     #[n(0)]
     CuteOutput,
