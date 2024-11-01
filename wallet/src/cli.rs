@@ -3,12 +3,15 @@
 use std::path::PathBuf;
 
 use clap::{ArgAction::Append, Args, Parser, Subcommand};
-use griffin_core::types::{Coin, Input, Address};
+use griffin_core::types::{
+    Coin, Input, Address, PolicyId,
+};
 use crate::{
     input_from_string,
     DEFAULT_ENDPOINT,
     address_from_string,
     h256_from_string,
+    h224_from_string,
     H256,
 };
 use runtime::genesis::{
@@ -72,9 +75,13 @@ pub enum Command {
         input: Input,
     },
 
-    /// Spend some coins.
+    /// Spend some coins to a given address. It produces a separate output for each given amount.
     #[command(verbatim_doc_comment)]
     SpendCoins(SpendArgs),
+
+    /// Send `Value`s to a given address.
+    #[command(verbatim_doc_comment)]
+    SpendValue(SpendValueArgs),
 
     /// Insert a private key into the keystore to later use when signing transactions.
     InsertKey {
@@ -128,20 +135,53 @@ pub struct MintCoinArgs {
 #[derive(Debug, Args)]
 pub struct SpendArgs {
     /// An input to be consumed by this transaction. This argument may be specified multiple times.
-    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true)]
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "OUTPUT_REF")]
     pub input: Vec<Input>,
 
     /// 32-byte H256 public key of an input owner.
     /// Their pk/sk pair must be registered in the wallet's keystore.
-    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY)]
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY, value_name = "PUBLIC_KEY")]
     pub witness: Vec<H256>,
 
     /// 29-byte hash-address of the recipient.
-    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS)]
+    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS, value_name = "ADDRESS")]
     pub recipient: Address,
 
-    /// An output amount (only supports `Coin`). For the transaction to be
-    /// accepted by the node, the sum of the outputs must equal the sum of the inputs.
+    /// An output amount consisting of `Coin`s. For the transaction to be
+    /// accepted by the node, the sum of the outputs must equal the sum of the
+    /// inputs.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub amount: Vec<Coin>,
+}
+
+#[derive(Debug, Args)]
+pub struct SpendValueArgs {
+    /// An input to be consumed by this transaction. This argument may be specified multiple times.
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "OUTPUT_REF")]
+    pub input: Vec<Input>,
+
+    /// 32-byte H256 public key of an input owner.
+    /// Their pk/sk pair must be registered in the wallet's keystore.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY, value_name = "PUBLIC_KEY")]
+    pub witness: Vec<H256>,
+
+    /// 29-byte hash-address of the recipient.
+    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS, value_name = "ADDRESS")]
+    pub recipient: Address,
+
+    /// An amount of `Coin`s to be included in the output value.
+    #[arg(long, short, verbatim_doc_comment, action = Append)]
+    pub amount: Option<Coin>,
+    
+    /// Policy ID of the asset to be spent.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h224_from_string, action = Append, value_name = "POLICY_ID")]
+    pub policy: Vec<PolicyId>,
+
+    /// Name of the asset to be spent.
+    #[arg(long, short, verbatim_doc_comment, action = Append, value_name = "ASSET_NAME")]
+    pub name: Vec<String>,
+
+    /// How many tokens of the given asset should be included.
+    #[arg(long, short, verbatim_doc_comment, action = Append, value_name = "AMOUNT")]
+    pub token_amount: Vec<Coin>,
 }

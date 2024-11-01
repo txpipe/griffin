@@ -376,6 +376,8 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
         let input = hex::encode(input_ivec);
         let (owner_pubkey, amount, datum_option) =
             <(Address, Value, std::option::Option<Datum>) as parity_scale_codec::Decode>::decode(&mut &owner_amount_datum_ivec[..])?;
+        // In order to use another datatype in place of `FakeDatum`, just
+        // put that type in the line below.
         let fake_option: Option<FakeDatum> = match datum_option {
             None => None,
             Some(d) => MiniDecode::decode(&mut MiniDecoder::new(d.0.as_slice()), &mut ()).unwrap(),

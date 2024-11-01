@@ -5,7 +5,12 @@ use jsonrpsee::http_client::HttpClientBuilder;
 use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 use std::path::PathBuf;
-use griffin_core::types::{Input, Address};
+use griffin_core::types::{
+    Input, Address,
+};
+use griffin_core::h224::H224;
+extern crate alloc;
+use alloc::{vec::Vec, string::String};
 use pallas_crypto::hash::{Hasher as PallasHasher};
 use hex::FromHex;
 
@@ -119,6 +124,9 @@ async fn main() -> anyhow::Result<()> {
         Some(Command::SpendCoins(args)) => {
             money::spend_coins(&db, &client, &keystore, args).await
         }
+        Some(cli::Command::SpendValue(args)) => {
+            money::spend_value(&db, &client, &keystore, args).await
+        },
         Some(Command::InsertKey { seed }) => crate::keystore::insert_key(&keystore, &seed),
         Some(Command::GenerateKey { password }) => {
             crate::keystore::generate_key(&keystore, password)?;
@@ -166,11 +174,11 @@ async fn main() -> anyhow::Result<()> {
             sync::print_unspent_tree(&db)?;
 
             Ok(())
-        }
+        },
         None => {
             log::info!("No Wallet Command invoked. Exiting.");
             Ok(())
-        }
+        },
     }?;
 
     if tmp {
@@ -195,6 +203,16 @@ pub(crate) fn h256_from_string(s: &str) -> anyhow::Result<H256> {
     hex::decode_to_slice(s, &mut bytes as &mut [u8])
         .map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
     Ok(H256::from(bytes))
+}
+
+/// Parse a string into an H224 that represents a policy ID.
+pub(crate) fn h224_from_string(s: &str) -> anyhow::Result<H224> {
+    let s = strip_0x_prefix(s);
+
+    let mut bytes: [u8; 28] = [0; 28];
+    hex::decode_to_slice(s, &mut bytes as &mut [u8])
+        .map_err(|_| clap::Error::new(clap::error::ErrorKind::ValueValidation))?;
+    Ok(H224::from(bytes))
 }
 
 /// Parse a string into an Address that represents a public key

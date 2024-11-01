@@ -13,14 +13,12 @@ use pallas_codec::{
 use pallas_crypto::hash::Hash as PallasHash;
 use pallas_primitives::babbage::{
     AssetName as PallasAssetName,
-    BigInt as PallasBigInt,
     DatumOption,
     ExUnits as PallasExUnits,
     LegacyTransactionOutput,
     Multiasset as PallasMultiasset,
     PlutusData as PallasPlutusData,
-    PlutusV1Script as PallasPlutusV1Script,
-    // PlutusV2Script as PallasPlutusV2Script,
+    PlutusV2Script as PallasPlutusV2Script,
     PolicyId as PallasPolicyId,
     PostAlonzoTransactionOutput,
     Redeemer as PallasRedeemer,
@@ -253,15 +251,32 @@ impl From<RedeemerTag> for PallasRedeemerTag {
     }
 }
 
+impl From<PlutusData> for PallasPlutusData {
+    fn from(data: PlutusData) -> Self {
+        // FIXME: Add error handling
+        Decode::decode(&mut Decoder::new(data.0.as_slice()), &mut ()).unwrap()
+    }
+}
+
+impl From<PallasPlutusData> for PlutusData {
+    fn from(data: PallasPlutusData) -> Self {
+        let mut plutus_data: Vec<u8> = Vec::new();
+        match encode(&data, &mut plutus_data) {
+            Err(err) => log::error!("Unable to encode Plutus Data ({:?})", err),
+            Ok(_) => (),
+        };
+
+        Self(plutus_data)
+    }
+}
+
 impl From<Redeemer> for PallasRedeemer {
-    fn from(Redeemer { tag, index, ex_units, .. }: Redeemer) -> Self {
+    fn from(Redeemer { tag, index, ex_units, data }: Redeemer) -> Self {
         Self {
             tag: <_>::from(tag),
             index,
             ex_units: <_>::from(ex_units),
-            data: PallasPlutusData::BigInt(
-                PallasBigInt::BigUInt(<_>::from(Vec::new()))
-            ),
+            data: <_>::from(data),
         }
     }
 }
@@ -278,22 +293,22 @@ impl From<WitnessSet> for PallasWitnessSet {
             .redeemer
             .map(
                 |vks| vks.into_iter().map(|vk| <_>::from(vk)).collect());
-        let plutus_v1_script: Option<Vec<PallasPlutusV1Script>> =
+        let plutus_v2_script: Option<Vec<PallasPlutusV2Script>> =
             val
-            .plutus_v1_script
+            .plutus_script
             .map(
                 |vks| vks
                     .into_iter()
-                    .map(|vk| PallasPlutusV1Script(<_>::from(vk.0)))
+                    .map(|vk| PallasPlutusV2Script(<_>::from(vk.0)))
                     .collect());
         Self {
             vkeywitness,
             native_script: None,
             bootstrap_witness: None,
-            plutus_v1_script,
+            plutus_v1_script: None,
             plutus_data: None,
             redeemer,
-            plutus_v2_script: None,
+            plutus_v2_script,
         }
     }
 }
@@ -304,7 +319,7 @@ impl From<PallasWitnessSet> for WitnessSet {
             vkeywitness: val.vkeywitness
                 .map(|v| v.into_iter().map(|y| <_>::from(y)).collect()),
             // FIXME: does not work as a `From`. Revise or eliminate all From<Pallas...>!
-            plutus_v1_script: None,
+            plutus_script: None,
             redeemer: None,
         }
     }

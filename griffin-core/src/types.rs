@@ -22,6 +22,7 @@ use alloc::{vec::Vec, collections::BTreeMap, string::String};
 use core::{fmt, ops::Deref};
 use pallas_crypto::hash::Hash as PallasHash;
 use pallas_applying::utils::BabbageError;
+use core::ops::{Add, AddAssign, Sub, SubAssign};
 
 pub type Coin = u64;
 
@@ -158,7 +159,7 @@ pub struct VKeyWitness {
 
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
 #[cbor(transparent)]
-pub struct PlutusV1Script(#[n(0)] pub Vec<u8>);
+pub struct PlutusScript(#[n(0)] pub Vec<u8>);
 
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
 pub struct ExUnits {
@@ -206,25 +207,22 @@ pub struct WitnessSet {
     #[n(0)]
     pub vkeywitness: Option<Vec<VKeyWitness>>,
 
-    #[n(3)]
-    pub plutus_v1_script: Option<Vec<PlutusV1Script>>,
-    
     #[n(5)]
     pub redeemer: Option<Vec<Redeemer>>,
-    // 
-    // #[n(6)]
-    // pub plutus_v2_script: Option<Vec<PlutusV2Script>>,
+
+    #[n(6)]
+    pub plutus_script: Option<Vec<PlutusScript>>,
 }
 
 impl Default for WitnessSet {
     fn default() -> Self {
-        Self{ vkeywitness: None, plutus_v1_script: None, redeemer: None }
+        Self{ vkeywitness: None, plutus_script: None, redeemer: None }
     }
 }
 
 impl From<Vec<VKeyWitness>> for WitnessSet {
     fn from(wits: Vec<VKeyWitness>) -> Self {
-        Self{ vkeywitness: Some(wits), plutus_v1_script: None, redeemer: None }
+        Self{ vkeywitness: Some(wits), plutus_script: None, redeemer: None }
     }
 }
 
@@ -373,13 +371,16 @@ impl<C> MiniEncode<C> for Datum {
 }
 
 /// Fake data to be decoded from the Datum.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
+#[derive(Debug, PartialEq, Eq, Clone, MiniEncode, MiniDecode)]
 pub enum FakeDatum {
     #[n(0)]
     CuteOutput,
 
     #[n(1)]
     UglyOutput,
+
+    #[n(2)]
+    ReceiverValue(#[n(0)] PolicyId, #[n(1)] AssetName, #[n(2)] Coin),
 }
 
 /// Bytes of a Cardano address.
@@ -494,4 +495,182 @@ pub fn address_from_pk(pk: &Public) -> Address {
     keyhash_with_header.append(&mut keyhash);
     
     Address(keyhash_with_header)
+}
+
+impl<A> From<(PolicyId, AssetName, A)> for Multiasset<A> {
+    fn from((policy, name, amount): (PolicyId, AssetName, A)) -> Self {
+        EncapBTree::<PolicyId, EncapBTree<AssetName, A>>(
+            BTreeMap::from([(policy, EncapBTree::<AssetName, A>(BTreeMap::from([(name, amount); 1]))); 1])
+        )
+    }
+}
+
+impl From<(PolicyId, AssetName, Coin)> for Value {
+    fn from((policy, name, amount): (PolicyId, AssetName, Coin)) -> Self {
+        Value::Multiasset(0, <_>::from((policy, name, amount)))
+    }
+}
+
+impl From<(Coin, PolicyId, AssetName, Coin)> for Value {
+    fn from((coin, policy, name, amount): (Coin, PolicyId, AssetName, Coin)) -> Self {
+        Value::Multiasset(coin, <_>::from((policy, name, amount)))
+    }
+}
+
+/// Addition of `Value`s
+impl<K: Ord + Clone, V: Add<Output = V> + Clone> Add for EncapBTree::<K, V> {
+    type Output = Self;
+    
+    fn add(self, other: Self) -> Self {
+        let mut res = EncapBTree::<K, V>::new();
+
+        for (k, v) in self.0.into_iter() {
+            res.0.insert(k.clone(),
+                         other.0.get(&k).map_or(v.clone(), |w| v.clone() + w.clone()),
+            );
+        }
+
+        res
+    }
+}
+
+impl Add for Value {
+    type Output = Self;
+    
+    fn add(self, other: Self) -> Self {
+        use Value::*;
+        
+        match self {
+            Coin(c) => match other {
+                Coin(d)          => Coin(c+d),
+                Multiasset(d, ma) => Multiasset(c+d, ma),
+            },
+            Multiasset(c, ma) => match other {
+                Coin(d)          => Multiasset(c+d, ma),
+                Multiasset(d, mb) => Multiasset(c+d, ma+mb),
+            },
+        }
+    }
+}
+
+impl AddAssign for Value {
+    fn add_assign(&mut self, other: Self) {
+        *self = self.clone() + other;
+    }
+}
+
+/// Subtraction of Values
+impl<K: Ord + Clone, V: Sub<Output = V> + Clone> Sub for EncapBTree::<K, V> {
+    type Output = Self;
+    
+    fn sub(self, other: Self) -> Self {
+        let mut res = EncapBTree::<K, V>::new();
+
+        for (k, v) in self.0.into_iter() {
+            res.0.insert(k.clone(),
+                         other.0.get(&k).map_or(v.clone(), |w| v.clone() - w.clone()),
+            );
+        }
+
+        res
+    }
+}
+
+impl Sub for Value {
+    type Output = Self;
+    
+    fn sub(self, other: Self) -> Self {
+        use Value::*;
+        
+        match self {
+            Coin(c) => match other {
+                Coin(d)          => Coin(c-d),
+                Multiasset(d, ma) => Multiasset(c-d, ma),
+            },
+            Multiasset(c, ma) => match other {
+                Coin(d)          => Multiasset(c-d, ma),
+                Multiasset(d, mb) => Multiasset(c-d, ma-mb),
+            },
+        }
+    }
+}
+
+impl SubAssign for Value {
+    fn sub_assign(&mut self, other: Self) {
+        *self = self.clone() - other;
+    }
+}
+
+/// Decides if the first multiasset is orderly smaller than or equal to the
+/// second one. Useful before subtracting.
+pub fn multiasset_leq(
+    small: &Multiasset<Coin>,
+    big: &Multiasset<Coin>,
+) -> bool {
+    for (pol, names_big) in big.0.iter() {
+        if let Some(names_small) = small.0.get(pol) {
+            for (name_big, amount_big) in names_big.0.iter() {
+                if let Some(amount_small) = names_small.0.get(name_big) {
+                    if amount_small > amount_big {
+                        return false
+                    }
+                }
+            }
+        }
+    }
+    for (pol, names_small) in small.0.iter() {
+        if !big.0.contains_key(pol) {
+            for (_, amount_small) in names_small.0.iter() {
+                if *amount_small != 0 {
+                    return false
+                }
+            }
+        }
+    }
+    
+    true
+}
+    
+/// Decides if the first `Value` is orderly smaller than or equal to the
+/// second one. Useful before subtracting.
+pub fn value_leq(
+    small: &Value,
+    big: &Value,
+) -> bool {
+    use Value::*;
+    
+    match small {
+        Coin(c) => match big {
+            Coin(d)          => c <= d,
+            Multiasset(d, _) => c <= d,
+        },
+        Multiasset(c, ma) => match big {
+            Coin(d)           => (c <= d) & ma.is_null(),
+            Multiasset(d, mb) => (c <= d) & multiasset_leq(ma, mb),
+        },
+    }
+}
+
+impl Multiasset<Coin> {
+    pub fn is_null(&self) -> bool {
+        self.0
+            .iter()
+            .all(|(_, v)| v.0.iter().all(|(_, c)| *c == 0))
+    }
+}
+
+impl Value {
+    pub fn is_null(&self) -> bool {
+        use Value::*;
+        match self {
+            Coin(c) => *c == 0,
+            Multiasset(c,ma) => (*c == 0) & ma.is_null(),
+        }
+    }
+}
+
+impl From<String> for AssetName {
+    fn from(string: String) -> Self {
+        Self(string)
+    }
 }
