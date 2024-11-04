@@ -173,8 +173,8 @@ pub struct Transaction {
 // so that its encoding is the same as an opaque Vec<u8>.
 impl Encode for Transaction {
     fn encode_to<T: parity_scale_codec::Output + ?Sized>(&self, dest: &mut T) {
-        let transaction_body = Encode::encode(&self.transaction_body);
-        let transaction_witness_set = Encode::encode(&self.transaction_witness_set);
+        let transaction_body = self.transaction_body.encode();
+        let transaction_witness_set = self.transaction_witness_set.encode();
 
         let total_len = (transaction_body.len() + transaction_witness_set.len()) as u32;
         let size = parity_scale_codec::Compact::<u32>(total_len).encode();
