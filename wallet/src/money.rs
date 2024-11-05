@@ -199,10 +199,16 @@ pub async fn spend_value(
     let num_nam = args.name.len();
     let num_tok = args.token_amount.len();
     if num_pol > num_nam {
-        Err(anyhow!("Some policy ID(s) do not correspond to any asset name."))?;
+        Err(anyhow!(
+            "Policy ID {} does not correspond to any asset name.",
+            args.policy[num_pol-1],
+        ))?;
     }
     if num_nam > num_tok {
-        Err(anyhow!("Missing amount for some of the named assets."))?;
+        Err(anyhow!(
+            "Missing amount for asset {:?}.",
+            args.name[num_nam-1],
+        ))?;
     }
     if (num_tok != 0) & ((num_nam == 0) | (num_pol == 0)) {
         Err(anyhow!("Missing policy ID(s) and/or asset name."))?;
