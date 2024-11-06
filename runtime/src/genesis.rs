@@ -33,7 +33,7 @@ pub fn development_genesis_transactions() -> Vec<Transaction> {
 
     let output = Output::from((
         address_from_hex(SHAWN_ADDRESS),
-        314,
+        314_000_000,
         Datum::from(datum.clone()),
     ));
 

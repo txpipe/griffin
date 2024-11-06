@@ -20,6 +20,7 @@ use crate::{
         mk_utxo_for_babbage_tx,
         babbage_tx_to_cbor,
         babbage_minted_tx_from_cbor,
+        mk_prot_params,
     },
 };
 use log::debug;
@@ -44,8 +45,13 @@ use pallas_applying::{
         // check_all_ins_in_utxos,
         check_preservation_of_value,
         check_witness_set,
+        check_min_lovelace,
+        check_fee,
     },
-    utils::BabbageError::*,
+    utils::{
+        BabbageError::*, BabbageProtParams, get_babbage_tx_size,
+        ValidationError::Babbage,
+    },
 };
 use pallas_primitives::babbage::{
     Tx as PallasTransaction, MintedScriptRef, MintedDatumOption, MintedTx,
@@ -87,10 +93,14 @@ where
         utxos: &UTxOs,
     ) -> DispatchResult {
         let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
+        let prot_pps: BabbageProtParams = mk_prot_params();
+        let size: u32 = get_babbage_tx_size(mtx).ok_or(Babbage(UnknownTxSize))?;
         // Next unneeded since already checked at `apply_griffin_transaction`
         // check_all_ins_in_utxos(tx_body, utxos)?;
         check_preservation_of_value(tx_body, utxos)?;
         check_witness_set(mtx, utxos)?;
+        check_min_lovelace(tx_body, &prot_pps)?;
+        check_fee(tx_body, &size, mtx, utxos, &prot_pps)?;
         
         Ok(())
     }
