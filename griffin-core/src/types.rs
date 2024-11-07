@@ -45,53 +45,17 @@ pub struct Input {
     pub index: u32,
 }
 
-impl<'b, C> MiniDecode<'b, C> for Input {
-    fn decode(
-        d: &mut Decoder<'b>, ctx: &mut C
-    ) -> Result<Self, MiniDecError> {
-        d.tag()?;
-        d.array()?;
-
-        let tx_hash32: PallasHash::<32> = d.decode_with(ctx)?;
-        Ok(Input {
-            tx_hash: H256::from(tx_hash32.deref()),
-            index: d.u32()?,
-        })
-    }
-}
-
-impl<C> MiniEncode<C> for Input {
-    fn encode<W: MiniWrite>(
-        &self,
-        e: &mut Encoder<W>,
-        ctx: &mut C,
-    ) -> Result<(), MiniEncError<W::Error>> {
-        e.array(2)?;
-
-        let tx_hash32 = PallasHash::<32>::from(self.tx_hash.as_bytes());
-        e.encode_with(tx_hash32, ctx)?;
-        e.u32(self.index)?;
-        
-        Ok(())
-    }
-}
-
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, MiniEncode, MiniDecode)]
-#[cbor(map)]
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default)]
 pub struct TransactionBody {
-    #[n(0)]
     pub inputs: Vec<Input>,
-
-    #[n(1)]
     pub outputs: Vec<Output>,
-
-    #[n(9)]
     pub mint: Option<Mint>,
 }
 
 /// Hash of a 28-byte Cardano policy ID.
 pub type PolicyId = H224;
 
+// TODO: Minicbor implementation needed for temporary `FakeDatum` struct.
 impl<'b, C> MiniDecode<'b, C> for PolicyId {
     fn decode(
         d: &mut Decoder<'b>, ctx: &mut C
@@ -115,14 +79,14 @@ impl<C> MiniEncode<C> for PolicyId {
     }
 }
 
-
 /// Name of a Cardano asset as byte sequence.
+// TODO: Mini traits needed to encode temporary `FakeDatum`
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, PartialOrd, Ord, MiniEncode, MiniDecode)]
 pub struct AssetName(#[n(0)] pub String);
 
 /// `BTreeMap`, encapsulated in order to implement relevant traits.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, PartialOrd, Ord, MiniEncode, MiniDecode)]
-pub struct EncapBTree<K: Ord, V>(#[n(0)] pub BTreeMap<K, V>);
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, PartialOrd, Ord)]
+pub struct EncapBTree<K: Ord, V>(pub BTreeMap<K, V>);
 
 impl<K: Ord, V> EncapBTree<K, V> {
     pub fn new() -> Self {
@@ -137,80 +101,53 @@ pub type Multiasset<A> = EncapBTree<PolicyId, EncapBTree<AssetName, A>>;
 pub type Mint = Multiasset<i64>;
 
 /// Port of Cardano `Value` using `BTreeMap`-based Multiassets
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum Value {
-    #[n(0)]
-    Coin(#[n(0)] Coin),
-
-    #[n(1)]
-    Multiasset(#[n(0)] Coin, #[n(1)] Multiasset<Coin>),
+    Coin(Coin),
+    Multiasset(Coin, Multiasset<Coin>),
 }
 
 /// Verification using public key and signature (both encoded as byte
 /// sequences).
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct VKeyWitness {
-    #[n(0)]
     pub vkey: Vec<u8>,
-
-    #[n(1)]
     pub signature: Vec<u8>,
 }
 
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
-#[cbor(transparent)]
-pub struct PlutusScript(#[n(0)] pub Vec<u8>);
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
+pub struct PlutusScript(pub Vec<u8>);
 
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct ExUnits {
-    #[n(0)]
     pub mem: u64,
-    #[n(1)]
     pub steps: u64,
 }
 
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
-#[cbor(index_only)]
+/// Cardano-like redeemer tag. We are not using the `Cert` nor the `Rewards`
+/// variants.
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub enum RedeemerTag {
-    #[n(0)]
     Spend,
-    #[n(1)]
     Mint,
-    // #[n(2)]
-    // Cert,
-    // #[n(3)]
-    // Reward,
 }
 
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, PartialOrd, MiniEncode, MiniDecode)]
-pub struct PlutusData(#[n(0)] pub Vec<u8>);
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, PartialOrd)]
+pub struct PlutusData(pub Vec<u8>);
 
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct Redeemer {
-    #[n(0)]
     pub tag: RedeemerTag,
-
-    #[n(1)]
     pub index: u32,
-
-    #[n(2)]
     pub data: PlutusData,
-
-    #[n(3)]
     pub ex_units: ExUnits,
 }
 
 /// Fragment of a Cardano witness set.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, MiniEncode, MiniDecode)]
-#[cbor(map)]
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct WitnessSet {
-    #[n(0)]
     pub vkeywitness: Option<Vec<VKeyWitness>>,
-
-    #[n(5)]
     pub redeemer: Option<Vec<Redeemer>>,
-
-    #[n(6)]
     pub plutus_script: Option<Vec<PlutusScript>>,
 }
 
@@ -226,12 +163,9 @@ impl From<Vec<VKeyWitness>> for WitnessSet {
     }
 }
 
-#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
+#[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub struct Transaction {
-    #[n(0)]
     pub transaction_body: TransactionBody,
-
-    #[n(1)]
     pub transaction_witness_set: WitnessSet,
 }
 
@@ -239,8 +173,8 @@ pub struct Transaction {
 // so that its encoding is the same as an opaque Vec<u8>.
 impl Encode for Transaction {
     fn encode_to<T: parity_scale_codec::Output + ?Sized>(&self, dest: &mut T) {
-        let transaction_body = Encode::encode(&self.transaction_body);
-        let transaction_witness_set = Encode::encode(&self.transaction_witness_set);
+        let transaction_body = self.transaction_body.encode();
+        let transaction_witness_set = self.transaction_witness_set.encode();
 
         let total_len = (transaction_body.len() + transaction_witness_set.len()) as u32;
         let size = parity_scale_codec::Compact::<u32>(total_len).encode();
@@ -387,28 +321,11 @@ pub enum FakeDatum {
 #[derive(Serialize, Deserialize, Encode, Decode, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct Address(pub Vec<u8>);
 
-impl<C> MiniDecode<'_, C> for Address {
-    fn decode(d: &mut Decoder<'_>, _: &mut C) -> Result<Self, MiniDecError> {
-        d.bytes().map(|xs| Self(xs.to_vec()))
-    }
-}
-
-impl<C> MiniEncode<C> for Address {
-    fn encode<W: MiniWrite>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), MiniEncError<W::Error>> {
-        e.bytes(&self.0)?.ok()
-    }
-}
-
 /// Transaction outputs.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, MiniEncode, MiniDecode)]
+#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub struct Output {
-    #[n(0)]
     pub address: Address,
-
-    #[n(1)]
     pub value: Value,
-
-    #[n(2)]
     pub datum_option: Option<Datum>,
 }
 

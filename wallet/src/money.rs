@@ -10,9 +10,6 @@ use crate::{
 use anyhow::anyhow;
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use parity_scale_codec::Encode;
-use pallas_codec::minicbor::{
-    encode,
-};
 use sc_keystore::LocalKeystore;
 use sled::Db;
 use sp_runtime::traits::{BlakeTwo256, Hash};
@@ -156,17 +153,6 @@ pub async fn spend_coins(
     let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
     log::debug!("Babbage transaction is: {:#x?}", pallas_tx);
 
-    let mut tx_encoded: Vec<u8> = Vec::new();
-    let _ = encode(&transaction, &mut tx_encoded);
-    log::debug!("SCALE-encoding of Tx is: {}", hex::encode(tx_encoded));
-    
-    tx_encoded = Vec::new();
-    let _ = encode(
-        &pallas_primitives::babbage::Tx::from(transaction.clone()),
-        &mut tx_encoded
-    );
-    log::debug!("MiniCBOR of Tx: {}", hex::encode(tx_encoded));
-
     // Send the transaction
     let genesis_spend_hex = hex::encode(Encode::encode(&transaction));
     let params = rpc_params![genesis_spend_hex];
@@ -213,10 +199,16 @@ pub async fn spend_value(
     let num_nam = args.name.len();
     let num_tok = args.token_amount.len();
     if num_pol > num_nam {
-        Err(anyhow!("Some policy ID(s) do not correspond to any asset name."))?;
+        Err(anyhow!(
+            "Policy ID {} does not correspond to any asset name.",
+            args.policy[num_pol-1],
+        ))?;
     }
     if num_nam > num_tok {
-        Err(anyhow!("Missing amount for some of the named assets."))?;
+        Err(anyhow!(
+            "Missing amount for asset {:?}.",
+            args.name[num_nam-1],
+        ))?;
     }
     if (num_tok != 0) & ((num_nam == 0) | (num_pol == 0)) {
         Err(anyhow!("Missing policy ID(s) and/or asset name."))?;
