@@ -12,8 +12,6 @@ mod debruijn;
 pub mod flat;
 pub mod machine;
 pub mod optimize;
-pub mod parser;
-mod pretty;
 pub mod tx;
 
 pub use pallas_codec::utils::KeyValuePairs;

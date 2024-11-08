@@ -112,7 +112,7 @@ where
     T: Binder<'a>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", self.to_pretty())
+        write!(f, "{}", self)
     }
 }
 
@@ -359,7 +359,7 @@ where
     T: Binder<'a>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{}", self.to_pretty())
+        write!(f, "{}", self)
     }
 }
 

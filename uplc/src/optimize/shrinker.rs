@@ -8,7 +8,7 @@ use crate::{
     builtins::DefaultFunction,
     machine::{cost_model::ExBudget, runtime::Compressable},
 };
-use indexmap::IndexMap;
+use hashbrown::HashMap;
 use itertools::Itertools;
 use pallas_primitives::conway::{BigInt, PlutusData};
 use core::{cmp::Ordering, iter, ops::Neg};
@@ -1082,7 +1082,7 @@ impl Program<Name> {
     }
 
     pub fn builtin_force_reducer(self) -> Self {
-        let mut builtin_map = IndexMap::new();
+        let mut builtin_map = HashMap::new();
 
         let program = self.traverse_uplc_with(true, &mut |_id, term, _arg_stack, _scope| {
             if let Term::Force(f) = term {
@@ -1590,15 +1590,15 @@ impl Program<Name> {
 
     pub fn builtin_curry_reducer(self) -> Self {
         let mut curried_terms = vec![];
-        let mut id_mapped_curry_terms: IndexMap<CurriedName, (Scope, Term<Name>, usize)> =
-            IndexMap::new();
+        let mut id_mapped_curry_terms: HashMap<CurriedName, (Scope, Term<Name>, usize)> =
+            HashMap::new();
         let mut curry_applied_ids = vec![];
-        let mut scope_mapped_to_term: IndexMap<Scope, Vec<(CurriedName, Term<Name>)>> =
-            IndexMap::new();
+        let mut scope_mapped_to_term: HashMap<Scope, Vec<(CurriedName, Term<Name>)>> =
+            HashMap::new();
 
-        let mut flipped_terms: IndexMap<Scope, bool> = IndexMap::new();
+        let mut flipped_terms: HashMap<Scope, bool> = HashMap::new();
 
-        let mut final_ids: IndexMap<Vec<usize>, ()> = IndexMap::new();
+        let mut final_ids: HashMap<Vec<usize>, ()> = HashMap::new();
 
         let step_a =
             self.traverse_uplc_with(false, &mut |_id, term, arg_stack, scope| match term {

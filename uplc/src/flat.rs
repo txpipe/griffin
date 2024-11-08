@@ -407,7 +407,7 @@ where
                 let con_option = Constant::decode(d);
                 match con_option {
                     Ok(constant) => {
-                        state_log.push(format!("{})", constant.to_pretty()));
+                        state_log.push(format!("{:?})", constant));
                         Ok(Term::Constant(constant.into()))
                     }
                     Err(error) => {
