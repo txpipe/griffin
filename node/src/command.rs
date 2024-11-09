@@ -39,7 +39,7 @@ impl SubstrateCli for Cli {
                        path => {
                            let file_content = std::fs::read_to_string(path)
                                .expect("Unable to read the initialization file");
-                           Box::new(chain_spec::development_config(file_content)?)
+                           Box::new(chain_spec::local_testnet_config(file_content)?)
                        },
 		})
 	}
