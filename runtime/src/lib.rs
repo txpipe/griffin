@@ -20,7 +20,7 @@ use sp_runtime::{
     transaction_validity::{TransactionSource, TransactionValidity},
     ApplyExtrinsicResult, BoundToRuntimeAppPublic,
 };
-use alloc::{vec, vec::Vec};
+use alloc::{vec, vec::Vec, string::ToString};
 
 
 #[cfg(feature = "std")]
@@ -270,7 +270,7 @@ impl_runtime_apis! {
         }
 
         fn get_preset(_id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
-            let txs : &Vec<Transaction> = &genesis::development_genesis_transactions();
+            let txs : &Vec<Transaction> = &genesis::development_genesis_transactions("".to_string());
             Some(serde_json::to_vec(txs)
                  .expect("Development genesis transactions are valid."))
         }

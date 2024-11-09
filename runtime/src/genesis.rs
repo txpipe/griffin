@@ -19,6 +19,32 @@ use hex::FromHex;
 use pallas_crypto::hash::Hash;
 use core::str::FromStr;
 
+const GENESIS_DEFAULT_JSON: &str =  r#"
+[
+  {
+    "address": "6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4",
+    "coin": 314000000,
+    "value": [
+               {
+                 "policy": "0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005",
+                 "assets": [ ["tokenA", 271000000], ["tokenB", 1123581321] ]
+               },
+               {
+                 "policy": "1111111111111111111111111114261fb7e7b0d988215da2f2de2005",
+                 "assets": [ ["tokenA", 271000000], ["tokenB", 1123581321] ]
+               }
+             ],
+    "datum": null
+  },
+  {
+    "address": "6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4",
+    "coin": 314000000,
+    "value": [],
+    "datum": "820080"
+  }
+]
+"#;
+
 /// A default seed phrase for signing inputs when none is provided
 /// Corresponds to the default pubkey.
 pub const SHAWN_PHRASE: &str =
@@ -47,43 +73,24 @@ struct TransparentOutput {
 /// This function returns a list of valid transactions to be included in the genesis block.
 /// It is called by the `ChainSpec::build` method, via the `development_genesis_config` function.
 /// The resulting transactions must be ordered: inherent first, then extrinsics.
-pub fn development_genesis_transactions() -> Vec<Transaction> {
-    let json_data = r#"
-[
-  {
-    "address": "6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4",
-    "coin": 314000000,
-    "value": [
-               {
-                 "policy": "0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005",
-                 "assets": [ ["tokenA", 271000000], ["tokenB", 1123581321] ]
-               },
-               {
-                 "policy": "1111111111111111111111111114261fb7e7b0d988215da2f2de2005",
-                 "assets": [ ["tokenA", 271000000], ["tokenB", 1123581321] ]
-               }
-             ],
-    "datum": null
-  },
-  {
-    "address": "6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4",
-    "coin": 314000000,
-    "value": [],
-    "datum": "820080"
-  }
-]
-"#;
-    let transp_outputs: Vec<TransparentOutput> = parse_json(json_data).unwrap();
+pub fn development_genesis_transactions(genesis_json: String) -> Vec<Transaction> {
+    let mut json_data: &str = GENESIS_DEFAULT_JSON;
+    if !genesis_json.is_empty() {
+        json_data = &genesis_json;
+    };
+    let transp_outputs: Vec<TransparentOutput> = match parse_json(json_data) {
+        Err(e) => panic!("Error: {e}\nJSON data: {json_data}"),
+        Ok(v) => v,
+    };
 
     vec![Transaction::from((
         vec![],
         transp_outputs.into_iter().map(transp_to_output).collect()
-    ))
-    ]
+    ))]
 }
 
-pub fn development_genesis_config() -> serde_json::Value {
-    serde_json::json!(development_genesis_transactions())
+pub fn development_genesis_config(genesis_json: String) -> serde_json::Value {
+    serde_json::json!(development_genesis_transactions(genesis_json))
 }
 
 fn parse_json(input: &str) -> Result<Vec<TransparentOutput>, serde_json::Error> {
@@ -106,7 +113,7 @@ fn transp_to_value(transp: Vec<TransparentMultiasset>) -> Multiasset<Coin> {
     for TransparentMultiasset{ policy, assets } in transp {
         ma_btree.insert(
             H224::from(Hash::from_str(&policy).unwrap()),
-            transp_to_assets(assets)
+            transp_to_assets(assets),
         );
     }
     
