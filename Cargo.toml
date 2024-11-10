@@ -82,8 +82,8 @@ sc-chain-spec = { version = "37.0.0" }
 sc-keystore = "33.0.0"
 sp-keystore = "0.40.0"
 
-pallas-codec = { git = "https://github.com/sterraf/pallas.git", branch = "no-std" }
-pallas-crypto = { git = "https://github.com/sterraf/pallas.git", branch = "no-std" }
-pallas-primitives = { git = "https://github.com/sterraf/pallas.git", branch = "no-std" }
-pallas-applying = { git = "https://github.com/sterraf/pallas.git", branch = "no-std" }
-pallas-traverse = { git = "https://github.com/sterraf/pallas.git", branch = "no-std" }
+pallas-codec = { version = "=0.30.1", path = "griffin-pallas/pallas-codec", package = "griffin-pallas-codec" }
+pallas-crypto = { version = "=0.30.1", path = "griffin-pallas/pallas-crypto", package = "griffin-pallas-crypto" }
+pallas-primitives = { version = "=0.30.1", path = "griffin-pallas/pallas-primitives", package = "griffin-pallas-primitives" }
+pallas-applying = { version = "=0.30.1", path = "griffin-pallas/pallas-applying", package = "griffin-pallas-applying" }
+pallas-traverse = { version = "=0.30.1", path = "griffin-pallas/pallas-traverse", package = "griffin-pallas-traverse" }
