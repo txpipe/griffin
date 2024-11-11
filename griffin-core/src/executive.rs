@@ -20,6 +20,7 @@ use crate::{
         mk_utxo_for_babbage_tx,
         babbage_tx_to_cbor,
         babbage_minted_tx_from_cbor,
+        check_min_coin,
     },
 };
 use log::debug;
@@ -91,7 +92,8 @@ where
         // check_all_ins_in_utxos(tx_body, utxos)?;
         check_preservation_of_value(tx_body, utxos)?;
         check_witness_set(mtx, utxos)?;
-        
+        check_min_coin(tx_body)?;
+
         Ok(())
     }
     
@@ -429,3 +431,4 @@ where
         r
     }
 }
+    

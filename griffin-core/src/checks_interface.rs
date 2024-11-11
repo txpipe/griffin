@@ -3,7 +3,11 @@ use pallas_applying::{
     UTxOs,
     utils::{ValidationError},
 };
-use crate::types::UTxOError::{self, *};
+use crate::types::{
+    UTxOError::{self, *},
+    DispatchResult,
+    value_leq,
+};
 use pallas_codec::minicbor::encode;
 use pallas_primitives::{
     alonzo::Value,
@@ -21,6 +25,9 @@ use alloc::{
 };
 use core::iter::zip;
 use pallas_codec::utils::{Bytes, CborWrap};
+
+/// Every output must contain this many `Coin`s.
+pub const MIN_COIN_PER_OUTPUT: crate::types::Coin = 10;
 
 impl From<ValidationError> for UTxOError {
     fn from(err: ValidationError) -> UTxOError {
@@ -71,4 +78,25 @@ pub fn mk_utxo_for_babbage_tx<'a>(
     }
 
     utxos
+}
+
+pub fn check_min_coin(tx_body: &MintedTransactionBody) -> DispatchResult {
+    use pallas_applying::utils::BabbageError::MinLovelaceUnreached;
+
+    let min_reached: bool = tx_body.outputs.iter().all(
+        |out| value_leq(
+            &crate::types::Value::Coin(MIN_COIN_PER_OUTPUT),
+            &<_>::from(
+                match out {
+                    PseudoTransactionOutput::PostAlonzo(pos) => pos.value.clone(),
+                    _ => return false, // Legacy outputs should not be here!
+                }
+            ),
+        )
+    );
+    if min_reached {
+        Ok(())
+    } else {
+        Err(UTxOError::Babbage(MinLovelaceUnreached))
+    }
 }
