@@ -105,6 +105,11 @@ pub fn lovelace_diff_or_fail(
 }
 
 pub fn multi_assets_are_equal(fma: &Multiasset<Coin>, sma: &Multiasset<Coin>) -> bool {
+    multi_asset_included(fma, sma) && multi_asset_included(sma, fma)
+}
+
+pub fn multi_asset_included(fma: &Multiasset<Coin>, sma: &Multiasset<Coin>) -> bool {
+    let mut res: bool = true;
     for (fpolicy, fassets) in fma.iter() {
         match find_policy(sma, fpolicy) {
             Some(sassets) => {
@@ -122,10 +127,10 @@ pub fn multi_assets_are_equal(fma: &Multiasset<Coin>, sma: &Multiasset<Coin>) ->
                     }
                 }
             }
-            None => return false,
+            None => res = res && fassets.iter().all(|(_, a)| *a == 0),
         }
     }
-    true
+    res
 }
 
 pub fn add_minted_value(
