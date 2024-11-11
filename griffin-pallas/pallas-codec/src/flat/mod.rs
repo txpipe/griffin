@@ -3,6 +3,8 @@ mod encode;
 pub mod filler;
 pub mod zigzag;
 
+use alloc::vec::Vec;
+
 pub mod en {
     pub use super::encode::*;
 }

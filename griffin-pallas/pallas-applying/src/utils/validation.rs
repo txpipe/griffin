@@ -138,6 +138,8 @@ pub enum BabbageError {
     VKWrongSignature,
     UnsupportedPlutusLanguage,
     ScriptIntegrityHash,
+    DuplicateInput,
+    OutputAlreadyInUTxO,
 }
 
 pub type ValidationResult = Result<(), ValidationError>;

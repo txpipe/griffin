@@ -1,4 +1,6 @@
-use std::borrow::Cow;
+// use std::borrow::Cow;
+use alloc::boxed::Box;
+use alloc::borrow::Cow;
 
 use pallas_primitives::{alonzo, conway};
 

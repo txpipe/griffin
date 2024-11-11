@@ -3,7 +3,9 @@
 Most of the types defined here implements `Scrubbed` trait.
 */
 
-use std::ptr;
+use core::ptr;
+use alloc::vec::Vec;
+use alloc::boxed::Box;
 
 /// Types implementing this can be scrubbed, the memory is cleared and
 /// erased with a dummy value.
@@ -71,7 +73,7 @@ pub unsafe fn memeq(v1: *const u8, v2: *const u8, len: usize) -> bool {
 /// Expecting to have both valid pointer and the count to fit in
 /// both the allocated memories
 #[inline(never)]
-pub unsafe fn memcmp(v1: *const u8, v2: *const u8, len: usize) -> std::cmp::Ordering {
+pub unsafe fn memcmp(v1: *const u8, v2: *const u8, len: usize) -> core::cmp::Ordering {
     let mut res = 0;
 
     assert!(
@@ -151,13 +153,13 @@ impl<T: Scrubbed> Scrubbed for Box<T> {
     }
 }
 
-impl<T: Scrubbed> Scrubbed for std::cell::Cell<T> {
+impl<T: Scrubbed> Scrubbed for core::cell::Cell<T> {
     fn scrub(&mut self) {
         self.get_mut().scrub()
     }
 }
 
-impl<T: Scrubbed> Scrubbed for std::cell::RefCell<T> {
+impl<T: Scrubbed> Scrubbed for core::cell::RefCell<T> {
     fn scrub(&mut self) {
         self.get_mut().scrub()
     }
@@ -165,7 +167,7 @@ impl<T: Scrubbed> Scrubbed for std::cell::RefCell<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::cmp::Ordering;
+    use core::cmp::Ordering;
 
     use super::*;
     use quickcheck::TestResult;
@@ -207,7 +209,7 @@ mod tests {
 
     #[quickcheck]
     fn neq(a: Vec<u8>, b: Vec<u8>) -> TestResult {
-        let len = std::cmp::min(a.len(), b.len());
+        let len = core::cmp::min(a.len(), b.len());
 
         if a[..len] == b[..len] || len == 0 {
             TestResult::discard()
@@ -220,7 +222,7 @@ mod tests {
 
     #[quickcheck]
     fn ord(a: Vec<u8>, b: Vec<u8>) -> TestResult {
-        let len = std::cmp::min(a.len(), b.len());
+        let len = core::cmp::min(a.len(), b.len());
 
         if len == 0 {
             TestResult::discard()

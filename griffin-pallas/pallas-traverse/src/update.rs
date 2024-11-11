@@ -1,6 +1,11 @@
+use alloc::vec::Vec;
+use alloc::boxed::Box;
+use alloc::borrow::Cow;
+use core::ops::Deref;
+
 use pallas_codec::minicbor;
 use paste::paste;
-use std::{borrow::Cow, ops::Deref};
+// use std::{borrow::Cow, ops::Deref};
 
 use pallas_primitives::{alonzo, babbage, byron};
 

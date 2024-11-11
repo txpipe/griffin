@@ -1,4 +1,10 @@
-use std::{borrow::Cow, fmt::Display, ops::Deref, str::FromStr};
+// use std::{borrow::Cow, fmt::Display, ops::Deref, str::FromStr};
+use alloc::string::String;
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+use alloc::borrow::Cow;
+use core::{fmt, fmt::Display, str::FromStr};
+use core::ops::Deref;
 
 use pallas_codec::utils::CborWrap;
 use pallas_crypto::hash::Hash;
@@ -21,7 +27,7 @@ impl OutputRef {
 }
 
 impl Display for OutputRef {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}#{}", self.hash(), self.index())
     }
 }

@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use pallas_codec::utils::KeepRaw;
 use pallas_primitives::{
     alonzo::{self, BootstrapWitness, NativeScript, PlutusData, VKeyWitness},

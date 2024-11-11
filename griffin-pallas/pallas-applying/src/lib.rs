@@ -1,5 +1,10 @@
 //! Logic for validating and applying new blocks and txs to the chain state
 
+#![no_std]
+
+#[macro_use]
+extern crate alloc;
+
 pub mod alonzo;
 pub mod babbage;
 pub mod byron;

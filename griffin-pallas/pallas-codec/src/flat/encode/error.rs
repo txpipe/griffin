@@ -1,4 +1,6 @@
-use thiserror::Error;
+use thiserror_no_std::Error;
+
+use alloc::string::String;
 
 #[derive(Error, Debug)]
 pub enum Error {

@@ -1,5 +1,5 @@
 use pallas_codec::minicbor;
-use std::{fmt, ops::Deref, str::FromStr};
+use core::{fmt, ops::Deref, str::FromStr};
 
 /// data that is a cryptographic [`struct@Hash`] of `BYTES` long.
 ///

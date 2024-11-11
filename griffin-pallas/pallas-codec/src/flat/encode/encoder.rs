@@ -2,6 +2,8 @@ use super::Encode;
 use super::Error;
 use crate::flat::zigzag::ZigZag;
 
+use alloc::vec::Vec;
+
 #[cfg(feature = "num-bigint")]
 use num_bigint::{BigInt, BigUint};
 

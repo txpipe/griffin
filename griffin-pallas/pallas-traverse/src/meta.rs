@@ -1,3 +1,5 @@
+use core::iter;
+
 use pallas_primitives::alonzo;
 
 use crate::MultiEraMeta;
@@ -28,8 +30,8 @@ impl<'b> MultiEraMeta<'b> {
         T: FromIterator<(alonzo::MetadatumLabel, &'a alonzo::Metadatum)>,
     {
         match self {
-            MultiEraMeta::NotApplicable => std::iter::empty().collect(),
-            MultiEraMeta::Empty => std::iter::empty().collect(),
+            MultiEraMeta::NotApplicable => iter::empty().collect(),
+            MultiEraMeta::Empty => iter::empty().collect(),
             MultiEraMeta::AlonzoCompatible(x) => x.iter().map(|(k, v)| (*k, v)).collect(),
         }
     }

@@ -1,10 +1,13 @@
-use std::fmt;
-use std::str::FromStr;
+use core::fmt;
+use core::str::FromStr;
 
 use serde::de::{Error, Unexpected, Visitor};
 use serde::{Deserialize, Deserializer, Serialize};
 
 use super::Hash;
+
+// help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+use crate::alloc::string::ToString;
 
 impl<const BYTES: usize> Serialize for Hash<BYTES> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

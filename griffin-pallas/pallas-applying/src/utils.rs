@@ -18,8 +18,12 @@ use pallas_primitives::{
     babbage::{MintedTx as BabbageMintedTx, PlutusV2Script},
 };
 use pallas_traverse::{MultiEraInput, MultiEraOutput};
-use std::collections::HashMap;
-use std::ops::Deref;
+// use std::collections::HashMap;
+// use std::ops::Deref;
+use hashbrown::HashMap;
+use core::ops::Deref;
+use alloc::vec::Vec;
+
 pub use validation::*;
 
 pub type UTxOs<'b> = HashMap<MultiEraInput<'b>, MultiEraOutput<'b>>;

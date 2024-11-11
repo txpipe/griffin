@@ -124,7 +124,7 @@ TODO: somehow the `minicbor::Write` does not allow to implement this
       other one automatically derived by default.
 
 impl<const BITS: usize> Write for Hasher<BITS> {
-    type Error = std::convert::Infallible;
+    type Error = core::convert::Infallible;
 
     #[inline]
     fn write_all(&mut self, buf: &[u8]) -> Result<(), Self::Error> {
@@ -135,7 +135,7 @@ impl<const BITS: usize> Write for Hasher<BITS> {
 */
 
 impl<'a, const BITS: usize> minicbor::encode::Write for &'a mut Hasher<BITS> {
-    type Error = std::convert::Infallible;
+    type Error = core::convert::Infallible;
 
     #[inline]
     fn write_all(&mut self, buf: &[u8]) -> Result<(), Self::Error> {

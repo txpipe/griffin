@@ -1,4 +1,10 @@
-use std::{borrow::Cow, collections::HashSet, ops::Deref};
+// use std::{borrow::Cow, collections::HashSet, ops::Deref};
+use alloc::vec::Vec;
+use alloc::boxed::Box;
+use alloc::borrow::Cow;
+use core::iter;
+use core::ops::Deref;
+use hashbrown::HashSet;
 
 use itertools::Itertools;
 use pallas_codec::{minicbor, utils::KeepRaw};
@@ -221,7 +227,7 @@ impl<'b> MultiEraTx<'b> {
     pub fn withdrawals_sorted_set(&self) -> Vec<(&[u8], u64)> {
         match self.withdrawals() {
             MultiEraWithdrawals::NotApplicable | MultiEraWithdrawals::Empty => {
-                std::iter::empty().collect()
+                iter::empty().collect()
             }
             MultiEraWithdrawals::AlonzoCompatible(x) => x
                 .iter()

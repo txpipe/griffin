@@ -1,3 +1,5 @@
+use core::iter;
+
 use pallas_crypto::hash::Hash;
 use pallas_primitives::alonzo;
 
@@ -29,8 +31,8 @@ impl<'b> MultiEraSigners<'b> {
         T: FromIterator<&'a Hash<28>>,
     {
         match self {
-            Self::NotApplicable => std::iter::empty().collect(),
-            Self::Empty => std::iter::empty().collect(),
+            Self::NotApplicable => iter::empty().collect(),
+            Self::Empty => iter::empty().collect(),
             Self::AlonzoCompatible(x) => x.iter().collect(),
         }
     }

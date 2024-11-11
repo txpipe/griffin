@@ -1,4 +1,5 @@
-use std::fmt::{Display, Formatter};
+// use std::fmt::{Display, Formatter};
+use core::{fmt, fmt::Display, fmt::Formatter};
 
 use crate::{Era, Feature};
 
@@ -53,7 +54,7 @@ impl From<Era> for u16 {
 }
 
 impl Display for Era {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Era::Byron => write!(f, "Byron"),
             Era::Shelley => write!(f, "Shelley"),

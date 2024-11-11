@@ -19,7 +19,9 @@ use pallas_primitives::{
     byron::TxOut,
 };
 use pallas_traverse::{ComputeHash, Era, MultiEraInput, MultiEraOutput};
-use std::{cmp::max, ops::Deref};
+// use std::{cmp::max, ops::Deref};
+use core::{cmp::max, ops::Deref};
+use alloc::vec::Vec;
 
 pub fn validate_shelley_ma_tx(
     mtx: &MintedTx,

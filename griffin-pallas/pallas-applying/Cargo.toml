@@ -18,8 +18,12 @@ pallas-codec = { version = "=0.30.1", path = "../pallas-codec" }
 pallas-crypto = { version = "=0.30.1", path = "../pallas-crypto" }
 pallas-primitives = { version = "=0.30.1", path = "../pallas-primitives" }
 pallas-traverse = { version = "=0.30.1", path = "../pallas-traverse" }
-rand = "0.8"
-hex = "0.4"
+# rand = "0.8"
+# hex = "0.4"
+hex = { version="0.4.3", default-features = false }
+# hashbrown = { version="0.14", default-features = false }
+hashbrown = "0.14"
 
 [dev-dependencies]
-hex = "0.4"
+# hex = "0.4"
+hex = { version="0.4.3", default-features = false }

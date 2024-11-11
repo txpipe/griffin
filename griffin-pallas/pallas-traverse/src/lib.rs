@@ -1,11 +1,21 @@
 //! Utilities to traverse over multi-era block data
 
+#![no_std]
+
+#[macro_use]
+extern crate alloc;
+
 use pallas_codec::utils::NonZeroInt;
 use pallas_codec::utils::PositiveCoin;
-use std::{borrow::Cow, fmt::Display, hash::Hash as StdHash};
+// use std::{borrow::Cow, fmt::Display, hash::Hash as StdHash};
+use alloc::borrow::{Cow, ToOwned};
+use core::fmt::Display;
+use alloc::string::String;
+use alloc::boxed::Box;
+use core::hash::Hash as StdHash;
 
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+use thiserror_no_std::Error;
 
 use pallas_codec::utils::{KeepRaw, KeyValuePairs, NonEmptyKeyValuePairs};
 use pallas_crypto::hash::Hash;

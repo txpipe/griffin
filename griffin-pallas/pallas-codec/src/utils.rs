@@ -4,7 +4,9 @@ use minicbor::{
     Decode, Encode,
 };
 use serde::{Deserialize, Serialize};
-use std::{fmt, hash::Hash as StdHash, ops::Deref};
+use core::{fmt, hash::Hash as StdHash, ops::Deref};
+use alloc::string::String;
+use alloc::vec::Vec;
 
 static TAG_SET: u64 = 258;
 
@@ -18,8 +20,8 @@ impl<'b, C, const N: usize> minicbor::Decode<'b, C> for SkipCbor<N> {
         _ctx: &mut C,
     ) -> Result<Self, minicbor::decode::Error> {
         {
-            let probe = d.probe();
-            println!("skipped cbor value {N}: {:?}", probe.datatype()?);
+            // let probe = d.probe();
+            // println!("skipped cbor value {N}: {:?}", probe.datatype()?);
         }
 
         d.skip()?;
@@ -181,7 +183,7 @@ where
     V: Clone,
 {
     type Item = (K, V);
-    type IntoIter = std::vec::IntoIter<Self::Item>;
+    type IntoIter = alloc::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
         match self {
@@ -665,7 +667,7 @@ impl<T> From<Set<KeepRaw<'_, T>>> for Set<T> {
 
 impl<'a, T> IntoIterator for &'a Set<T> {
     type Item = &'a T;
-    type IntoIter = std::slice::Iter<'a, T>;
+    type IntoIter = core::slice::Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
@@ -748,7 +750,7 @@ impl<T> From<NonEmptySet<KeepRaw<'_, T>>> for NonEmptySet<T> {
 
 impl<'a, T> IntoIterator for &'a NonEmptySet<T> {
     type Item = &'a T;
-    type IntoIter = std::slice::Iter<'a, T>;
+    type IntoIter = core::slice::Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.iter()
@@ -1165,7 +1167,7 @@ impl<C> minicbor::Encode<C> for AnyCbor {
 #[serde(from = "Option::<T>", into = "Option::<T>")]
 pub enum Nullable<T>
 where
-    T: std::clone::Clone,
+    T: core::clone::Clone,
 {
     Some(T),
     Null,
@@ -1174,11 +1176,11 @@ where
 
 impl<T> Nullable<T>
 where
-    T: std::clone::Clone,
+    T: core::clone::Clone,
 {
     pub fn map<F, O>(self, f: F) -> Nullable<O>
     where
-        O: std::clone::Clone,
+        O: core::clone::Clone,
         F: Fn(T) -> O,
     {
         match self {
@@ -1191,7 +1193,7 @@ where
 
 impl<'b, C, T> minicbor::Decode<'b, C> for Nullable<T>
 where
-    T: minicbor::Decode<'b, C> + std::clone::Clone,
+    T: minicbor::Decode<'b, C> + core::clone::Clone,
 {
     fn decode(d: &mut minicbor::Decoder<'b>, ctx: &mut C) -> Result<Self, minicbor::decode::Error> {
         match d.datatype()? {
@@ -1213,7 +1215,7 @@ where
 
 impl<C, T> minicbor::Encode<C> for Nullable<T>
 where
-    T: minicbor::Encode<C> + std::clone::Clone,
+    T: minicbor::Encode<C> + core::clone::Clone,
 {
     fn encode<W: minicbor::encode::Write>(
         &self,
@@ -1239,7 +1241,7 @@ where
 
 impl<T> From<Option<T>> for Nullable<T>
 where
-    T: std::clone::Clone,
+    T: core::clone::Clone,
 {
     fn from(x: Option<T>) -> Self {
         match x {
@@ -1251,7 +1253,7 @@ where
 
 impl<T> From<Nullable<T>> for Option<T>
 where
-    T: std::clone::Clone,
+    T: core::clone::Clone,
 {
     fn from(other: Nullable<T>) -> Self {
         match other {

@@ -1,4 +1,5 @@
 //! Internal supporting utilities
+use alloc::vec::Vec;
 
 use pallas_primitives::{alonzo, babbage, byron, conway};
 

@@ -1,8 +1,10 @@
 //! Decode / encode variable-length uints
 
-use std::io::{Cursor, Read, Write};
+// use std::io::{Cursor, Read, Write};
+use core2::io::{Cursor, Read};
+// use alloc::vec::Vec;
 
-use thiserror::Error;
+use thiserror_no_std::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -43,14 +45,14 @@ pub fn read(cursor: &mut Cursor<&[u8]>) -> Result<u64, Error> {
     }
 }
 
-pub fn write(cursor: &mut Cursor<Vec<u8>>, mut num: u64) {
-    let mut output = vec![num as u8 & 0x7F];
-    num /= 128;
-    while num > 0 {
-        output.push((num & 0x7F) as u8 | 0x80);
-        num /= 128;
-    }
-    output.reverse();
+// pub fn write(cursor: &mut Cursor<Vec<u8>>, mut num: u64) {
+//     let mut output = vec![num as u8 & 0x7F];
+//     num /= 128;
+//     while num > 0 {
+//         output.push((num & 0x7F) as u8 | 0x80);
+//         num /= 128;
+//     }
+//     output.reverse();
 
-    cursor.write_all(&output).unwrap();
-}
+//     cursor.write_all(&output).unwrap();
+// }

@@ -26,7 +26,10 @@ use pallas_primitives::{
     byron::TxOut,
 };
 use pallas_traverse::{MultiEraInput, MultiEraOutput, OriginalHash};
-use std::ops::Deref;
+// use std::ops::Deref;
+use alloc::vec::Vec;
+use core::ops::Deref;
+use alloc::borrow::ToOwned;
 
 pub fn validate_alonzo_tx(
     mtx: &MintedTx,

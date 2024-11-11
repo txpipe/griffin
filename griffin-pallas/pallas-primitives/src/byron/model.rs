@@ -12,7 +12,11 @@ use pallas_codec::utils::{
 // required for derive attrs to work
 use pallas_codec::minicbor;
 
-use std::hash::Hash as StdHash;
+// use std::hash::Hash as StdHash;
+
+// no std:
+use alloc::string::String;
+use core::hash::Hash as StdHash;
 
 // Basic Cardano Types
 

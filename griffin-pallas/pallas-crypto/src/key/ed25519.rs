@@ -13,8 +13,10 @@ use cryptoxide::ed25519::{
     self, EXTENDED_KEY_LENGTH, PRIVATE_KEY_LENGTH, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH,
 };
 use rand_core::{CryptoRng, RngCore};
-use std::{any::type_name, convert::TryFrom, fmt, str::FromStr};
-use thiserror::Error;
+use core::{any::type_name, convert::TryFrom, fmt, str::FromStr};
+use alloc::string::{String, ToString};
+
+use thiserror_no_std::Error;
 
 /// Ed25519 Secret Key
 #[derive(Clone)]

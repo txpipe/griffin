@@ -1,3 +1,6 @@
+use alloc::string::String;
+use alloc::vec::Vec;
+
 use pallas_codec::{
     minicbor::{self, bytes::ByteVec, Decode, Encode},
     utils::{OrderPreservingProperties, TagWrap},

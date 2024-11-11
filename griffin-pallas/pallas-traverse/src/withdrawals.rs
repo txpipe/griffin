@@ -1,3 +1,5 @@
+use core::iter;
+
 use pallas_primitives::alonzo;
 
 use crate::MultiEraWithdrawals;
@@ -22,8 +24,8 @@ impl<'b> MultiEraWithdrawals<'b> {
         T: FromIterator<(&'a [u8], u64)>,
     {
         match self {
-            MultiEraWithdrawals::NotApplicable => std::iter::empty().collect(),
-            MultiEraWithdrawals::Empty => std::iter::empty().collect(),
+            MultiEraWithdrawals::NotApplicable => iter::empty().collect(),
+            MultiEraWithdrawals::Empty => iter::empty().collect(),
             MultiEraWithdrawals::AlonzoCompatible(x) => {
                 x.iter().map(|(k, v)| (k.as_slice(), *v)).collect()
             }

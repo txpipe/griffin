@@ -1,6 +1,8 @@
 use super::Decode;
 use super::Error;
 use crate::flat::zigzag::ZigZag;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 #[cfg(feature = "num-bigint")]
 use num_bigint::{BigInt, BigUint};
@@ -13,7 +15,7 @@ pub struct Decoder<'b> {
 }
 
 impl<'b> Decoder<'b> {
-    pub fn new(bytes: &'b [u8]) -> Decoder {
+    pub fn new(bytes: &'b [u8]) -> Decoder<'b> {
         Decoder {
             buffer: bytes,
             pos: 0,
@@ -104,13 +106,13 @@ impl<'b> Decoder<'b> {
     }
 
     // TODO: Do we need this?
-    pub fn string(&mut self) -> Result<String, Error> {
-        let mut s = String::new();
-        while self.bit()? {
-            s += &self.char()?.to_string();
-        }
-        Ok(s)
-    }
+    // pub fn string(&mut self) -> Result<String, Error> {
+    //     let mut s = String::new();
+    //     while self.bit()? {
+    //         s += &self.char()?.to_string();
+    //     }
+    //     Ok(s)
+    // }
 
     /// Decode a string.
     /// Convert to byte array and then use byte array decoding.

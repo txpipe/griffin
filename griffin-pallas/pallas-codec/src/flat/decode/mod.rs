@@ -2,6 +2,8 @@ mod decoder;
 mod error;
 
 use crate::flat::filler::Filler;
+use alloc::string::String;
+use alloc::vec::Vec;
 
 #[cfg(feature = "num-bigint")]
 use num_bigint::BigInt;

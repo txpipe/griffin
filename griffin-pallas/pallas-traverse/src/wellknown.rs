@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use alloc::string::{String, ToString};
+
 /// Well-known params for testnet
 pub const TESTNET_MAGIC: u64 = 1097911063;
 pub const TESTNET_NETWORK_ID: u64 = 0;

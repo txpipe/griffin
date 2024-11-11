@@ -1,4 +1,5 @@
-use thiserror::Error;
+use thiserror_no_std::Error;
+use alloc::string::String;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -13,7 +14,7 @@ pub enum Error {
     #[error("Not enough data available, required {0} bits")]
     NotEnoughBits(usize),
     #[error(transparent)]
-    DecodeUtf8(#[from] std::string::FromUtf8Error),
+    DecodeUtf8(#[from] alloc::string::FromUtf8Error),
     #[error("Decoding u32 to char {0}")]
     DecodeChar(u32),
     #[error("{0}")]

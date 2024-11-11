@@ -1,4 +1,5 @@
-use std::ops::Deref;
+// use std::ops::Deref;
+use core::ops::Deref;
 
 use pallas_primitives::alonzo;
 

@@ -1,8 +1,14 @@
-use std::ops::Deref;
+// use std::ops::Deref;
 
 use serde_json::json;
 
 use crate::ToCanonicalJson;
+
+// no std:
+// help: trait `ToString` which provides `to_string` is implemented but not in scope; perhaps you want to import it
+use alloc::string::ToString;
+use alloc::vec::Vec;
+use core::ops::Deref;
 
 impl<A> super::Constr<A> {
     pub fn constructor_value(&self) -> Option<u64> {

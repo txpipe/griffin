@@ -1,3 +1,6 @@
+use alloc::string::String;
+use alloc::vec::Vec;
+
 use pallas_crypto::hash::Hash;
 
 use crate::{MultiEraAsset, MultiEraPolicyAssets};

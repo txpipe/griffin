@@ -1,4 +1,8 @@
-use std::{borrow::Cow, ops::Deref};
+// use std::{borrow::Cow, ops::Deref};
+use alloc::borrow::Cow;
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+use core::ops::Deref;
 
 use pallas_codec::minicbor;
 use pallas_crypto::hash::Hash;

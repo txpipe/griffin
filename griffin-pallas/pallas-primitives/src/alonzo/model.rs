@@ -3,7 +3,8 @@
 //! Handcrafted, idiomatic rust artifacts based on based on the [Alonzo CDDL](https://github.com/input-output-hk/cardano-ledger/blob/master/eras/alonzo/test-suite/cddl-files/alonzo.cddl) file in IOHK repo.
 
 use serde::{Deserialize, Serialize};
-use std::{fmt, hash::Hash as StdHash, ops::Deref};
+// use std::{fmt, hash::Hash as StdHash, ops::Deref};
+use core::{fmt, hash::Hash as StdHash, ops::Deref};
 
 use pallas_codec::minicbor::{data::Tag, Decode, Encode};
 use pallas_crypto::hash::Hash;
@@ -12,6 +13,10 @@ use pallas_codec::utils::{Bytes, Int, KeepRaw, KeyValuePairs, MaybeIndefArray, N
 
 // required for derive attrs to work
 use pallas_codec::minicbor;
+
+// no std:
+use alloc::string::String;
+use alloc::vec::Vec;
 
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone)]
 pub struct VrfCert(#[n(0)] pub Bytes, #[n(1)] pub Bytes);

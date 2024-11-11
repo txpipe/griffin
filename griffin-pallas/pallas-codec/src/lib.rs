@@ -1,3 +1,8 @@
+#![no_std]
+
+#[macro_use]
+extern crate alloc;
+
 /// Flat encoding/decoding for Plutus Core
 pub mod flat;
 
