@@ -1,6 +1,6 @@
 [package]
-name = "pallas-applying"
-description = "Logic for validating and applying new blocks and txs to the chain state"
+name = "griffin-pallas-applying"
+description = "Logic for validating and applying new blocks and txs to the chain state (no-std version)"
 version = "0.30.1"
 edition = "2021"
 repository = "https://github.com/MaicoLeberle/pallas"
@@ -13,11 +13,11 @@ authors = ["Maico Leberle <maico.leberle@gmail.com>"]
 doctest = false
 
 [dependencies]
-pallas-addresses = { version = "=0.30.1", path = "../pallas-addresses" }
-pallas-codec = { version = "=0.30.1", path = "../pallas-codec" }
-pallas-crypto = { version = "=0.30.1", path = "../pallas-crypto" }
-pallas-primitives = { version = "=0.30.1", path = "../pallas-primitives" }
-pallas-traverse = { version = "=0.30.1", path = "../pallas-traverse" }
+pallas-addresses = { version = "=0.30.1", path = "../pallas-addresses", package = "griffin-pallas-addresses" }
+pallas-codec = { version = "=0.30.1", path = "../pallas-codec", package = "griffin-pallas-codec" }
+pallas-crypto = { version = "=0.30.1", path = "../pallas-crypto", package = "griffin-pallas-crypto" }
+pallas-primitives = { version = "=0.30.1", path = "../pallas-primitives", package = "griffin-pallas-primitives" }
+pallas-traverse = { version = "=0.30.1", path = "../pallas-traverse", package = "griffin-pallas-traverse" }
 # rand = "0.8"
 # hex = "0.4"
 hex = { version="0.4.3", default-features = false }

@@ -1,6 +1,6 @@
 [package]
-name = "pallas-codec"
-description = "Pallas common CBOR encoding interface and utilities"
+name = "griffin-pallas-codec"
+description = "Pallas common CBOR encoding interface and utilities (no-std version)"
 version = "0.30.1"
 edition = "2021"
 repository = "https://github.com/txpipe/pallas"

@@ -1,6 +1,6 @@
 [package]
-name = "pallas-traverse"
-description = "Utilities to traverse over multi-era block data"
+name = "griffin-pallas-traverse"
+description = "Utilities to traverse over multi-era block data (no-std version)"
 version = "0.30.1"
 edition = "2021"
 repository = "https://github.com/txpipe/pallas"
@@ -11,10 +11,10 @@ readme = "README.md"
 authors = ["Santiago Carmuega <santiago@carmuega.me>"]
 
 [dependencies]
-pallas-primitives = { version = "=0.30.1", path = "../pallas-primitives" }
-pallas-addresses = { version = "=0.30.1", path = "../pallas-addresses" }
-pallas-crypto = { version = "=0.30.1", path = "../pallas-crypto" }
-pallas-codec = { version = "=0.30.1", path = "../pallas-codec" }
+pallas-primitives = { version = "=0.30.1", path = "../pallas-primitives", package = "griffin-pallas-primitives" }
+pallas-addresses = { version = "=0.30.1", path = "../pallas-addresses", package = "griffin-pallas-addresses" }
+pallas-crypto = { version = "=0.30.1", path = "../pallas-crypto", package = "griffin-pallas-crypto" }
+pallas-codec = { version = "=0.30.1", path = "../pallas-codec", package = "griffin-pallas-codec" }
 # hex = "0.4.3"
 hex = { version="0.4.3", default-features = false }
 # thiserror = "1.0.31"
