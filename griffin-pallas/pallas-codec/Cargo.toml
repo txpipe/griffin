@@ -18,20 +18,13 @@ authors = [
 default = []
 
 [dependencies]
-# PARA METER EN TUXEDO-CORE:
-# hex = "0.4.3"
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
-# minicbor = { version = "0.20", features = ["std", "half", "derive"] }
-# derive SI O SI, alloc SI O SI, std NO Y NO, half NO SE (HALF PRECISION FLOATING POINT?)
 minicbor = { version = "0.20", features = ["alloc", "half", "derive"] }
 num-bigint = { version = "0.4.4", optional = true, default-features = false }
-# PARA METER EN TUXEDO-CORE:
-# serde = { version = "1.0.143", features = ["derive"] }
 serde = { version = "1.0.143", default-features = false, features = [
   "derive",
   "alloc",
 ] }
-# thiserror = "1.0.39"
 thiserror-no-std = "2.0.2"
 
 [dev-dependencies]
