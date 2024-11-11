@@ -11,7 +11,7 @@ repository = "https://github.com/txpipe/griffin"
 edition = "2021"
 
 [workspace]
-members = ["node", "runtime", "griffin-core", "wallet"]
+members = ["node", "runtime", "griffin-core", "wallet", "griffin-pallas/*"]
 resolver = "2"
 
 [workspace.dependencies]
