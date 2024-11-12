@@ -1,5 +1,5 @@
 use parity_scale_codec::{Decode, Encode};
-use pallas_codec::minicbor::{
+use griffin_pallas::pallas_codec::minicbor::{
     self, Encoder, Decoder,
     decode::Error as MiniDecError,
     encode::Error as MiniEncError,
@@ -20,8 +20,8 @@ use sp_runtime::{
 };
 use alloc::{vec::Vec, collections::BTreeMap, string::String};
 use core::{fmt, ops::Deref};
-use pallas_crypto::hash::Hash as PallasHash;
-use pallas_applying::utils::BabbageError;
+use griffin_pallas::pallas_crypto::hash::Hash as PallasHash;
+use griffin_pallas::pallas_applying::utils::BabbageError;
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 
 pub type Coin = u64;
@@ -405,7 +405,7 @@ pub fn address_from_hex(hex: &str) -> Address {
 }
 
 pub fn address_from_pk(pk: &Public) -> Address {
-    use pallas_crypto::hash::{Hasher as PallasHasher};
+    use griffin_pallas::pallas_crypto::hash::{Hasher as PallasHasher};
     
     let mut keyhash_with_header: Vec<u8> = alloc::vec![0x61];
     let mut keyhash: Vec<u8>  = PallasHasher::<224>::hash(&pk.0).to_vec();

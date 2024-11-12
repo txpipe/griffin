@@ -11,8 +11,8 @@ repository = "https://github.com/txpipe/griffin"
 edition = "2021"
 
 [workspace]
-members = [ #"node", "runtime", "griffin-core", "wallet",
-"griffin-pallas"]
+members = [ # "node", "runtime", "wallet",
+"griffin-core", "griffin-pallas"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -83,8 +83,4 @@ sc-chain-spec = { version = "37.0.0" }
 sc-keystore = "33.0.0"
 sp-keystore = "0.40.0"
 
-# pallas-codec = { version = "=0.30.1", path = "griffin-pallas/pallas-codec", package = "griffin-pallas-codec" }
-# pallas-crypto = { version = "=0.30.1", path = "griffin-pallas/pallas-crypto", package = "griffin-pallas-crypto" }
-# pallas-primitives = { version = "=0.30.1", path = "griffin-pallas/pallas-primitives", package = "griffin-pallas-primitives" }
-# pallas-applying = { version = "=0.30.1", path = "griffin-pallas/pallas-applying", package = "griffin-pallas-applying" }
-# pallas-traverse = { version = "=0.30.1", path = "griffin-pallas/pallas-traverse", package = "griffin-pallas-traverse" }
+griffin-pallas = { path = "./griffin-pallas" }

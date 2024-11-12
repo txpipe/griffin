@@ -33,11 +33,7 @@ sc-executor = { optional = true, workspace = true }
 sp-blockchain = { optional = true, workspace = true }
 sp-genesis-builder = { default-features = false, workspace = true }
 
-pallas-primitives.workspace = true
-pallas-codec.workspace = true
-pallas-crypto.workspace = true
-pallas-applying.workspace = true
-pallas-traverse.workspace = true
+griffin-pallas.workspace = true
 hex.workspace = true
 hashbrown = { version = "0.14" }
 
