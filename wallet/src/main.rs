@@ -9,7 +9,7 @@ use sp_core::H256;
 use std::path::PathBuf;
 use griffin_core::{
     types::{
-    Input, Address,
+    Input, Address, Value
     },
     pallas_crypto::hash::{Hasher as PallasHasher},
     h224::H224,
@@ -102,9 +102,9 @@ async fn main() -> anyhow::Result<()> {
 
     // Dispatch to proper subcommand
     match cli.command {
-        Some(Command::MintCoins(args)) => {
-            money::mint_coins(&client, args).await
-        }
+        // Some(Command::MintCoins(args)) => {
+        //     money::mint_coins(&client, args).await
+        // }
         Some(Command::VerifyCoin { input }) => {
             println!("Details of coin {}:", hex::encode(input.encode()));
 
@@ -161,14 +161,14 @@ async fn main() -> anyhow::Result<()> {
         }
         Some(Command::ShowBalance) => {
             println!("Balance Summary");
-            let mut total = 0;
+            let mut total = Value::Coin(0);
             let balances = sync::get_balances(&db)?;
             for (account, balance) in balances {
-                total += balance;
-                println!("{account}: {balance}");
+                total += balance.clone();
+                println!("{account}: {balance:?}");
             }
             println!("--------------------");
-            println!("total      : {total}");
+            println!("total      : {:?}", total.normalize());
 
             Ok(())
         }

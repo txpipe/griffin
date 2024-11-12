@@ -24,7 +24,7 @@ use sp_runtime::{
 };
 use griffin_core::{
     types::{
-        Transaction, Coin, Value, Input, OpaqueBlock, Address, Datum, FakeDatum
+        Transaction, Value, Input, OpaqueBlock, Address, Datum, FakeDatum
     },
     pallas_codec::minicbor::decode::{Decode as MiniDecode, Decoder as MiniDecoder},
 };
@@ -393,8 +393,8 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
 
 /// Iterate the entire unspent set summing the values of the coins
 /// on a per-address basis.
-pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (Address, Coin)>> {
-    let mut balances = std::collections::HashMap::<Address, Coin>::new();
+pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (Address, Value)>> {
+    let mut balances = std::collections::HashMap::<Address, Value>::new();
 
     let wallet_unspent_tree = db.open_tree(UNSPENT)?;
 
@@ -402,15 +402,11 @@ pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (Addr
         let (_ , owner_amount_datum_ivec) = raw_data?;
         let (owner, amount, _) =
             <(Address, Value, Option<Datum>)>::decode(&mut &owner_amount_datum_ivec[..])?;
-        let coins: Coin = match amount {
-            Value::Coin(c) => c,
-            _ => 0
-        };
         
         balances
             .entry(owner)
-            .and_modify(|old| *old += coins)
-            .or_insert(coins);
+            .and_modify(|old| *old += amount.clone())
+            .or_insert(amount);
     }
 
     Ok(balances.into_iter())

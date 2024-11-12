@@ -61,11 +61,11 @@ pub struct Cli {
 /// The tasks supported by the wallet
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    /// Mint coins, optionally amount and publicKey of owner can be passed.
-    /// If amount is not passed, 100 coins are minted.
-    /// If publickKey of owner is not passed, then by default SHAWN_PUB_KEY is used.
-    #[command(verbatim_doc_comment)]
-    MintCoins(MintCoinArgs),
+    // /// Mint coins, optionally amount and publicKey of owner can be passed.
+    // /// If amount is not passed, 100 coins are minted.
+    // /// If publickKey of owner is not passed, then by default SHAWN_PUB_KEY is used.
+    // #[command(verbatim_doc_comment)]
+    // MintCoins(MintCoinArgs),
 
     /// Verify that a particular coin exists.
     /// Show its value and owner from both chain storage and the local database.

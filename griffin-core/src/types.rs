@@ -593,18 +593,48 @@ impl Multiasset<Coin> {
             .iter()
             .all(|(_, v)| v.0.iter().all(|(_, c)| *c == 0))
     }
-}
 
+    pub fn normalize(&self) -> Self {
+        let mut res = self.clone();
+        for (pol, mut names) in res.clone().0.into_iter() {
+            if !names.0.is_empty() {
+                for (name, amount) in names.clone().0.into_iter() {
+                    if amount != 0 {
+                        names.0.remove(&name);
+                    }
+                };
+            } else {
+                res.0.remove(&pol);
+            }
+        }
+        res
+    }
+}
+    
 impl Value {
     pub fn is_null(&self) -> bool {
         use Value::*;
         match self {
             Coin(c) => *c == 0,
-            Multiasset(c,ma) => (*c == 0) & ma.is_null(),
+            Multiasset(c, ma) => (*c == 0) & ma.is_null(),
+        }
+    }
+
+    pub fn normalize(&self) -> Self {
+        use Value::*;
+        match self {
+            Multiasset(c, ma) => {
+                if ma.is_null() {
+                    Coin(*c)
+                } else {
+                    Multiasset(*c, ma.normalize())
+                }
+            },
+            Coin(c) => Coin(*c),
         }
     }
 }
-
+    
 impl From<String> for AssetName {
     fn from(string: String) -> Self {
         Self(string)
