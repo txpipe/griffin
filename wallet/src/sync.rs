@@ -15,7 +15,7 @@ use std::path::PathBuf;
 
 use crate::rpc;
 use anyhow::anyhow;
-use pallas_codec::minicbor::decode::{Decode as MiniDecode, Decoder as MiniDecoder};
+use griffin_pallas::pallas_codec::minicbor::decode::{Decode as MiniDecode, Decoder as MiniDecoder};
 use parity_scale_codec::{Decode, Encode};
 use sled::Db;
 use sp_core::H256;

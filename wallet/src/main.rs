@@ -11,7 +11,7 @@ use griffin_core::types::{
 use griffin_core::h224::H224;
 extern crate alloc;
 use alloc::{vec::Vec, string::String};
-use pallas_crypto::hash::{Hasher as PallasHasher};
+use griffin_pallas::pallas_crypto::hash::{Hasher as PallasHasher};
 use hex::FromHex;
 
 mod cli;

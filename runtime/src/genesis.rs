@@ -8,7 +8,7 @@ use super::{
 };
 use alloc::{ vec::Vec, vec };
 use griffin_core::types::{ FakeDatum, Datum, address_from_hex };
-use pallas_codec::minicbor::encode;
+use griffin_pallas::pallas_codec::minicbor::encode;
 
 /// A default seed phrase for signing inputs when none is provided
 /// Corresponds to the default pubkey.
