@@ -6,7 +6,7 @@
 //! transactions.
 //!
 //! However, only the [`SecretKeyExtended`] can be used for HD derivation
-//! (using [ed25519_bip32] or otherwise).
+//! (using `ed25519_bip32` or otherwise).
 
 use crate::pallas_crypto::memsec::Scrubbed as _;
 use cryptoxide::ed25519::{
@@ -25,7 +25,7 @@ pub struct SecretKey([u8; Self::SIZE]);
 /// Ed25519 Extended Secret Key
 ///
 /// unlike [`SecretKey`], an extended key can be derived see
-/// [`pallas_crypto::derivation`]
+/// `pallas_crypto::derivation`
 #[derive(Clone)]
 pub struct SecretKeyExtended([u8; Self::SIZE]);
 

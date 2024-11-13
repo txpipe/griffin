@@ -1,4 +1,8 @@
-// Brought from pallas-applying/tests/
+//! Suplementary functions to perform ledger checks on Griffin transactions
+//! by using tools available in Pallas.
+//!
+//! Some of these functions were brought directly from Pallas since they belong
+//! to its test suit.
 use crate::pallas_applying::{
     UTxOs,
     utils::{ValidationError},
@@ -30,6 +34,7 @@ use crate::pallas_codec::utils::{Bytes, CborWrap};
 pub const MIN_COIN_PER_OUTPUT: crate::types::Coin = 10;
 
 impl From<ValidationError> for UTxOError {
+    /// Translation of Cardano's Babbage era errors to Griffin's.
     fn from(err: ValidationError) -> UTxOError {
         match err {
             ValidationError::Babbage(err) => UTxOError::Babbage(err),

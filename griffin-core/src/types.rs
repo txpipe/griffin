@@ -1,3 +1,4 @@
+//! Types used to construct Griffin transactions.
 use parity_scale_codec::{Decode, Encode};
 use crate::pallas_codec::minicbor::{
     self, Encoder, Decoder,
@@ -103,7 +104,11 @@ pub type Mint = Multiasset<i64>;
 /// Port of Cardano `Value` using `BTreeMap`-based Multiassets
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub enum Value {
+    /// An amount of coins. `Coin(c)` is equivalent to
+    /// `Multiasset(c, EncapBTree::new())` in value.
     Coin(Coin),
+
+    /// A value consisting of a `Coin` amount and a map of tokens.
     Multiasset(Coin, Multiasset<Coin>),
 }
 
@@ -115,6 +120,7 @@ pub struct VKeyWitness {
     pub signature: Vec<u8>,
 }
 
+/// CBOR encoded Plutus Script.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct PlutusScript(pub Vec<u8>);
 
@@ -124,7 +130,9 @@ pub struct ExUnits {
     pub steps: u64,
 }
 
-/// Cardano-like redeemer tag. We are not using the `Cert` nor the `Rewards`
+/// Cardano-like redeemer tag.
+///
+/// We are not using the `Cert` nor the `Rewards`
 /// variants.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub enum RedeemerTag {
@@ -163,6 +171,7 @@ impl From<Vec<VKeyWitness>> for WitnessSet {
     }
 }
 
+/// Griffin transaction type. It is divided in a body and a witness set.
 #[derive(Serialize, Deserialize, Default, Debug, PartialEq, Eq, Clone, TypeInfo)]
 pub struct Transaction {
     pub transaction_body: TransactionBody,
@@ -216,6 +225,7 @@ impl Extrinsic for Transaction {
     }
 }
 
+/// Reasons to reject a transaction. 
 #[derive(Debug)]
 pub enum UTxOError {
     /// A Babbage era validation error returned by Pallas.
@@ -303,7 +313,7 @@ impl<C> MiniEncode<C> for Datum {
     }
 }
 
-/// Fake data to be decoded from the Datum.
+/// Sample data type to used to demonstrate {en,de}coding from the Datum.
 #[derive(Debug, PartialEq, Eq, Clone, MiniEncode, MiniDecode)]
 pub enum FakeDatum {
     #[n(0)]
@@ -453,10 +463,10 @@ impl From<(Coin, PolicyId, AssetName, Coin)> for Value {
     }
 }
 
-/// Addition of `Value`s
 impl<K: Ord + Clone, V: Add<Output = V> + Clone> Add for EncapBTree::<K, V> {
     type Output = Self;
     
+    /// Coordinate-wise addition of `EncapBTree`s
     fn add(self, other: Self) -> Self {
         let mut res = EncapBTree::<K, V>::new();
 
@@ -473,6 +483,7 @@ impl<K: Ord + Clone, V: Add<Output = V> + Clone> Add for EncapBTree::<K, V> {
 impl Add for Value {
     type Output = Self;
     
+    /// Coordinate-wise addition of `Value`s
     fn add(self, other: Self) -> Self {
         use Value::*;
         
@@ -495,10 +506,10 @@ impl AddAssign for Value {
     }
 }
 
-/// Subtraction of Values
 impl<K: Ord + Clone, V: Sub<Output = V> + Clone> Sub for EncapBTree::<K, V> {
     type Output = Self;
     
+    /// Coordinate-wise subtraction of `EncapBTree`s
     fn sub(self, other: Self) -> Self {
         let mut res = EncapBTree::<K, V>::new();
 
@@ -515,6 +526,7 @@ impl<K: Ord + Clone, V: Sub<Output = V> + Clone> Sub for EncapBTree::<K, V> {
 impl Sub for Value {
     type Output = Self;
     
+    /// Coordinate-wise subtraction of `Value`s
     fn sub(self, other: Self) -> Self {
         use Value::*;
         
@@ -588,23 +600,59 @@ pub fn value_leq(
 }
 
 impl Multiasset<Coin> {
+    /// Decides if (each amount in) a [Multiasset] is null.
     pub fn is_null(&self) -> bool {
         self.0
             .iter()
             .all(|(_, v)| v.0.iter().all(|(_, c)| *c == 0))
     }
-}
 
+    /// Puts a [Multiasset] in normal form, eliminating null amounts.
+    pub fn normalize(&self) -> Self {
+        let mut res = self.clone();
+        for (pol, mut names) in res.clone().0.into_iter() {
+            if !names.0.is_empty() {
+                for (name, amount) in names.clone().0.into_iter() {
+                    if amount != 0 {
+                        names.0.remove(&name);
+                    }
+                };
+            } else {
+                res.0.remove(&pol);
+            }
+        }
+        res
+    }
+}
+    
 impl Value {
+    /// Decides if (each amount in) a [Value] is null.
     pub fn is_null(&self) -> bool {
         use Value::*;
         match self {
             Coin(c) => *c == 0,
-            Multiasset(c,ma) => (*c == 0) & ma.is_null(),
+            Multiasset(c, ma) => (*c == 0) & ma.is_null(),
+        }
+    }
+
+    /// Puts a [Value] in normal form, eliminating null amounts.
+    /// If it is of the form `Multiasset(c, ma)` with `ma` null, it is reduced
+    /// to `Coin(c)`.
+    pub fn normalize(&self) -> Self {
+        use Value::*;
+        match self {
+            Multiasset(c, ma) => {
+                if ma.is_null() {
+                    Coin(*c)
+                } else {
+                    Multiasset(*c, ma.normalize())
+                }
+            },
+            Coin(c) => Coin(*c),
         }
     }
 }
-
+    
 impl From<String> for AssetName {
     fn from(string: String) -> Self {
         Self(string)

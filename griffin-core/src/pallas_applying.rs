@@ -1,3 +1,5 @@
+//! (Brought from the Pallas suite.)
+//!
 //! Logic for validating and applying new blocks and txs to the chain state
 
 pub mod alonzo;

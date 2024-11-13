@@ -1,3 +1,5 @@
+//! (Brought from the Pallas suite.)
+//!
 /// Flat encoding/decoding for Plutus Core
 pub mod flat;
 

@@ -1,3 +1,5 @@
+//! (Brought from the Pallas suite.)
+//!
 //! Interact with Cardano addresses of any type
 //!
 //! This module contains utilities to decode / encode Cardano addresses from /
