@@ -1,4 +1,4 @@
-//! CLI wallet to demostrate minting and spending transactions.
+//! CLI wallet to demostrate spending and minting transactions.
 
 extern crate alloc;
 
@@ -123,9 +123,6 @@ async fn main() -> anyhow::Result<()> {
             }
 
             Ok(())
-        }
-        Some(Command::SpendCoins(args)) => {
-            money::spend_coins(&db, &client, &keystore, args).await
         }
         Some(cli::Command::SpendValue(args)) => {
             money::spend_value(&db, &client, &keystore, args).await

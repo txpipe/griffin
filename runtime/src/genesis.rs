@@ -23,16 +23,12 @@ const GENESIS_DEFAULT_JSON: &str =  r#"
 [
   {
     "address": "6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4",
-    "coin": 314000000,
+    "coin": 1000000,
     "value": [
                {
                  "policy": "0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005",
                  "assets": [ ["tokenA", 271000000], ["tokenB", 1123581321] ]
                },
-               {
-                 "policy": "1111111111111111111111111114261fb7e7b0d988215da2f2de2005",
-                 "assets": [ ["tokenA", 271000000], ["tokenB", 1123581321] ]
-               }
              ],
     "datum": null
   },

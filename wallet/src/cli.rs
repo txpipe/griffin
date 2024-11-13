@@ -69,18 +69,14 @@ pub enum Command {
     // #[command(verbatim_doc_comment)]
     // MintCoins(MintCoinArgs),
 
-    /// Verify that a particular coin exists.
-    /// Show its value and owner from both chain storage and the local database.
+    /// Verify that a particular output ref exists.
+    /// Show its value and owner address from both chain storage and the local database.
     #[command(verbatim_doc_comment)]
     VerifyCoin {
         /// A hex-encoded output reference
         #[arg(value_parser = input_from_string)]
         input: Input,
     },
-
-    /// Spend some coins to a given address. It produces a separate output for each given amount.
-    #[command(verbatim_doc_comment)]
-    SpendCoins(SpendArgs),
 
     /// Send `Value`s to a given address.
     #[command(verbatim_doc_comment)]
@@ -134,28 +130,6 @@ pub struct MintCoinArgs {
     /// 28-byte hash-address of the recipient.
     #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS)]
     pub recipient: Address,
-}
-
-#[derive(Debug, Args)]
-pub struct SpendArgs {
-    /// An input to be consumed by this transaction. This argument may be specified multiple times.
-    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "OUTPUT_REF")]
-    pub input: Vec<Input>,
-
-    /// 32-byte H256 public key of an input owner.
-    /// Their pk/sk pair must be registered in the wallet's keystore.
-    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY, value_name = "PUBLIC_KEY")]
-    pub witness: Vec<H256>,
-
-    /// 29-byte hash-address of the recipient.
-    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS, value_name = "ADDRESS")]
-    pub recipient: Address,
-
-    /// An output amount consisting of `Coin`s. For the transaction to be
-    /// accepted by the node, the sum of the outputs must equal the sum of the
-    /// inputs.
-    #[arg(long, short, verbatim_doc_comment, action = Append)]
-    pub amount: Vec<Coin>,
 }
 
 #[derive(Debug, Args)]
