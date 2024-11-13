@@ -406,7 +406,8 @@ pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (Addr
         balances
             .entry(owner)
             .and_modify(|old| *old += amount.clone())
-            .or_insert(amount);
+            .and_modify(|old| *old = old.normalize())
+            .or_insert(amount.normalize());
     }
 
     Ok(balances.into_iter())
