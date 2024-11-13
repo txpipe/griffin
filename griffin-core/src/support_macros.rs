@@ -1,6 +1,6 @@
 //! These macros were copied from `frame-support`.
 //!
-//! See discussion at [https://github.com/paritytech/substrate/issues/13456]
+//! See discussion at <https://github.com/paritytech/substrate/issues/13456>
 //! to explain the repetition.
 
 /// Return Err of the expression: `return Err($expression);`.
