@@ -32,6 +32,7 @@ use sp_core::ed25519::Public;
 use std::vec;
 
 #[allow(dead_code)]
+#[doc(hidden)]
 /// Create and send a transaction that mints the coins on the network
 pub async fn mint_coins(
     client: &HttpClient,

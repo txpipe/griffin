@@ -20,6 +20,8 @@ use crate::{
     H256,
 };
 
+
+#[doc(hidden)]
 /// The default number of coins to be minted.
 pub const DEFAULT_MINT_VALUE: &str = "100";
 
@@ -118,6 +120,7 @@ pub enum Command {
     ShowAllOutputs,
 }
 
+#[doc(hidden)]
 #[derive(Debug, Args)]
 pub struct MintCoinArgs {
     /// An input to be consumed by this transaction.

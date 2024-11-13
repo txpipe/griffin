@@ -5,11 +5,12 @@
 //!
 //! ## Scheme
 //!
-//! There are 4 tables in the database
-//! BlockHashes     block_number:u32 => block_hash:H256
-//! Blocks          block_hash:H256 => block:Block
-//! UnspentOutputs  input => (owner_pubkey, amount, datum_option)
-//! SpentOutputs    input => (owner_pubkey, amount, datum_option)
+//! There are 4 tables in the database:
+//!
+//! - BlockHashes     `block_number:u32` => `block_hash:H256`
+//! - Blocks          `block_hash:H256` => `block:Block`
+//! - UnspentOutputs  `input` => `(owner_pubkey, amount, datum_option)`
+//! - SpentOutputs    `input` => `(owner_pubkey, amount, datum_option)`
 
 use std::path::PathBuf;
 
