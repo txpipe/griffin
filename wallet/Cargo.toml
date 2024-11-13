@@ -9,7 +9,6 @@ repository.workspace = true
 edition.workspace = true
 
 [dependencies]
-runtime = { package = "griffin-solochain-runtime", path = "../runtime" }
 griffin-core = { path = "../griffin-core" }
 
 clap = { features = ["derive"], workspace = true }

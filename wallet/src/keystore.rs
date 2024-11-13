@@ -8,10 +8,12 @@ use sp_core::{
     ed25519::{Pair, Public, Signature},
     H256,
 };
-use griffin_core::types::{ address_from_pk };
+use griffin_core::{
+    types::{ address_from_pk },
+    genesis::SHAWN_PHRASE,
+};
 use sp_keystore::Keystore;
 use std::path::Path;
-use runtime::genesis::SHAWN_PHRASE;
 
 /// A KeyTypeId to use in the keystore for Griffin transactions.
 const KEY_TYPE: KeyTypeId = KeyTypeId(*b"_gri");

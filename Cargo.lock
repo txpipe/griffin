@@ -10127,7 +10127,6 @@ dependencies = [
  "env_logger 0.11.5",
  "futures",
  "griffin-core",
- "griffin-solochain-runtime",
  "hex",
  "hex-literal",
  "jsonrpsee",

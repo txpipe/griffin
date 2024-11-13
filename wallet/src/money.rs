@@ -26,8 +26,8 @@ use griffin_core::{
     pallas_primitives::babbage::{
     Tx as PallasTransaction, MintedTx,
     },
+    genesis::SHAWN_ADDRESS,
 };
-use runtime::genesis::SHAWN_ADDRESS;
 use sp_core::ed25519::Public;
 use std::vec;
 

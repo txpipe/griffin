@@ -3,8 +3,13 @@
 use std::path::PathBuf;
 
 use clap::{ArgAction::Append, Args, Parser, Subcommand};
-use griffin_core::types::{
-    Coin, Input, Address, PolicyId,
+use griffin_core::{
+    types::{
+        Coin, Input, Address, PolicyId,
+    },
+    genesis::{
+        SHAWN_PUB_KEY, SHAWN_ADDRESS,
+    },
 };
 use crate::{
     input_from_string,
@@ -13,10 +18,6 @@ use crate::{
     h256_from_string,
     h224_from_string,
     H256,
-};
-use runtime::genesis::{
-    SHAWN_PUB_KEY,
-    SHAWN_ADDRESS,
 };
 
 /// The default number of coins to be minted.

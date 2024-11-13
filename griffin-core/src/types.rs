@@ -365,6 +365,26 @@ impl From<(Address, Value, Datum)> for Output {
     }
 }
 
+impl From<(Address, Coin, Option<Datum>)> for Output {
+    fn from((address, coin, datum_option): (Address, Coin, Option<Datum>)) -> Self {
+        Self { address, value: Value::Coin(coin), datum_option }
+    }
+}
+
+impl From<(Address, Coin, Multiasset<Coin>, Option<Datum>)> for Output {
+    fn from(
+        (address, coin, ma, datum_option): (Address, Coin, Multiasset<Coin>, Option<Datum>))
+        -> Self {
+        Self { address, value: Value::Multiasset(coin,ma), datum_option }
+    }
+}
+
+impl From<(Address, Value, Option<Datum>)> for Output {
+    fn from((address, value, datum_option): (Address, Value, Option<Datum>)) -> Self {
+        Self { address, value, datum_option }
+    }
+}
+
 impl From<Vec<u8>> for Datum {
     fn from(bytes: Vec<u8>) -> Self {
         Self(bytes)
