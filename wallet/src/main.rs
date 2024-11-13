@@ -1,17 +1,20 @@
 //! CLI wallet to demostrate minting and spending transactions.
 
+extern crate alloc;
+
 use clap::Parser;
 use jsonrpsee::http_client::HttpClientBuilder;
 use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 use std::path::PathBuf;
-use griffin_core::types::{
+use griffin_core::{
+    types::{
     Input, Address,
+    },
+    pallas_crypto::hash::{Hasher as PallasHasher},
+    h224::H224,
 };
-use griffin_core::h224::H224;
-extern crate alloc;
 use alloc::{vec::Vec, string::String};
-use griffin_pallas::pallas_crypto::hash::{Hasher as PallasHasher};
 use hex::FromHex;
 
 mod cli;

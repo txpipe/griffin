@@ -15,7 +15,6 @@ use std::path::PathBuf;
 
 use crate::rpc;
 use anyhow::anyhow;
-use griffin_pallas::pallas_codec::minicbor::decode::{Decode as MiniDecode, Decoder as MiniDecoder};
 use parity_scale_codec::{Decode, Encode};
 use sled::Db;
 use sp_core::H256;
@@ -23,8 +22,11 @@ use sp_runtime::{
     traits::{BlakeTwo256, Hash},
     OpaqueExtrinsic,
 };
-use griffin_core::types::{
-    Transaction, Coin, Value, Input, OpaqueBlock, Address, Datum, FakeDatum
+use griffin_core::{
+    types::{
+        Transaction, Coin, Value, Input, OpaqueBlock, Address, Datum, FakeDatum
+    },
+    pallas_codec::minicbor::decode::{Decode as MiniDecode, Decoder as MiniDecoder},
 };
 use jsonrpsee::http_client::HttpClient;
 

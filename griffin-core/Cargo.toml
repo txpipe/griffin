@@ -46,7 +46,7 @@ schemars = { version = ">=0.8.12", default-features = true, optional = true }
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 minicbor = { version = "0.20", features = ["alloc", "half", "derive"] }
 num-bigint = { version = "0.4.4", optional = true, default-features = false }
-serde = { version = "1.0.143", default-features = false, optional = true, features = [
+serde = { version = "1.0.143", default-features = false, features = [
   "derive",
   "alloc",
 ] }
@@ -93,4 +93,4 @@ rand = ["fixed-hash/rand"]
 json-schema = ["dep:schemars"]
 fp-conversion = ["std"]
 unstable = []
-json = ["serde", "serde_json"]
+json = ["serde_json"]
