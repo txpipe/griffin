@@ -2,7 +2,7 @@
 
 use crate::{types::*, H224};
 use sp_core::H256;
-use griffin_pallas::pallas_codec::{
+use crate::pallas_codec::{
     minicbor::{
         encode, Decode, Decoder
     },
@@ -10,8 +10,8 @@ use griffin_pallas::pallas_codec::{
         Bytes, Nullable, KeyValuePairs, // CborWrap, KeepRaw, MaybeIndefArray,
     }
 };
-use griffin_pallas::pallas_crypto::hash::Hash as PallasHash;
-use griffin_pallas::pallas_primitives::babbage::{
+use crate::pallas_crypto::hash::Hash as PallasHash;
+use crate::pallas_primitives::babbage::{
     AssetName as PallasAssetName,
     DatumOption,
     ExUnits as PallasExUnits,

@@ -9,9 +9,15 @@ extern crate alloc;
 
 mod executive;
 
+pub mod pallas_codec;
+pub mod pallas_crypto;
+pub mod pallas_addresses;
+pub mod pallas_primitives;
+pub mod pallas_traverse;
+pub mod pallas_applying;
 pub mod support_macros;
-pub mod genesis;
 pub mod types;
+pub mod genesis;
 pub mod pallas_interface;
 pub mod checks_interface;
 pub mod h224;

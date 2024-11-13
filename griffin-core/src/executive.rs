@@ -38,7 +38,7 @@ use alloc::{
     vec::Vec,
     string::String,
 };
-use griffin_pallas::pallas_applying::{
+use crate::pallas_applying::{
     UTxOs,
     babbage::{
         check_ins_not_empty,
@@ -48,11 +48,11 @@ use griffin_pallas::pallas_applying::{
     },
     utils::BabbageError::*,
 };
-use griffin_pallas::pallas_primitives::babbage::{
+use crate::pallas_primitives::babbage::{
     Tx as PallasTransaction, MintedScriptRef, MintedDatumOption, MintedTx,
     Value as PallasValue, MintedTransactionBody,
 };
-use griffin_pallas::pallas_codec::utils::CborWrap;
+use crate::pallas_codec::utils::CborWrap;
 
 type OutputInfoList<'a> =  Vec<(
     String, // address in string format

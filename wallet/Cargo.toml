@@ -29,6 +29,5 @@ futures = "0.3"
 hex.workspace = true
 sled = "0.34.7"
 tokio = "1.25.0"
-griffin-pallas.workspace = true
 sc-keystore.workspace = true
 sp-keystore.workspace = true
