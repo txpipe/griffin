@@ -1,7 +1,5 @@
-//! This crate is the core of the Griffin runtime framework.
-//!
-//! All Griffin runtimes will use this machinery and plug in their specific
-//! Griffin piece(s)
+//! This crate contains all the fundamental building blocks for the Griffin
+//! ledger, runtime, and wallet.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 

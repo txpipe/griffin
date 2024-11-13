@@ -1,3 +1,4 @@
+//! Types used to construct Griffin transactions.
 use parity_scale_codec::{Decode, Encode};
 use crate::pallas_codec::minicbor::{
     self, Encoder, Decoder,
@@ -453,10 +454,10 @@ impl From<(Coin, PolicyId, AssetName, Coin)> for Value {
     }
 }
 
-/// Addition of `Value`s
 impl<K: Ord + Clone, V: Add<Output = V> + Clone> Add for EncapBTree::<K, V> {
     type Output = Self;
     
+    /// Coordinate-wise addition of `EncapBTree`s
     fn add(self, other: Self) -> Self {
         let mut res = EncapBTree::<K, V>::new();
 
@@ -473,6 +474,7 @@ impl<K: Ord + Clone, V: Add<Output = V> + Clone> Add for EncapBTree::<K, V> {
 impl Add for Value {
     type Output = Self;
     
+    /// Coordinate-wise addition of `Values`s
     fn add(self, other: Self) -> Self {
         use Value::*;
         
@@ -495,10 +497,10 @@ impl AddAssign for Value {
     }
 }
 
-/// Subtraction of Values
 impl<K: Ord + Clone, V: Sub<Output = V> + Clone> Sub for EncapBTree::<K, V> {
     type Output = Self;
     
+    /// Coordinate-wise subtraction of `EncapBTree`s
     fn sub(self, other: Self) -> Self {
         let mut res = EncapBTree::<K, V>::new();
 
@@ -515,6 +517,7 @@ impl<K: Ord + Clone, V: Sub<Output = V> + Clone> Sub for EncapBTree::<K, V> {
 impl Sub for Value {
     type Output = Self;
     
+    /// Coordinate-wise subtraction of `Value`s
     fn sub(self, other: Self) -> Self {
         use Value::*;
         
@@ -588,12 +591,14 @@ pub fn value_leq(
 }
 
 impl Multiasset<Coin> {
+    /// Decides if (each amount in) a [Multiasset] is null.
     pub fn is_null(&self) -> bool {
         self.0
             .iter()
             .all(|(_, v)| v.0.iter().all(|(_, c)| *c == 0))
     }
 
+    /// Puts a [Multiasset] in normal form, eliminating null amounts.
     pub fn normalize(&self) -> Self {
         let mut res = self.clone();
         for (pol, mut names) in res.clone().0.into_iter() {
@@ -612,6 +617,7 @@ impl Multiasset<Coin> {
 }
     
 impl Value {
+    /// Decides if (each amount in) a [Value] is null.
     pub fn is_null(&self) -> bool {
         use Value::*;
         match self {
@@ -620,6 +626,9 @@ impl Value {
         }
     }
 
+    /// Puts a [Value] in normal form, eliminating null amounts.
+    /// If it is of the form `Multiasset(c, ma)` with `ma` null, it is reduced
+    /// to `Coin(c)`.
     pub fn normalize(&self) -> Self {
         use Value::*;
         match self {

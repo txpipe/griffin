@@ -1,5 +1,4 @@
-//! Interface between Griffin and Pallas Transaction type.
-
+//! Interface between Griffin and Pallas Transaction types.
 use crate::{types::*, H224};
 use sp_core::H256;
 use crate::pallas_codec::{
