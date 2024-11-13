@@ -20,6 +20,7 @@ use crate::{
         mk_utxo_for_babbage_tx,
         babbage_tx_to_cbor,
         babbage_minted_tx_from_cbor,
+        check_min_coin,
     },
 };
 use log::debug;
@@ -37,7 +38,7 @@ use alloc::{
     vec::Vec,
     string::String,
 };
-use pallas_applying::{
+use crate::pallas_applying::{
     UTxOs,
     babbage::{
         check_ins_not_empty,
@@ -47,11 +48,11 @@ use pallas_applying::{
     },
     utils::BabbageError::*,
 };
-use pallas_primitives::babbage::{
+use crate::pallas_primitives::babbage::{
     Tx as PallasTransaction, MintedScriptRef, MintedDatumOption, MintedTx,
     Value as PallasValue, MintedTransactionBody,
 };
-use pallas_codec::utils::CborWrap;
+use crate::pallas_codec::utils::CborWrap;
 
 type OutputInfoList<'a> =  Vec<(
     String, // address in string format
@@ -91,7 +92,8 @@ where
         // check_all_ins_in_utxos(tx_body, utxos)?;
         check_preservation_of_value(tx_body, utxos)?;
         check_witness_set(mtx, utxos)?;
-        
+        check_min_coin(tx_body)?;
+
         Ok(())
     }
     
@@ -429,3 +431,4 @@ where
         r
     }
 }
+    

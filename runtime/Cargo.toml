@@ -37,9 +37,6 @@ sp-application-crypto = { default-features = false, workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true }
 hex.workspace = true
-pallas-codec.workspace = true
-pallas-crypto.workspace = true
-pallas-primitives.workspace = true
 
 [build-dependencies]
 substrate-wasm-builder = { optional = true, workspace = true, default-features = true }

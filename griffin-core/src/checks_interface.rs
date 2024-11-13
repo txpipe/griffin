@@ -1,11 +1,15 @@
 // Brought from pallas-applying/tests/
-use pallas_applying::{
+use crate::pallas_applying::{
     UTxOs,
     utils::{ValidationError},
 };
-use crate::types::UTxOError::{self, *};
-use pallas_codec::minicbor::encode;
-use pallas_primitives::{
+use crate::types::{
+    UTxOError::{self, *},
+    DispatchResult,
+    value_leq,
+};
+use crate::pallas_codec::minicbor::encode;
+use crate::pallas_primitives::{
     alonzo::Value,
     babbage::{
         MintedDatumOption, MintedPostAlonzoTransactionOutput, MintedScriptRef,
@@ -13,14 +17,17 @@ use pallas_primitives::{
         PseudoTransactionOutput, Tx as BabbageTx,
     },
 };
-use pallas_traverse::{MultiEraInput, MultiEraOutput};
+use crate::pallas_traverse::{MultiEraInput, MultiEraOutput};
 use alloc::{
     borrow::Cow, vec::Vec,
     string::String,
     boxed::Box,
 };
 use core::iter::zip;
-use pallas_codec::utils::{Bytes, CborWrap};
+use crate::pallas_codec::utils::{Bytes, CborWrap};
+
+/// Every output must contain this many `Coin`s.
+pub const MIN_COIN_PER_OUTPUT: crate::types::Coin = 10;
 
 impl From<ValidationError> for UTxOError {
     fn from(err: ValidationError) -> UTxOError {
@@ -39,7 +46,7 @@ pub fn babbage_tx_to_cbor(tx: &BabbageTx) -> Vec<u8> {
 }
 
 pub fn babbage_minted_tx_from_cbor(tx_cbor: &[u8]) -> BabbageMintedTx<'_> {
-    pallas_codec::minicbor::decode::<BabbageMintedTx>(&tx_cbor[..]).unwrap()
+    crate::pallas_codec::minicbor::decode::<BabbageMintedTx>(&tx_cbor[..]).unwrap()
 }
 
 pub fn mk_utxo_for_babbage_tx<'a>(
@@ -71,4 +78,25 @@ pub fn mk_utxo_for_babbage_tx<'a>(
     }
 
     utxos
+}
+
+pub fn check_min_coin(tx_body: &MintedTransactionBody) -> DispatchResult {
+    use crate::pallas_applying::utils::BabbageError::MinLovelaceUnreached;
+
+    let min_reached: bool = tx_body.outputs.iter().all(
+        |out| value_leq(
+            &crate::types::Value::Coin(MIN_COIN_PER_OUTPUT),
+            &<_>::from(
+                match out {
+                    PseudoTransactionOutput::PostAlonzo(pos) => pos.value.clone(),
+                    _ => return false, // Legacy outputs should not be here!
+                }
+            ),
+        )
+    );
+    if min_reached {
+        Ok(())
+    } else {
+        Err(UTxOError::Babbage(MinLovelaceUnreached))
+    }
 }

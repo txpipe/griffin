@@ -22,14 +22,14 @@ use griffin_core::{
         babbage_tx_to_cbor,
         babbage_minted_tx_from_cbor,
     },
+    pallas_traverse::OriginalHash,
+    pallas_primitives::babbage::{
+    Tx as PallasTransaction, MintedTx,
+    },
 };
 use runtime::genesis::SHAWN_ADDRESS;
-use pallas_primitives::babbage::{
-    Tx as PallasTransaction, MintedTx,
-};
 use sp_core::ed25519::Public;
 use std::vec;
-use pallas_traverse::OriginalHash;
 
 /// Create and send a transaction that mints the coins on the network
 pub async fn mint_coins(

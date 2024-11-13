@@ -12,7 +12,7 @@ log = { workspace = true }
 parity-scale-codec = { features = ["derive"], workspace = true }
 parity-util-mem = { version = "0.12.0", optional = true }
 scale-info = { features = ["derive"], workspace = true }
-serde = { features = ["derive"], workspace = true }
+# serde = { features = ["derive"], workspace = true }
 
 # Substrate
 sp-core = { default-features = false, workspace = true }
@@ -33,12 +33,6 @@ sc-executor = { optional = true, workspace = true }
 sp-blockchain = { optional = true, workspace = true }
 sp-genesis-builder = { default-features = false, workspace = true }
 
-pallas-primitives.workspace = true
-pallas-codec.workspace = true
-pallas-crypto.workspace = true
-pallas-applying.workspace = true
-pallas-traverse.workspace = true
-hex.workspace = true
 hashbrown = { version = "0.14" }
 
 ### H224 dependencies
@@ -48,8 +42,29 @@ impl-codec = { version = "0.7.0", default-features = false }
 impl-rlp = { version = "0.4", default-features = false }
 schemars = { version = ">=0.8.12", default-features = true, optional = true }
 
+### Pallas
+hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
+minicbor = { version = "0.20", features = ["alloc", "half", "derive"] }
+num-bigint = { version = "0.4.4", optional = true, default-features = false }
+serde = { version = "1.0.143", default-features = false, features = [
+  "derive",
+  "alloc",
+] }
+thiserror-no-std = "2.0.2"
+cryptoxide = { version = "0.4.4" }
+rand_core = "0.6"
+base58 = "0.2.0"
+bech32-no_std = { version = "0.7.3", default-features = false }
+crc = "3.0.1"
+core2 = { version = "0.4.0", default-features = false }
+paste = "1.0.14"
+itertools = { version="0.13.0", default-features = false, features = ["use_alloc"] }
+serde_json = { version = "1.0.79", optional = true, default-features = false, features = [
+    "alloc",
+] }
+
 [features]
-default = ["std", "rand"]
+default = ["std", "rand", "json"]
 std = [
 	"async-trait",
 	"sp-debug-derive/std",
@@ -77,3 +92,5 @@ std = [
 rand = ["fixed-hash/rand"]
 json-schema = ["dep:schemars"]
 fp-conversion = ["std"]
+unstable = []
+json = ["serde_json"]

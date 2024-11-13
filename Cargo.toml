@@ -11,7 +11,7 @@ repository = "https://github.com/txpipe/griffin"
 edition = "2021"
 
 [workspace]
-members = ["node", "runtime", "griffin-core", "wallet"]
+members = [ "node", "wallet", "runtime", "griffin-core" ]
 resolver = "2"
 
 [workspace.dependencies]
@@ -81,9 +81,3 @@ sp-debug-derive = { version = "14.0.0", default-features = false }
 sc-chain-spec = { version = "37.0.0" }
 sc-keystore = "33.0.0"
 sp-keystore = "0.40.0"
-
-pallas-codec = { git = "https://github.com/sterraf/pallas.git", branch = "no-std" }
-pallas-crypto = { git = "https://github.com/sterraf/pallas.git", branch = "no-std" }
-pallas-primitives = { git = "https://github.com/sterraf/pallas.git", branch = "no-std" }
-pallas-applying = { git = "https://github.com/sterraf/pallas.git", branch = "no-std" }
-pallas-traverse = { git = "https://github.com/sterraf/pallas.git", branch = "no-std" }
