@@ -110,7 +110,7 @@ The preset genesis allows to run a block-authoring node and a listening node ver
   where `<AUTHORING_NODE_IDENTITY>` should be replaced by the appropriate id.
 4. The wallet will talk to the node having `--rpc-port` equal to 9944.
 
-It might be necessary to delete the nodes' DBs (through the `purge-chain` command or manually) if this is not first the node is run *locally*.
+It might be necessary to delete the nodes' DBs (through the `purge-chain` command or manually, e.g., by erasing the `/tmp/node01` folder for the listening node) if this is not first the node is run *locally*.
 
 ### Custom genesis
 
