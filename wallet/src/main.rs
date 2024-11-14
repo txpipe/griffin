@@ -162,10 +162,10 @@ async fn main() -> anyhow::Result<()> {
             let balances = sync::get_balances(&db)?;
             for (account, balance) in balances {
                 total += balance.clone();
-                println!("{account}: {balance:?}");
+                println!("{account}: {balance}");
             }
             println!("--------------------");
-            println!("total      : {:?}", total.normalize());
+            println!("total      : {}", total.normalize());
 
             Ok(())
         }
