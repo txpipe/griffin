@@ -100,11 +100,13 @@ impl<K: Ord, V> EncapBTree<K, V> {
 pub type Multiasset<A> = EncapBTree<PolicyId, EncapBTree<AssetName, A>>;
 
 impl<T: Clone + fmt::Display> fmt::Display for Multiasset<T> {
+    /// Displays a `Multiasset` as formatted list of triples.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut res = String::new();
         for (p, n, a) in Vec::from(self).iter() {
             res += &format!("  ({p}) {}: {a}\n", n.0);
         }
+        res.pop(); // Remove the last newline.
         write!(f,"{res}")
     }
 }
@@ -127,7 +129,7 @@ impl fmt::Display for Value {
         use Value::*;
         
         match self {
-            Coin(c) => write!(f, "{} Coins.", c),
+            Coin(c) => write!(f, "{} Coins", c),
             Multiasset(c, ma) => write!(f, "{} Coins, Multiassets:\n{}", c, ma),
         }
     }

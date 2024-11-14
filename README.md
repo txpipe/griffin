@@ -83,4 +83,4 @@ db keystore network
 
 ## Testing
 
-Development node features can be tested by using the [demo UTxO wallet](https://github.com/txpipe/griffin/tree/main/wallet#demo-utxo-wallet).
+Development node features can be tested by using the [demo wallet](https://github.com/txpipe/griffin/tree/main/wallet#demo-utxo-wallet).
