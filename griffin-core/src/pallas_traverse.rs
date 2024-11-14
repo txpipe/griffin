@@ -1,3 +1,5 @@
+//! (Brought from the Pallas suite, `no-std` version.)
+//!
 //! Utilities to traverse over multi-era block data
 
 use crate::pallas_codec::utils::NonZeroInt;

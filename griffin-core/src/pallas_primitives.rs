@@ -1,3 +1,5 @@
+//! (Brought from the Pallas suite, `no-std` version.)
+//!
 //! Ledger primitives and cbor codec for the Cardano eras
 
 mod framework;
