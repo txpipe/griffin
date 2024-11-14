@@ -83,4 +83,35 @@ db keystore network
 
 ## Testing
 
+### Wallet
+
 Development node features can be tested by using the [demo wallet](https://github.com/txpipe/griffin/tree/main/wallet#demo-utxo-wallet).
+
+### Two-node interaction
+
+The preset genesis allows to run a block-authoring node and a listening node very easily.
+
+1. In a terminal at the root of the repository, run the authoring node using
+
+  ```bash
+  ./target/release/griffin-solochain-node --chain local --port 30333 --rpc-port 9945 --rpc-methods Unsafe --alice
+  ```
+2. At the start, the node will signal its identity,
+
+  ```
+  2024-11-14 16:02:00 🏷  Local node identity is: 12D3KooWKzwi7xW6d7dKNwDU6YGXCgC52BLd1VDyjvHWrqcG1uz3
+  ```
+3. In a new terminal, run the listening node:
+
+  ```
+  ./target/release/griffin-solochain-node --base-path /tmp/node01 --chain local --port 30333 --rpc-port 9944 --validator --rpc-methods Unsafe --name hola --node-key 0000000000000000000000000000000000000000000000000000000000000002 --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/<AUTHORING_NODE_IDENTITY>
+  ```
+  
+  where `<AUTHORING_NODE_IDENTITY>` should be replaced by the appropriate id.
+4. The wallet will talk to the node having `--rpc-port` equal to 9944.
+
+It might be necessary to delete the nodes' DBs (through the `purge-chain` command or manually, e.g., by erasing the `/tmp/node01` folder for the listening node) if this is not first the node is run *locally*.
+
+### Custom genesis
+
+The `--chain` flag can be used to set a custom genesis through a JSON. An sample file is located [here](https://github.com/txpipe/griffin/blob/main/examples/genesis.json), and the example above also works when replacing `--chain local` by `--chain examples/genesis.json`.
