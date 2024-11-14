@@ -38,11 +38,10 @@ When this is done for the first, the output will look like this:
 998f074b5357d465fdd99198c65af6a418522e5a1688e2674c935702fef38d0600000000: owner address 6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4, datum Some(CuteOutput), amount: 314000000 Coins, Multiassets:
   (0x0298…2005) tokenA: 271000000
   (0x0298…2005) tokenB: 1123581321
-.
 ```
 This “genesis” UTxO belongs to Shawn's address. In order to spend it, we need to add his public/secret key pair (pk/sk) to the wallet keystore. We do this by generating the pair with the corresponding seed phrase:
 
-```bash
+```
 $ ./target/release/griffin-wallet insert-key "news slush supreme milk chapter athlete soap sausage put clutch what kitten"
 
 [2024-11-14T12:38:19Z INFO  griffin_wallet] Number of blocks in the db: 6
@@ -79,7 +78,7 @@ Transaction queued. When accepted, the following UTxOs will become available:
 
 All command-line arguments admit short versions (run `./target/release/griffin-wallet -h` for details). The next invocation spends the first UTxO and sends some coins back to Shawn:
 
-```bash
+```
 $ ./target/release/griffin-wallet spend-value --input dcb998d9e000c19fd20e41afeff6e1e0d9366e6e6c756c8173e52fc8061638f600000000 --amount 150000000 --witness 3538f889235842527b946255962241591cdc86cb99ba566afde335ae94262ee4
 
 [2024-11-14T12:47:45Z INFO  griffin_wallet] Number of blocks in the db: 184
@@ -95,7 +94,7 @@ In this second example, we had to explicitly state the pk of the owning address 
 
 The UTxO set at this point is
 
-```bash
+```
 $ ./target/release/griffin-wallet show-all-outputs
 
 [2024-11-14T12:48:44Z INFO  griffin_wallet] Number of blocks in the db: 215
@@ -124,7 +123,7 @@ Transaction queued. When accepted, the following UTxOs will become available:
 
 The *balance* summarizes `Value` amounts for each address:
 
-```bash
+```
 $ ./target/release/griffin-wallet show-balance
 
 [2024-11-14T12:54:34Z INFO  griffin_wallet] Number of blocks in the db: 349
@@ -133,10 +132,8 @@ Balance Summary
 6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4: 300000000 Coins, Multiassets:
   (0x0298…2005) tokenA: 71000000
   (0x0298…2005) tokenB: 1123581321
-
 614fdf13c0aabb2c2e6df7a0ac0f5cb5aaabca448af8287e54681273dd: 14000000 Coins, Multiassets:
   (0x0298…2005) tokenA: 200000000
-
 --------------------
 total      : 314000000 Coins, Multiassets:
   (0x0298…2005) tokenA: 271000000

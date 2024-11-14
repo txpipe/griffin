@@ -164,8 +164,8 @@ async fn main() -> anyhow::Result<()> {
                 total += balance.clone();
                 println!("{account}: {balance}");
             }
-            println!("--------------------");
-            println!("total      : {}", total.normalize());
+            println!("{:-<58}","");
+            println!("Total:   {}", total.normalize());
 
             Ok(())
         }
