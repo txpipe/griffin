@@ -1,4 +1,4 @@
-//! (Brought from the Pallas suite.)
+//! (Brought from the Pallas suite, `no-std` version.)
 //!
 //! Interact with Cardano addresses of any type
 //!

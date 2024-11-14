@@ -1,4 +1,4 @@
-//! (Brought from the Pallas suite.)
+//! (Brought from the Pallas suite, `no-std` version.)
 //!
 pub mod hash;
 pub mod key;

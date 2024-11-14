@@ -1,4 +1,4 @@
-//! (Brought from the Pallas suite.)
+//! (Brought from the Pallas suite, `no-std` version.)
 //!
 //! Logic for validating and applying new blocks and txs to the chain state
 
