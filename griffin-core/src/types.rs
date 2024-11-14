@@ -99,6 +99,16 @@ impl<K: Ord, V> EncapBTree<K, V> {
 /// `KeyValuePairs`.
 pub type Multiasset<A> = EncapBTree<PolicyId, EncapBTree<AssetName, A>>;
 
+impl<T: Clone + fmt::Display> fmt::Display for Multiasset<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut res = String::new();
+        for (p, n, a) in Vec::from(self).iter() {
+            res += &format!("  ({p}) {}: {a}\n", n.0);
+        }
+        write!(f,"{res}")
+    }
+}
+
 pub type Mint = Multiasset<i64>;
 
 /// Port of Cardano `Value` using `BTreeMap`-based Multiassets
@@ -110,6 +120,17 @@ pub enum Value {
 
     /// A value consisting of a `Coin` amount and a map of tokens.
     Multiasset(Coin, Multiasset<Coin>),
+}
+
+impl fmt::Display for Value {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Value::*;
+        
+        match self {
+            Coin(c) => write!(f, "{} Coins.", c),
+            Multiasset(c, ma) => write!(f, "{} Coins, Multiassets:\n{}", c, ma),
+        }
+    }
 }
 
 /// Verification using public key and signature (both encoded as byte
@@ -625,6 +646,19 @@ impl Multiasset<Coin> {
     }
 }
     
+impl<T: Clone> From<&Multiasset<T>> for Vec<(PolicyId, AssetName, T)> {
+    fn from(ma: &Multiasset<T>) -> Vec<(PolicyId, AssetName, T)> {
+        let mut res = Vec::<(PolicyId, AssetName, T)>::new();
+        for (pol, names) in ma.0.iter() {
+            for (name, amount) in names.0.iter() {
+                res.push((pol.clone(), name.clone(), amount.clone()));
+            }
+        }
+
+        res
+    }
+}
+
 impl Value {
     /// Decides if (each amount in) a [Value] is null.
     pub fn is_null(&self) -> bool {
