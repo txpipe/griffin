@@ -509,7 +509,7 @@ impl<'b> MultiEraTx<'b> {
         match self {
             MultiEraTx::AlonzoCompatible(x, _) => x.transaction_body.fee,
             MultiEraTx::Babbage(x) => x.transaction_body.fee,
-            MultiEraTx::Byron(x) => crate::fees::compute_byron_fee(x, None),
+            MultiEraTx::Byron(x) => crate::pallas_traverse::fees::compute_byron_fee(x, None),
             MultiEraTx::Conway(x) => x.transaction_body.fee,
         }
     }

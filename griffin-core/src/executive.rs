@@ -61,8 +61,9 @@ type OutputInfoList<'a> =  Vec<(
     Option<CborWrap<MintedScriptRef<'a>>>,
 )>;
 
-/// The executive. Each runtime is encouraged to make a type alias called `Executive` that fills
-/// in the proper generic types.
+/// The executive is in charge of validating transactions for admittance in the
+/// pool and in blocks. It is in charge of *executing* transactions, i.e.,
+/// applying them to the ledger.
 pub struct Executive;
 
 impl Executive
