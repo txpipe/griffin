@@ -5,7 +5,7 @@ use crate::pallas_codec::flat::filler::Filler;
 use alloc::string::String;
 use alloc::vec::Vec;
 
-#[cfg(feature = "num-bigint")]
+
 use num_bigint::BigInt;
 
 pub use decoder::Decoder;
@@ -41,7 +41,7 @@ impl Decode<'_> for isize {
     }
 }
 
-#[cfg(feature = "num-bigint")]
+
 impl Decode<'_> for BigInt {
     fn decode(d: &mut Decoder) -> Result<Self, Error> {
         d.big_integer()

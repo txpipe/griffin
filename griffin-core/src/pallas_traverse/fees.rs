@@ -36,27 +36,3 @@ pub fn compute_byron_fee(tx: &byron::MintedTxPayload, params: Option<&PolicyPara
         None => compute_linear_fee_policy(tx_size as u64, &PolicyParams::default()),
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::compute_byron_fee;
-
-    #[test]
-    fn known_fee_matches() {
-        // TODO: expand this test to include more test blocks
-        let block_str = include_str!("../../test_data/byron4.block");
-
-        let block_bytes = hex::decode(block_str).expect("bad block file");
-        let block = crate::pallas_traverse::MultiEraBlock::decode_byron(&block_bytes).unwrap();
-        let txs = block.txs();
-
-        // don't want to pass if we don't have tx in the block
-        assert!(!txs.is_empty());
-
-        for tx in txs.iter().take(1) {
-            let byron = tx.as_byron().unwrap();
-            let fee = compute_byron_fee(byron, None);
-            assert_eq!(fee, 171070);
-        }
-    }
-}

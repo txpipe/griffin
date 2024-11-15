@@ -2715,6 +2715,7 @@ dependencies = [
  "async-trait",
  "base58",
  "bech32-no_std",
+ "blst",
  "core2",
  "crc",
  "cryptoxide",
@@ -2725,9 +2726,13 @@ dependencies = [
  "impl-rlp 0.4.0",
  "impl-serde 0.5.0",
  "itertools 0.13.0",
+ "k256",
+ "lazy_static",
  "log",
  "minicbor",
  "num-bigint",
+ "num-integer",
+ "num-traits",
  "parity-scale-codec",
  "parity-util-mem",
  "paste",
@@ -2737,6 +2742,7 @@ dependencies = [
  "sc-executor",
  "scale-info",
  "schemars",
+ "secp256k1 0.26.0",
  "serde",
  "serde_json",
  "sp-blockchain",
@@ -2747,6 +2753,8 @@ dependencies = [
  "sp-io",
  "sp-runtime",
  "sp-storage",
+ "strum 0.24.1",
+ "strum_macros 0.24.3",
  "thiserror-no-std",
 ]
 
@@ -10148,33 +10156,6 @@ name = "untrusted"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
-
-[[package]]
-name = "uplc"
-version = "1.1.4"
-dependencies = [
- "blst",
- "cryptoxide",
- "hashbrown 0.14.5",
- "hex",
- "itertools 0.10.5",
- "k256",
- "lazy_static",
- "num-bigint",
- "num-integer",
- "num-traits",
- "pallas-addresses",
- "pallas-codec",
- "pallas-crypto",
- "pallas-primitives",
- "pallas-traverse",
- "secp256k1 0.26.0",
- "serde",
- "serde_json",
- "strum 0.24.1",
- "strum_macros 0.24.3",
- "thiserror-no-std",
-]
 
 [[package]]
 name = "url"

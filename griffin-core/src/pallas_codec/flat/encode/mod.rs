@@ -6,7 +6,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::boxed::Box;
 
-#[cfg(feature = "num-bigint")]
+
 use num_bigint::BigInt;
 
 pub use encoder::Encoder;
@@ -32,7 +32,7 @@ impl Encode for u8 {
     }
 }
 
-#[cfg(feature = "num-bigint")]
+
 impl Encode for BigInt {
     fn encode(&self, e: &mut Encoder) -> Result<(), Error> {
         e.big_integer(self.clone());

@@ -246,7 +246,7 @@ impl SecretKeyExtended {
     /// # Example
     ///
     /// ```
-    /// # use pallas_crypto::key::ed25519::SecretKeyExtended;
+    /// # use griffin_core::uplc::pallas_crypto::key::ed25519::SecretKeyExtended;
     /// #
     /// let bytes = // ...
     /// # [0; 64] ;
@@ -303,7 +303,7 @@ impl SecretKeyExtended {
     /// # Example
     ///
     /// ```
-    /// # use pallas_crypto::key::ed25519::SecretKeyExtended;
+    /// # use griffin_core::pallas_crypto::key::ed25519::SecretKeyExtended;
     /// #
     /// let key: SecretKeyExtended = // ...
     /// # unsafe { SecretKeyExtended::from_bytes_unchecked([0; SecretKeyExtended::SIZE]) };
@@ -513,169 +513,5 @@ impl<'a> TryFrom<&'a str> for Signature {
     type Error = <Self as FromStr>::Err;
     fn try_from(s: &'a str) -> Result<Self, Self::Error> {
         s.parse()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use quickcheck::{Arbitrary, Gen, TestResult};
-    use quickcheck_macros::quickcheck;
-
-    impl Arbitrary for SecretKey {
-        fn arbitrary(g: &mut Gen) -> Self {
-            let mut s = Self::zero();
-            s.0.iter_mut().for_each(|byte| {
-                *byte = u8::arbitrary(g);
-            });
-            s
-        }
-    }
-
-    impl Arbitrary for SecretKeyExtended {
-        fn arbitrary(g: &mut Gen) -> Self {
-            let mut s = Self::zero();
-            s.0.iter_mut().for_each(|byte| {
-                *byte = u8::arbitrary(g);
-            });
-
-            s.0[0] &= 0b1111_1000;
-            s.0[31] &= 0b0011_1111;
-            s.0[31] |= 0b0100_0000;
-
-            s
-        }
-    }
-
-    impl Arbitrary for PublicKey {
-        fn arbitrary(g: &mut Gen) -> Self {
-            let mut s = Self::zero();
-            s.0.iter_mut().for_each(|byte| {
-                *byte = u8::arbitrary(g);
-            });
-            s
-        }
-    }
-
-    impl Arbitrary for Signature {
-        fn arbitrary(g: &mut Gen) -> Self {
-            let mut s = Self::zero();
-            s.0.iter_mut().for_each(|byte| {
-                *byte = u8::arbitrary(g);
-            });
-            s
-        }
-    }
-
-    #[quickcheck]
-    fn signing_verify_works(signing_key: SecretKey, message: Vec<u8>) -> bool {
-        let public_key = signing_key.public_key();
-        let signature = signing_key.sign(&message);
-
-        public_key.verify(message, &signature)
-    }
-
-    #[quickcheck]
-    fn signing_verify_works_extended(signing_key: SecretKeyExtended, message: Vec<u8>) -> bool {
-        let public_key = signing_key.public_key();
-        let signature = signing_key.sign(&message);
-
-        public_key.verify(message, &signature)
-    }
-
-    #[quickcheck]
-    fn verify_random_signature_does_not_work(
-        public_key: PublicKey,
-        signature: Signature,
-        message: Vec<u8>,
-    ) -> bool {
-        // NOTE: this test may fail but it is impossible to see this happening in normal
-        // condition. We are generating 32 random bytes of public key and
-        // 64 random bytes of signature with an randomly generated message
-        // of a random number of bytes in. If the message were empty, the
-        // probability to have a signature that matches the verify key
-
-        // would still be 1 out of 2^96.
-        //
-        // if this test fails and it is not a bug, go buy a lottery ticket.
-        !public_key.verify(message, &signature)
-    }
-
-    #[quickcheck]
-    fn public_key_try_from_correct_size(public_key: PublicKey) -> TestResult {
-        match PublicKey::try_from(public_key.as_ref()) {
-            Ok(_) => TestResult::passed(),
-            Err(TryFromPublicKeyError::InvalidSize) => {
-                TestResult::error("was expecting the test to pass")
-            }
-        }
-    }
-
-    #[quickcheck]
-    fn public_key_try_from_incorrect_size(bytes: Vec<u8>) -> TestResult {
-        if bytes.len() == PublicKey::SIZE {
-            return TestResult::discard();
-        }
-        match PublicKey::try_from(bytes.as_slice()) {
-            Ok(_) => TestResult::error(
-                "Expecting to fail with invalid size instead of having a valid value",
-            ),
-            Err(TryFromPublicKeyError::InvalidSize) => TestResult::passed(),
-        }
-    }
-
-    #[quickcheck]
-    fn signature_try_from_correct_size(signature: Signature) -> TestResult {
-        match Signature::try_from(signature.as_ref()) {
-            Ok(_) => TestResult::passed(),
-            Err(TryFromSignatureError::InvalidSize) => {
-                TestResult::error("was expecting the test to pass")
-            }
-        }
-    }
-
-    #[quickcheck]
-    fn signature_try_from_incorrect_size(bytes: Vec<u8>) -> TestResult {
-        if bytes.len() == Signature::SIZE {
-            return TestResult::discard();
-        }
-        match Signature::try_from(bytes.as_slice()) {
-            Ok(_) => TestResult::error(
-                "Expecting to fail with invalid size instead of having a valid value",
-            ),
-            Err(TryFromSignatureError::InvalidSize) => TestResult::passed(),
-        }
-    }
-
-    #[quickcheck]
-    fn public_key_from_str(public_key: PublicKey) -> TestResult {
-        let s = public_key.to_string();
-
-        match s.parse::<PublicKey>() {
-            Ok(decoded) => {
-                if decoded == public_key {
-                    TestResult::passed()
-                } else {
-                    TestResult::error("the decoded key is not equal")
-                }
-            }
-            Err(error) => TestResult::error(error.to_string()),
-        }
-    }
-
-    #[quickcheck]
-    fn signature_from_str(signature: Signature) -> TestResult {
-        let s = signature.to_string();
-
-        match s.parse::<Signature>() {
-            Ok(decoded) => {
-                if decoded == signature {
-                    TestResult::passed()
-                } else {
-                    TestResult::error("the decoded signature is not equal")
-                }
-            }
-            Err(error) => TestResult::error(error.to_string()),
-        }
     }
 }

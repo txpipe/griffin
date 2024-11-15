@@ -1,4 +1,4 @@
-#[cfg(feature = "num-bigint")]
+
 use num_bigint::{BigInt, BigUint, ToBigInt};
 
 pub trait ZigZag {
@@ -6,7 +6,7 @@ pub trait ZigZag {
     fn zigzag(self) -> Self::Zag;
 }
 
-#[cfg(feature = "num-bigint")]
+
 impl ZigZag for BigInt {
     type Zag = BigUint;
 
@@ -32,7 +32,7 @@ impl ZigZag for isize {
     }
 }
 
-#[cfg(feature = "num-bigint")]
+
 impl ZigZag for BigUint {
     type Zag = BigInt;
 

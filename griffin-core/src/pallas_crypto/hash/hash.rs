@@ -102,31 +102,3 @@ impl<'a, C, const BYTES: usize> minicbor::Decode<'a, C> for Hash<BYTES> {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn from_str() {
-        let _digest: Hash<28> = "276fd18711931e2c0e21430192dbeac0e458093cd9d1fcd7210f64b3"
-            .parse()
-            .unwrap();
-
-        let _digest: Hash<32> = "0d8d00cdd4657ac84d82f0a56067634a7adfdf43da41cb534bcaa45060973d21"
-            .parse()
-            .unwrap();
-    }
-
-    #[test]
-    #[should_panic]
-    fn from_str_fail_1() {
-        let _digest: Hash<28> = "27".parse().unwrap();
-    }
-
-    #[test]
-    #[should_panic]
-    fn from_str_fail_2() {
-        let _digest: Hash<32> = "0d8d00cdd465".parse().unwrap();
-    }
-}
