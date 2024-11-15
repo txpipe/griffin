@@ -15,7 +15,6 @@ members = [ "node", "wallet", "runtime", "griffin-core" ]
 resolver = "2"
 
 [workspace.dependencies]
-griffin-solochain-runtime = { path = "./runtime", default-features = false }
 clap = { version = "4.5.3" }
 frame-benchmarking-cli = { version = "42.0.0", default-features = false }
 frame-system = { version = "37.0.0", default-features = false }

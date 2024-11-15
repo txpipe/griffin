@@ -9,7 +9,7 @@ repository.workspace = true
 edition.workspace = true
 
 [dependencies]
-griffin-core = { path = "../griffin-core" }
+griffin-core = { version = "0.1.0", path = "../griffin-core" }
 
 clap = { features = ["derive"], workspace = true }
 hex-literal = { workspace = true }
