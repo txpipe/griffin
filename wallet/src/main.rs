@@ -105,7 +105,7 @@ async fn main() -> anyhow::Result<()> {
         // Some(Command::MintCoins(args)) => {
         //     money::mint_coins(&client, args).await
         // }
-        Some(Command::VerifyCoin { input }) => {
+        Some(Command::VerifyUtxo { input }) => {
             println!("Details of coin {}:", hex::encode(input.encode()));
 
             // Print the details from storage
@@ -172,7 +172,7 @@ async fn main() -> anyhow::Result<()> {
         Some(Command::ShowAllOutputs) => {
             println!("###### Unspent outputs ###########");
             sync::print_unspent_tree(&db)?;
-
+            println!("To see all details of a particular UTxO, invoke the `verify-utxo` command");
             Ok(())
         },
         None => {
