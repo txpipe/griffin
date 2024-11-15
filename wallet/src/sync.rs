@@ -386,7 +386,12 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
             Some(d) => MiniDecode::decode(&mut MiniDecoder::new(d.0.as_slice()), &mut ()).unwrap(),
         };
         
-        println!("{input}: owner address {owner_pubkey}, datum {fake_option:?}, amount: {amount}");
+        println!("{}: owner address {}, datum {:?}, amount: {}",
+                 input,
+                 owner_pubkey,
+                 fake_option,
+                 amount.normalize(),
+        );
     }
 
     Ok(())
