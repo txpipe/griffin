@@ -1,4 +1,4 @@
-/// The runtime contains the core logic of the ledger run by the Griffin node.
+//! The runtime contains the core logic of the ledger run by the Griffin node.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 

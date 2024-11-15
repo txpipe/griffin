@@ -192,7 +192,7 @@ async fn main() -> anyhow::Result<()> {
         Some(Command::ShowAllOutputs) => {
             println!("###### Unspent outputs ###########");
             sync::print_unspent_tree(&db)?;
-            println!("To see all details of a particular UTxO, invoke the `verify-utxo` command");
+            println!("To see all details of a particular UTxO, invoke the `verify-utxo` command.");
             Ok(())
         },
         None => {
