@@ -12,7 +12,6 @@ log = { workspace = true }
 parity-scale-codec = { features = ["derive"], workspace = true }
 parity-util-mem = { version = "0.12.0", optional = true }
 scale-info = { features = ["derive"], workspace = true }
-# serde = { features = ["derive"], workspace = true }
 
 # Substrate
 sp-core = { default-features = false, workspace = true }
