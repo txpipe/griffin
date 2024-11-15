@@ -1,4 +1,4 @@
-//! Helper module to build a genesis configuration for the template runtime.
+//! Helper module to build a genesis configuration for the runtime.
 
 #[cfg(feature = "std")]
 pub use super::WASM_BINARY;
@@ -19,7 +19,9 @@ use serde_json;
 use hex::FromHex;
 use core::str::FromStr;
 
-const GENESIS_DEFAULT_JSON: &str =  r#"
+/// The default genesis. It can be replaced by a custom one by providing the
+/// node with an analogous JSON file through the `--chain` flag
+pub const GENESIS_DEFAULT_JSON: &str =  r#"
 [
   {
     "address": "6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4",
@@ -51,7 +53,8 @@ struct TransparentOutput {
 
 /// This function returns a list of valid transactions to be included in the genesis block.
 /// It is called by the `ChainSpec::build` method, via the `development_genesis_config` function.
-/// The resulting transactions must be ordered: inherent first, then extrinsics.
+///
+/// If a custom genesis is not provided, [GENESIS_DEFAULT_JSON] is used.
 pub fn development_genesis_transactions(genesis_json: String) -> Vec<Transaction> {
     let mut json_data: &str = GENESIS_DEFAULT_JSON;
     if !genesis_json.is_empty() {

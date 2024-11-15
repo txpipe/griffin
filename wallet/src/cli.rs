@@ -72,7 +72,7 @@ pub enum Command {
     /// Verify that a particular output ref exists.
     /// Show its value and owner address from both chain storage and the local database.
     #[command(verbatim_doc_comment)]
-    VerifyCoin {
+    VerifyUtxo {
         /// A hex-encoded output reference
         #[arg(value_parser = input_from_string)]
         input: Input,

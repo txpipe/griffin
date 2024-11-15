@@ -104,13 +104,13 @@ The preset genesis allows to run a block-authoring node and a listening node ver
 3. In a new terminal, run the listening node:
 
   ```
-  ./target/release/griffin-solochain-node --base-path /tmp/node01 --chain local --port 30333 --rpc-port 9944 --validator --rpc-methods Unsafe --name hola --node-key 0000000000000000000000000000000000000000000000000000000000000002 --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/<AUTHORING_NODE_IDENTITY>
+  ./target/release/griffin-solochain-node --base-path /tmp/hola --chain local --port 30334 --rpc-port 9944 --validator --rpc-methods Unsafe --name hola --node-key 0000000000000000000000000000000000000000000000000000000000000002 --bootnodes /ip4/127.0.0.1/tcp/30333/p2p/<AUTHORING_NODE_IDENTITY>
   ```
   
   where `<AUTHORING_NODE_IDENTITY>` should be replaced by the appropriate id.
 4. The wallet will talk to the node having `--rpc-port` equal to 9944.
 
-It might be necessary to delete the nodes' DBs (through the `purge-chain` command or manually, e.g., by erasing the `/tmp/node01` folder for the listening node) if this is not first the node is run *locally*.
+It might be necessary to delete the nodes' DBs (through the `purge-chain` command or manually, e.g., by erasing the `/tmp/hola` folder for the listening node) if this is not first the node is run *locally*.
 
 ### Custom genesis
 

@@ -1,4 +1,24 @@
 //! CLI wallet to demostrate spending and minting transactions.
+//!
+//! ## Basic usage
+//! 
+//! In terminal, run the node in development mode:
+//! 
+//! ```bash
+//! ./target/release/griffin-solochain-node --dev
+//! ```
+//! 
+//! In another terminal, one can interact with the node by issuing wallet
+//! commands. Every time the wallet starts (without the `--help` or `--version`
+//! command-line options), it will try to synchronize its database with the
+//! present chain state through RPC port 9944 (the [DEFAULT_ENDPOINT]), unless
+//! there is a mismatch with the genesis hash.
+//! 
+//! To list the whole UTxO set, run
+//! 
+//! ```bash
+//! ./target/release/griffin-wallet show-all-outputs
+//! ```
 
 extern crate alloc;
 
@@ -105,7 +125,7 @@ async fn main() -> anyhow::Result<()> {
         // Some(Command::MintCoins(args)) => {
         //     money::mint_coins(&client, args).await
         // }
-        Some(Command::VerifyCoin { input }) => {
+        Some(Command::VerifyUtxo { input }) => {
             println!("Details of coin {}:", hex::encode(input.encode()));
 
             // Print the details from storage
@@ -172,7 +192,7 @@ async fn main() -> anyhow::Result<()> {
         Some(Command::ShowAllOutputs) => {
             println!("###### Unspent outputs ###########");
             sync::print_unspent_tree(&db)?;
-
+            println!("To see all details of a particular UTxO, invoke the `verify-utxo` command.");
             Ok(())
         },
         None => {
