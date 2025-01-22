@@ -25,6 +25,7 @@ pub mod pallas_addresses;
 pub mod pallas_primitives;
 pub mod pallas_traverse;
 pub mod pallas_applying;
+pub mod uplc;
 pub mod support_macros;
 pub mod types;
 pub mod genesis;
