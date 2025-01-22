@@ -13,7 +13,7 @@ use crate::pallas_codec::minicbor;
 /// The following will generate a 32 bytes digest output
 ///
 /// ```
-/// # use pallas_crypto::hash::Hasher;
+/// # use crate::pallas_crypto::hash::Hasher;
 ///
 /// let mut hasher = Hasher::<256>::new();
 /// hasher.input(b"My transaction");
@@ -31,7 +31,7 @@ use crate::pallas_codec::minicbor;
 /// to generate the hash of public keys for addresses.
 ///
 /// ```
-/// # use pallas_crypto::hash::Hasher;
+/// # use crate::pallas_crypto::hash::Hasher;
 ///
 /// let digest = Hasher::<224>::hash(b"My Public Key");
 /// # assert_eq!(

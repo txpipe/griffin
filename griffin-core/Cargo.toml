@@ -43,7 +43,7 @@ schemars = { version = ">=0.8.12", default-features = true, optional = true }
 
 ### Pallas
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
-minicbor = { version = "0.20", features = ["alloc", "half", "derive"] }
+minicbor = { version = "0.25.1", features = ["alloc", "half", "derive"] }
 num-bigint = { version = "0.4.4", optional = true, default-features = false }
 serde = { version = "1.0.143", default-features = false, features = [
   "derive",
@@ -53,7 +53,7 @@ thiserror-no-std = "2.0.2"
 cryptoxide = { version = "0.4.4" }
 rand_core = "0.6"
 base58 = "0.2.0"
-bech32-no_std = { version = "0.7.3", default-features = false }
+bech32 = { version = "0.9.1", default-features = false }
 crc = "3.0.1"
 core2 = { version = "0.4.0", default-features = false }
 paste = "1.0.14"

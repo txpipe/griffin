@@ -1,8 +1,7 @@
 use super::Decode;
 use super::Error;
 use crate::pallas_codec::flat::zigzag::ZigZag;
-use alloc::string::String;
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 
 #[cfg(feature = "num-bigint")]
 use num_bigint::{BigInt, BigUint};

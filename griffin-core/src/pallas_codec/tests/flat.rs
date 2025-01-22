@@ -1,5 +1,5 @@
-use pallas_codec::flat::filler::Filler;
-use pallas_codec::flat::{decode, encode};
+use crate::pallas_codec::flat::filler::Filler;
+use crate::pallas_codec::flat::{decode, encode};
 use proptest::prelude::*;
 
 prop_compose! {

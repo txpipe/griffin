@@ -1,4 +1,4 @@
-use pallas_applying::UTxOs;
+use crate::pallas_applying::UTxOs;
 use crate::pallas_codec::{minicbor::bytes::ByteVec, utils::TagWrap};
 use crate::pallas_primitives::{
     alonzo::{MintedTx, TransactionBody, TransactionOutput, Value},

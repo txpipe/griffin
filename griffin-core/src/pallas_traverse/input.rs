@@ -1,10 +1,6 @@
 // use std::{borrow::Cow, fmt::Display, ops::Deref, str::FromStr};
-use alloc::string::String;
-use alloc::boxed::Box;
-use alloc::vec::Vec;
-use alloc::borrow::Cow;
-use core::{fmt, fmt::Display, str::FromStr};
-use core::ops::Deref;
+use alloc::{string::String, boxed::Box, vec::Vec, borrow::Cow};
+use core::{fmt, fmt::Display, str::FromStr, ops::Deref};
 
 use crate::pallas_codec::utils::CborWrap;
 use crate::pallas_crypto::hash::Hash;
@@ -33,16 +29,16 @@ impl Display for OutputRef {
 }
 
 impl FromStr for OutputRef {
-    type Err = super::Error;
+    type Err = crate::pallas_traverse::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parts: Vec<_> = s.trim().split('#').collect();
         let (hash, idx) = match &parts[..] {
             &[a, b] => (
-                Hash::<32>::from_str(a).map_err(|_| super::Error::invalid_utxo_ref(s))?,
-                u64::from_str(b).map_err(|_| super::Error::invalid_utxo_ref(s))?,
+                Hash::<32>::from_str(a).map_err(|_| crate::pallas_traverse::Error::invalid_utxo_ref(s))?,
+                u64::from_str(b).map_err(|_| crate::pallas_traverse::Error::invalid_utxo_ref(s))?,
             ),
-            _ => return Err(super::Error::invalid_utxo_ref(s)),
+            _ => return Err(crate::pallas_traverse::Error::invalid_utxo_ref(s)),
         };
 
         Ok(Self::new(hash, idx))
@@ -112,7 +108,7 @@ impl<'b> MultiEraInput<'b> {
 mod tests {
     use std::str::FromStr;
 
-    use crate::*;
+    use crate::pallas_traverse::*;
 
     #[test]
     fn test_expected_values() {

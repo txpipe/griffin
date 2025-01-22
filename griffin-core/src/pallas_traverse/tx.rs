@@ -1,9 +1,6 @@
 // use std::{borrow::Cow, collections::HashSet, ops::Deref};
-use alloc::vec::Vec;
-use alloc::boxed::Box;
-use alloc::borrow::Cow;
-use core::iter;
-use core::ops::Deref;
+use alloc::{vec::Vec, boxed::Box, borrow::Cow};
+use core::{iter, ops::Deref};
 use hashbrown::HashSet;
 
 use itertools::Itertools;
@@ -77,11 +74,11 @@ impl<'b> MultiEraTx<'b> {
     /// decode using Babbage first even if Conway is newer.
     pub fn decode(cbor: &'b [u8]) -> Result<Self, Error> {
         if let Ok(tx) = minicbor::decode(cbor) {
-            return Ok(MultiEraTx::Babbage(Box::new(Cow::Owned(tx))));
+            return Ok(MultiEraTx::Conway(Box::new(Cow::Owned(tx))));
         }
 
         if let Ok(tx) = minicbor::decode(cbor) {
-            return Ok(MultiEraTx::Conway(Box::new(Cow::Owned(tx))));
+            return Ok(MultiEraTx::Babbage(Box::new(Cow::Owned(tx))));
         }
 
         if let Ok(tx) = minicbor::decode(cbor) {

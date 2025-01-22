@@ -22,7 +22,7 @@ impl Era {
 // for consistency, we use the same tag convention used by the node's cbor
 // encoding
 impl TryFrom<u16> for Era {
-    type Error = super::Error;
+    type Error = crate::pallas_traverse::Error;
 
     fn try_from(value: u16) -> Result<Self, Self::Error> {
         match value {
@@ -34,7 +34,7 @@ impl TryFrom<u16> for Era {
             5 => Ok(Era::Alonzo),
             6 => Ok(Era::Babbage),
             7 => Ok(Era::Conway),
-            x => Err(super::Error::UnknownEra(x)),
+            x => Err(crate::pallas_traverse::Error::UnknownEra(x)),
         }
     }
 }

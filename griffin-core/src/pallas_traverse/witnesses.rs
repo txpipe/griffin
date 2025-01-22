@@ -2,9 +2,8 @@ use alloc::vec::Vec;
 
 use crate::pallas_codec::utils::KeepRaw;
 use crate::pallas_primitives::{
-    alonzo::{self, BootstrapWitness, NativeScript, PlutusData, VKeyWitness},
-    babbage::PlutusV2Script,
-    conway::PlutusV3Script,
+    alonzo::{self, BootstrapWitness, NativeScript, VKeyWitness},
+    conway, PlutusData, PlutusScript,
 };
 
 use crate::pallas_traverse::{MultiEraRedeemer, MultiEraTx};
@@ -82,7 +81,7 @@ impl<'b> MultiEraTx<'b> {
         }
     }
 
-    pub fn plutus_v1_scripts(&self) -> &[alonzo::PlutusScript] {
+    pub fn plutus_v1_scripts(&self) -> &[alonzo::PlutusScript<1>] {
         match self {
             Self::Byron(_) => &[],
             Self::AlonzoCompatible(x, _) => x
@@ -147,13 +146,17 @@ impl<'b> MultiEraTx<'b> {
                 .flat_map(|x| x.iter())
                 .map(MultiEraRedeemer::from_alonzo_compatible)
                 .collect(),
-            Self::Conway(x) => x
-                .transaction_witness_set
-                .redeemer
-                .iter()
-                .flat_map(|x| x.iter())
-                .map(|(k, v)| MultiEraRedeemer::from_conway(k, v))
-                .collect(),
+            Self::Conway(x) => match x.transaction_witness_set.redeemer.as_deref() {
+                Some(conway::Redeemers::Map(x)) => x
+                    .iter()
+                    .map(|(k, v)| MultiEraRedeemer::from_conway(k, v))
+                    .collect(),
+                Some(conway::Redeemers::List(x)) => x
+                    .iter()
+                    .map(MultiEraRedeemer::from_conway_deprecated)
+                    .collect(),
+                _ => vec![],
+            },
         }
     }
 
@@ -183,7 +186,7 @@ impl<'b> MultiEraTx<'b> {
         })
     }
 
-    pub fn plutus_v2_scripts(&self) -> &[PlutusV2Script] {
+    pub fn plutus_v2_scripts(&self) -> &[PlutusScript<2>] {
         match self {
             Self::Byron(_) => &[],
             Self::AlonzoCompatible(_, _) => &[],
@@ -202,7 +205,7 @@ impl<'b> MultiEraTx<'b> {
         }
     }
 
-    pub fn plutus_v3_scripts(&self) -> &[PlutusV3Script] {
+    pub fn plutus_v3_scripts(&self) -> &[PlutusScript<3>] {
         match self {
             Self::Byron(_) => &[],
             Self::AlonzoCompatible(_, _) => &[],
