@@ -44,7 +44,7 @@ schemars = { version = ">=0.8.12", default-features = true, optional = true }
 ### Pallas
 hex = { version = "0.4.3", default-features = false, features = ["alloc"] }
 minicbor = { version = "0.25.1", features = ["alloc", "half", "derive"] }
-num-bigint = { version = "0.4.4", optional = true, default-features = false }
+num-bigint = { version = "0.4.4", default-features = false }
 serde = { version = "1.0.143", default-features = false, features = [
   "derive",
   "alloc",
