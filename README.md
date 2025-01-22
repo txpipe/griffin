@@ -26,14 +26,14 @@ We'll also build a client node reference implementation using Substrate that int
 
 Depending on your operating system and Rust version, there might be additional packages required to compile the node and the wallet. Check the [install](https://docs.substrate.io/install/) instructions for your platform for the most common dependencies.
 
-In particular, you will need the `nightly` Rust toolchain, add to it the `wasm32-unknown-unknown` target, and the `rust-src` component.
+In particular, you might need to add the `wasm32-unknown-unknown` target and the `rust-src` component.
 
 ### Building
 
 Use the following command to build the node:
 
 ```bash
-cargo +nightly build --package griffin-solochain-node --release
+cargo build --package griffin-solochain-node --release
 ```
 
 *Note on exhaustion*. The building process is **memory-intensive**, and you might need to close some programs (browser, etc.) if you are getting errors during the last part (e.g. from `collect2` or `ld` at the linking step).
@@ -96,6 +96,9 @@ The preset genesis allows to run a block-authoring node and a listening node ver
   ```bash
   ./target/release/griffin-solochain-node --chain local --port 30333 --rpc-port 9945 --rpc-methods Unsafe --alice
   ```
+
+If you get a `NetworkKeyNotFound` error, you can run once `./target/release/griffin-solochain-node` and then re-run the previous command.
+
 2. At the start, the node will signal its identity,
 
   ```
@@ -110,8 +113,8 @@ The preset genesis allows to run a block-authoring node and a listening node ver
   where `<AUTHORING_NODE_IDENTITY>` should be replaced by the appropriate id.
 4. The wallet will talk to the node having `--rpc-port` equal to 9944.
 
-It might be necessary to delete the nodes' DBs (through the `purge-chain` command or manually, e.g., by erasing the `/tmp/hola` folder for the listening node) if this is not first the node is run *locally*.
+It might be necessary to delete the nodes' DBs (through the `purge-chain` command or manually, e.g., by erasing the `/tmp/hola` folder for the listening node) if this is not first time the node is run *locally*.
 
 ### Custom genesis
 
-The `--chain` flag can be used to set a custom genesis through a JSON. An sample file is located [here](https://github.com/txpipe/griffin/blob/main/examples/genesis.json), and the example above also works when replacing `--chain local` by `--chain examples/genesis.json`.
+The `--chain` flag can be used to set a custom genesis through a JSON. A sample file is located [here](https://github.com/txpipe/griffin/blob/main/examples/genesis.json), and the example above also works when replacing `--chain local` by `--chain examples/genesis.json`.

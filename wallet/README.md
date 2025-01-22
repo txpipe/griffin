@@ -8,7 +8,7 @@ This CLI wallet is based on a minimized version of the [Tuxedo wallet](https://g
 You should have a properly installed Griffin node to build the wallet. After following the [instructions to do that](https://github.com/txpipe/griffin/blob/main/README.md#installation), run
 
 ```bash
-cargo +nightly build --release -p griffin-wallet
+cargo build --release -p griffin-wallet
 ```
 
 As explained in the node installation instructions, omitting the `--release` will build the "debug" version.
@@ -110,7 +110,7 @@ dcb998d9e000c19fd20e41afeff6e1e0d9366e6e6c756c8173e52fc8061638f601000000: owner 
 
 Finally, to send some coins *and* `tokenA`s from the last UTxO to the other account, we do:
 ```
-./target/release/griffin-wallet spend-value --input dcb998d9e000c19fd20e41afeff6e1e0d9366e6e6c756c8173e52fc8061638f601000000 --amount 14000000 --policy 0x0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005 --name tokenA --token-amount 200000000 --recipient 0x614fdf13c0aabb2c2e6df7a0ac0f5cb5aaabca448af8287e54681273dd
+$ ./target/release/griffin-wallet spend-value --input dcb998d9e000c19fd20e41afeff6e1e0d9366e6e6c756c8173e52fc8061638f601000000 --amount 14000000 --policy 0x0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005 --name tokenA --token-amount 200000000 --recipient 0x614fdf13c0aabb2c2e6df7a0ac0f5cb5aaabca448af8287e54681273dd
 
 [2024-11-14T12:54:28Z INFO  griffin_wallet] Number of blocks in the db: 250
 [2024-11-14T12:54:28Z INFO  griffin_wallet] Wallet database synchronized with node to height 349
