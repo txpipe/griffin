@@ -1,5 +1,5 @@
-use hashbrown::HashMap;
 use alloc::{rc::Rc, string::String};
+use hashbrown::HashMap;
 
 use crate::uplc::ast::{Name, Program, Term, Unique};
 

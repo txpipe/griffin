@@ -1,4 +1,3 @@
-use crate::pallas_primitives::KeyValuePairs;
 use crate::pallas_codec::utils::Int;
 use crate::pallas_codec::{
     minicbor::{
@@ -8,9 +7,10 @@ use crate::pallas_codec::{
     },
     utils::MaybeIndefArray,
 };
-use serde::{Deserialize, Serialize};
+use crate::pallas_primitives::KeyValuePairs;
+use alloc::{string::String, vec::Vec};
 use core::{fmt, ops::Deref};
-use alloc::{vec::Vec, string::String};
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum PlutusData {

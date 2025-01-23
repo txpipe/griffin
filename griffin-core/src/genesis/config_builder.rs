@@ -5,9 +5,9 @@ use crate::{
     types::{Input, Transaction},
     EXTRINSIC_KEY,
 };
+use alloc::vec::Vec;
 use parity_scale_codec::Encode;
 use sp_runtime::traits::Hash as HashT;
-use alloc::vec::Vec;
 
 pub struct GriffinGenesisConfigBuilder;
 

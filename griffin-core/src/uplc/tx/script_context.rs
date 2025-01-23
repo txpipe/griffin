@@ -1,6 +1,4 @@
 use super::{to_plutus_data::MintValue, Error};
-use crate::uplc::tx::iter_redeemers;
-use itertools::Itertools;
 use crate::pallas_addresses::{Address, Network, StakePayload};
 use crate::pallas_codec::utils::{
     Bytes, KeyValuePairs, NonEmptyKeyValuePairs, NonEmptySet, Nullable, PositiveCoin,
@@ -18,9 +16,11 @@ use crate::pallas_primitives::{
     },
 };
 use crate::pallas_traverse::{ComputeHash, OriginalHash};
-use hashbrown::HashMap;
-use core::{cmp::Ordering, ops::Deref};
+use crate::uplc::tx::iter_redeemers;
 use alloc::{boxed::Box, string::ToString, vec::Vec};
+use core::{cmp::Ordering, ops::Deref};
+use hashbrown::HashMap;
+use itertools::Itertools;
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct ResolvedInput {
@@ -1133,6 +1133,11 @@ pub fn sort_reward_accounts(a: &Bytes, b: &Bytes) -> Ordering {
 
 #[cfg(test)]
 mod tests {
+    use crate::pallas_primitives::{
+        conway::{ExUnits, PlutusData, Redeemer, RedeemerTag, TransactionInput, TransactionOutput},
+        Fragment,
+    };
+    use crate::pallas_traverse::{Era, MultiEraTx};
     use crate::uplc::{
         ast::Data,
         tx::{
@@ -1141,11 +1146,6 @@ mod tests {
             ResolvedInput, SlotConfig,
         },
     };
-    use crate::pallas_primitives::{
-        conway::{ExUnits, PlutusData, Redeemer, RedeemerTag, TransactionInput, TransactionOutput},
-        Fragment,
-    };
-    use crate::pallas_traverse::{Era, MultiEraTx};
 
     fn fixture_tx_info(transaction: &str, inputs: &str, outputs: &str) -> TxInfo {
         let transaction_bytes = hex::decode(transaction).unwrap();

@@ -1,3 +1,9 @@
+use crate::pallas_addresses::{Network, ShelleyAddress, ShelleyDelegationPart, ShelleyPaymentPart};
+use crate::pallas_primitives::{
+    alonzo::{self, Constr, PlutusData},
+    conway::{self, Language},
+};
+use crate::pallas_traverse::ComputeHash;
 use crate::uplc::{
     builtins::DefaultFunction,
     debruijn::{self, Converter},
@@ -9,21 +15,24 @@ use crate::uplc::{
     },
     optimize::interner::CodeGenInterner,
 };
+use alloc::{
+    borrow::ToOwned,
+    boxed::Box,
+    rc::Rc,
+    string::{String, ToString},
+    vec::Vec,
+};
+use core::{
+    fmt::Display,
+    hash::{self, Hash},
+};
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
-use crate::pallas_addresses::{Network, ShelleyAddress, ShelleyDelegationPart, ShelleyPaymentPart};
-use crate::pallas_primitives::{
-    alonzo::{self, Constr, PlutusData},
-    conway::{self, Language},
-};
-use crate::pallas_traverse::ComputeHash;
 use serde::{
     self,
     de::{self, Deserialize, Deserializer, MapAccess, Visitor},
     ser::{Serialize, SerializeStruct, Serializer},
 };
-use alloc::{borrow::ToOwned, boxed::Box, rc::Rc, string::{String, ToString}, vec::Vec};
-use core::{hash::{self, Hash}, fmt::Display};
 
 /// This represents a program in Untyped Plutus Core.
 /// A program contains a version tuple and a term.

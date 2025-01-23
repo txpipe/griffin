@@ -1,9 +1,8 @@
 // use std::{borrow::Cow, collections::HashSet, ops::Deref};
-use alloc::{vec::Vec, boxed::Box, borrow::Cow};
+use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use core::{iter, ops::Deref};
 use hashbrown::HashSet;
 
-use itertools::Itertools;
 use crate::pallas_codec::{minicbor, utils::KeepRaw};
 use crate::pallas_crypto::hash::Hash;
 use crate::pallas_primitives::{
@@ -11,6 +10,7 @@ use crate::pallas_primitives::{
     babbage::{self, NetworkId},
     byron, conway,
 };
+use itertools::Itertools;
 
 use crate::pallas_traverse::{
     Era, Error, MultiEraCert, MultiEraInput, MultiEraMeta, MultiEraOutput, MultiEraPolicyAssets,

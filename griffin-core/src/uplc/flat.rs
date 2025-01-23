@@ -1,3 +1,9 @@
+use crate::pallas_codec::flat::{
+    de::{self, Decode, Decoder},
+    en::{self, Encode, Encoder},
+    Flat,
+};
+use crate::pallas_primitives::{conway::PlutusData, Fragment};
 use crate::uplc::{
     ast::{
         Constant, DeBruijn, FakeNamedDeBruijn, Name, NamedDeBruijn, Program, Term, Type, Unique,
@@ -5,15 +11,14 @@ use crate::uplc::{
     builtins::DefaultFunction,
     machine::runtime::Compressable,
 };
-use num_bigint::BigInt;
-use crate::pallas_codec::flat::{
-    de::{self, Decode, Decoder},
-    en::{self, Encode, Encoder},
-    Flat,
+use alloc::{
+    collections::VecDeque,
+    rc::Rc,
+    string::{String, ToString},
+    vec::Vec,
 };
-use crate::pallas_primitives::{conway::PlutusData, Fragment};
-use alloc::{collections::VecDeque, rc::Rc, string::{String, ToString}, vec::Vec};
 use core::fmt::Debug;
+use num_bigint::BigInt;
 
 const BUILTIN_TAG_WIDTH: u32 = 7;
 const CONST_TAG_WIDTH: u32 = 4;
@@ -1002,10 +1007,8 @@ pub fn decode_constant_tag(d: &mut Decoder) -> Result<u8, de::Error> {
 #[cfg(test)]
 mod tests {
     use super::{Constant, Program, Term};
-    use crate::uplc::{
-        ast::{Name, Type},
-    };
     use crate::pallas_codec::flat::Flat;
+    use crate::uplc::ast::{Name, Type};
 
     #[test]
     fn flat_encode_integer() {

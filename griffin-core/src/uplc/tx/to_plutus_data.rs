@@ -1,12 +1,6 @@
 use super::script_context::{
     ScriptContext, ScriptInfo, ScriptPurpose, TimeRange, TxInInfo, TxInfo,
 };
-use crate::uplc::{
-    ast::Data,
-    machine::runtime::{convert_constr_to_tag, ANY_TAG},
-    tx::script_context::from_alonzo_output,
-};
-use num_integer::Integer;
 use crate::pallas_addresses::{
     Address, ShelleyDelegationPart, ShelleyPaymentPart, StakeAddress, StakePayload,
 };
@@ -23,7 +17,13 @@ use crate::pallas_primitives::conway::{
     VotingProcedure,
 };
 use crate::pallas_traverse::ComputeHash;
+use crate::uplc::{
+    ast::Data,
+    machine::runtime::{convert_constr_to_tag, ANY_TAG},
+    tx::script_context::from_alonzo_output,
+};
 use alloc::vec::Vec;
+use num_integer::Integer;
 
 fn wrap_multiple_with_constr(index: u64, data: Vec<PlutusData>) -> PlutusData {
     let converted = convert_constr_to_tag(index);

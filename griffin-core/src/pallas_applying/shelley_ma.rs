@@ -1,5 +1,6 @@
 //! Utilities required for ShelleyMA-era transaction validation.
 
+use crate::pallas_addresses::{PaymentKeyHash, ScriptHash, ShelleyAddress, ShelleyPaymentPart};
 use crate::pallas_applying::utils::{
     add_minted_value, add_values, aux_data_from_alonzo_minted_tx, empty_value,
     get_alonzo_comp_tx_size, get_lovelace_from_alonzo_val, get_payment_part, get_shelley_address,
@@ -10,7 +11,6 @@ use crate::pallas_applying::utils::{
     ValidationError::{self, *},
     ValidationResult,
 };
-use crate::pallas_addresses::{PaymentKeyHash, ScriptHash, ShelleyAddress, ShelleyPaymentPart};
 use crate::pallas_codec::minicbor::encode;
 use crate::pallas_crypto::hash::Hasher as PallasHasher;
 use crate::pallas_primitives::{
@@ -28,8 +28,8 @@ use crate::pallas_primitives::{
 use crate::pallas_traverse::{
     time::Slot, wellknown::GenesisValues, ComputeHash, Era, MultiEraInput, MultiEraOutput,
 };
-use core::{cmp::max, ops::Deref};
 use alloc::vec::Vec;
+use core::{cmp::max, ops::Deref};
 use hashbrown::HashMap;
 // TODO: remove when fixed missing args
 
@@ -330,7 +330,9 @@ fn check_vk_wit(
     wits: &mut [(bool, VKeyWitness)],
 ) -> ValidationResult {
     for (found, vkey_wit) in wits {
-        if crate::pallas_crypto::hash::Hasher::<224>::hash(&vkey_wit.vkey.clone()) == *payment_key_hash {
+        if crate::pallas_crypto::hash::Hasher::<224>::hash(&vkey_wit.vkey.clone())
+            == *payment_key_hash
+        {
             if verify_signature(vkey_wit, data_to_verify) {
                 *found = true;
                 return Ok(());

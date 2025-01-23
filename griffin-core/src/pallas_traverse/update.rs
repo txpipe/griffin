@@ -1,6 +1,4 @@
-use alloc::vec::Vec;
-use alloc::boxed::Box;
-use alloc::borrow::Cow;
+use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use core::ops::Deref;
 
 use crate::pallas_codec::minicbor;

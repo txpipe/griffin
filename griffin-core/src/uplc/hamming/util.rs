@@ -1,4 +1,4 @@
-use core::{slice, mem};
+use core::{mem, slice};
 
 /// Reinterpret as much of `x` as a slice of (correctly aligned) `U`s
 /// as possible. (Same as `slice::align_to` but available in earlier
@@ -20,15 +20,13 @@ pub unsafe fn align_to<T, U>(x: &[T]) -> (&[T], &[U], &[T]) {
 
     // can't fit a single U in
     if mem::size_of_val(x) < size + byte_distance {
-        return (x, &[], &[])
+        return (x, &[], &[]);
     }
 
     let (head, middle) = x.split_at(byte_distance / orig_size);
 
     assert!(middle.as_ptr() as usize % alignment == 0);
-    let cast_middle =
-        slice::from_raw_parts(middle.as_ptr() as *const U,
-                              middle.len() / size_ratio);
+    let cast_middle = slice::from_raw_parts(middle.as_ptr() as *const U, middle.len() / size_ratio);
     let tail = &middle[cast_middle.len() * size_ratio..];
 
     (head, cast_middle, tail)

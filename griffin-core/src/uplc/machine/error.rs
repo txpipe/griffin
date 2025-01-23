@@ -1,7 +1,10 @@
 use super::{ExBudget, Value};
 use crate::uplc::ast::{NamedDeBruijn, Term, Type};
+use alloc::{
+    string::{FromUtf8Error, String, ToString},
+    vec::Vec,
+};
 use num_bigint::BigInt;
-use alloc::{string::{FromUtf8Error, String, ToString}, vec::Vec};
 
 #[derive(Debug, Clone, PartialEq, thiserror_no_std::Error)]
 pub enum Error {

@@ -1,6 +1,6 @@
 // use std::{borrow::Cow, fmt::Display, ops::Deref, str::FromStr};
-use alloc::{string::String, boxed::Box, vec::Vec, borrow::Cow};
-use core::{fmt, fmt::Display, str::FromStr, ops::Deref};
+use alloc::{borrow::Cow, boxed::Box, string::String, vec::Vec};
+use core::{fmt, fmt::Display, ops::Deref, str::FromStr};
 
 use crate::pallas_codec::utils::CborWrap;
 use crate::pallas_crypto::hash::Hash;
@@ -35,7 +35,8 @@ impl FromStr for OutputRef {
         let parts: Vec<_> = s.trim().split('#').collect();
         let (hash, idx) = match &parts[..] {
             &[a, b] => (
-                Hash::<32>::from_str(a).map_err(|_| crate::pallas_traverse::Error::invalid_utxo_ref(s))?,
+                Hash::<32>::from_str(a)
+                    .map_err(|_| crate::pallas_traverse::Error::invalid_utxo_ref(s))?,
                 u64::from_str(b).map_err(|_| crate::pallas_traverse::Error::invalid_utxo_ref(s))?,
             ),
             _ => return Err(crate::pallas_traverse::Error::invalid_utxo_ref(s)),

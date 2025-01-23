@@ -3,6 +3,10 @@ use super::{
     to_plutus_data::ToPlutusData,
     Error,
 };
+use crate::pallas_codec::utils::Bytes;
+use crate::pallas_primitives::conway::{
+    CostModel, CostModels, ExUnits, Language, MintedTx, Redeemer,
+};
 use crate::uplc::{
     ast::{FakeNamedDeBruijn, NamedDeBruijn, Program},
     machine::cost_model::ExBudget,
@@ -12,9 +16,7 @@ use crate::uplc::{
     },
     PlutusData,
 };
-use crate::pallas_codec::utils::Bytes;
-use crate::pallas_primitives::conway::{CostModel, CostModels, ExUnits, Language, MintedTx, Redeemer};
-use alloc::{vec::Vec, boxed::Box};
+use alloc::{boxed::Box, vec::Vec};
 
 pub fn eval_redeemer(
     tx: &MintedTx,

@@ -1,5 +1,6 @@
 //! Utilities required for Alonzo-era transaction validation.
 
+use crate::pallas_addresses::{ScriptHash, ShelleyAddress, ShelleyPaymentPart};
 use crate::pallas_applying::utils::{
     add_minted_value, add_values, aux_data_from_alonzo_minted_tx, compute_native_script_hash,
     compute_plutus_v1_script_hash, empty_value, get_alonzo_comp_tx_size,
@@ -10,8 +11,6 @@ use crate::pallas_applying::utils::{
     ValidationError::{self, *},
     ValidationResult,
 };
-use hex;
-use crate::pallas_addresses::{ScriptHash, ShelleyAddress, ShelleyPaymentPart};
 use crate::pallas_codec::{
     minicbor::{encode, Encoder},
     utils::{Bytes, KeepRaw},
@@ -26,9 +25,10 @@ use crate::pallas_primitives::{
     byron::TxOut,
 };
 use crate::pallas_traverse::{MultiEraInput, MultiEraOutput, OriginalHash};
+use hex;
 // use std::ops::Deref;
-use core::ops::Deref;
 use alloc::{borrow::ToOwned, vec::Vec};
+use core::ops::Deref;
 
 pub fn validate_alonzo_tx(
     mtx: &MintedTx,
@@ -758,7 +758,9 @@ fn check_vk_wit(
     data_to_verify: &[u8],
 ) -> ValidationResult {
     for (vkey_wit_covered, vkey_wit) in wits {
-        if crate::pallas_crypto::hash::Hasher::<224>::hash(&vkey_wit.vkey.clone()) == *payment_key_hash {
+        if crate::pallas_crypto::hash::Hasher::<224>::hash(&vkey_wit.vkey.clone())
+            == *payment_key_hash
+        {
             if !verify_signature(vkey_wit, data_to_verify) {
                 return Err(Alonzo(VKWrongSignature));
             } else {

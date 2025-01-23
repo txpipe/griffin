@@ -1,7 +1,11 @@
-use crate::uplc::ast::Term;
 use crate::pallas_codec::flat::de;
+use crate::uplc::ast::Term;
+use alloc::{
+    rc::Rc,
+    str::FromStr,
+    string::{String, ToString},
+};
 use core::fmt::Display;
-use alloc::{rc::Rc, str::FromStr, string::{String, ToString}};
 use strum_macros::EnumIter;
 
 /// All the possible builtin functions in Untyped Plutus Core.

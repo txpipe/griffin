@@ -1,5 +1,5 @@
 // use std::borrow::Cow;
-use alloc::{boxed::Box, borrow::Cow};
+use alloc::{borrow::Cow, boxed::Box};
 
 use crate::pallas_primitives::{alonzo, conway};
 

@@ -2,12 +2,14 @@ use crate::uplc::hamming::util;
 
 fn naive(x: &[u8], y: &[u8]) -> u64 {
     assert_eq!(x.len(), y.len());
-    x.iter().zip(y).fold(0, |a, (b, c)| a + (*b ^ *c).count_ones() as u64)
+    x.iter()
+        .zip(y)
+        .fold(0, |a, (b, c)| a + (*b ^ *c).count_ones() as u64)
 }
 
 #[derive(Debug, PartialEq, Eq, Ord, PartialOrd, Hash, Clone)]
 pub struct DistanceError {
-    _x: ()
+    _x: (),
 }
 
 /// Computes the bitwise [Hamming
@@ -75,12 +77,8 @@ pub fn distance_fast(x: &[u8], y: &[u8]) -> Result<u64, DistanceError> {
     type T30 = [u64; 30];
 
     // can't fit a single T30 in
-    let (head1, thirty1, tail1) = unsafe {
-        util::align_to::<_, T30>(x)
-    };
-    let (head2, thirty2, tail2) = unsafe {
-        util::align_to::<_, T30>(y)
-    };
+    let (head1, thirty1, tail1) = unsafe { util::align_to::<_, T30>(x) };
+    let (head2, thirty2, tail2) = unsafe { util::align_to::<_, T30>(y) };
 
     if head1.len() != head2.len() {
         // The arrays required different shift amounts, so we can't
@@ -110,8 +108,8 @@ pub fn distance_fast(x: &[u8], y: &[u8]) -> Result<u64, DistanceError> {
             acc += (count1 & M4) + ((count1 >> 4) & M4);
         }
         acc = (acc & M8) + ((acc >> 8) & M8);
-        acc =  acc       +  (acc >> 16);
-        acc =  acc       +  (acc >> 32);
+        acc = acc + (acc >> 16);
+        acc = acc + (acc >> 32);
         count += acc & 0xFFFF;
     }
     Ok(count)
@@ -165,7 +163,5 @@ pub fn distance_fast(x: &[u8], y: &[u8]) -> Result<u64, DistanceError> {
 /// assert_eq!(hamming::distance(&x, &y), 8 * 1000);
 /// ```
 pub fn distance(x: &[u8], y: &[u8]) -> u64 {
-    distance_fast(x, y)
-        .ok()
-        .unwrap_or_else(|| naive(x, y))
+    distance_fast(x, y).ok().unwrap_or_else(|| naive(x, y))
 }

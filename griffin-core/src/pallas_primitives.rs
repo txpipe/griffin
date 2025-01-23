@@ -20,8 +20,8 @@ pub use crate::pallas_codec::utils::{
 pub use crate::pallas_crypto::hash::Hash;
 
 use crate::pallas_codec::minicbor::{self, data::Tag, Decode, Encode};
+use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
-use alloc::{vec::Vec, string::String};
 
 // ----- Common type definitions
 

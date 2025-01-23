@@ -9,9 +9,9 @@ pub mod eval_result;
 pub mod runtime;
 pub mod value;
 
+use crate::pallas_primitives::conway::Language;
 use cost_model::{ExBudget, StepKind};
 pub use error::Error;
-use crate::pallas_primitives::conway::Language;
 
 use self::{
     cost_model::CostModel,

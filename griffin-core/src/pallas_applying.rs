@@ -8,11 +8,11 @@ pub mod byron;
 pub mod shelley_ma;
 pub mod utils;
 
+use crate::pallas_primitives::alonzo::TransactionIndex;
+use crate::pallas_traverse::{Era, MultiEraTx};
 use alonzo::validate_alonzo_tx;
 use babbage::validate_babbage_tx;
 use byron::validate_byron_tx;
-use crate::pallas_primitives::alonzo::TransactionIndex;
-use crate::pallas_traverse::{Era, MultiEraTx};
 use shelley_ma::validate_shelley_ma_tx;
 
 pub use utils::{

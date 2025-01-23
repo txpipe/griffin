@@ -3,6 +3,7 @@ use super::{
     value::{from_pallas_bigint, to_pallas_bigint},
     Error, Value,
 };
+use crate::pallas_primitives::conway::{Language, PlutusData};
 use crate::uplc::{
     ast::{Constant, Data, Type},
     builtins::DefaultFunction,
@@ -10,26 +11,28 @@ use crate::uplc::{
     machine::value::integer_log2,
     plutus_data_to_bytes,
 };
+use alloc::{
+    rc::Rc,
+    string::{String, ToString},
+    vec::Vec,
+};
 use bitvec::{order::Msb0, vec::BitVec};
+use core::{mem::size_of, ops::Deref};
 use itertools::Itertools;
+use lazy_static::lazy_static;
 use num_bigint::BigInt;
 use num_integer::Integer;
 use num_traits::{FromPrimitive, Signed, Zero};
-use lazy_static::lazy_static;
-use crate::pallas_primitives::conway::{Language, PlutusData};
-use core::{mem::size_of, ops::Deref};
-use alloc::{rc::Rc, string::{String, ToString}, vec::Vec};
 
 lazy_static! {
-    static ref SCALAR_PERIOD: BigInt =
-        BigInt::from_bytes_be(
-            num_bigint::Sign::Plus,
-            &[
-                0x73, 0xed, 0xa7, 0x53, 0x29, 0x9d, 0x7d, 0x48, 0x33, 0x39, 0xd8, 0x08, 0x09, 0xa1,
-                0xd8, 0x05, 0x53, 0xbd, 0xa4, 0x02, 0xff, 0xfe, 0x5b, 0xfe, 0xff, 0xff, 0xff, 0xff,
-                0x00, 0x00, 0x00, 0x01,
-            ],
-        );
+    static ref SCALAR_PERIOD: BigInt = BigInt::from_bytes_be(
+        num_bigint::Sign::Plus,
+        &[
+            0x73, 0xed, 0xa7, 0x53, 0x29, 0x9d, 0x7d, 0x48, 0x33, 0x39, 0xd8, 0x08, 0x09, 0xa1,
+            0xd8, 0x05, 0x53, 0xbd, 0xa4, 0x02, 0xff, 0xfe, 0x5b, 0xfe, 0xff, 0xff, 0xff, 0xff,
+            0x00, 0x00, 0x00, 0x01,
+        ],
+    );
 }
 
 const BLST_P1_COMPRESSED_SIZE: usize = 48;

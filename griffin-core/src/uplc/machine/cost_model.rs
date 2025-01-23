@@ -1,9 +1,9 @@
 use super::{Error, Value};
-use crate::uplc::builtins::DefaultFunction;
-use num_traits::Signed;
 use crate::pallas_primitives::conway::Language;
-use hashbrown::HashMap;
+use crate::uplc::builtins::DefaultFunction;
 use alloc::boxed::Box;
+use hashbrown::HashMap;
+use num_traits::Signed;
 
 macro_rules! hashmap {
     // map-like

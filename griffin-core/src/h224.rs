@@ -12,23 +12,23 @@ construct_fixed_hash! {
 }
 
 mod serde {
-    use impl_serde::impl_fixed_hash_serde;
     use super::H224;
-    
+    use impl_serde::impl_fixed_hash_serde;
+
     impl_fixed_hash_serde!(H224, 28);
 }
 
 mod codec {
-    use impl_codec::impl_fixed_hash_codec;
     use super::H224;
+    use impl_codec::impl_fixed_hash_codec;
 
     impl_fixed_hash_codec!(H224, 28);
 }
 
 mod rlp {
-    use impl_rlp::impl_fixed_hash_rlp;
     use super::H224;
-    
+    use impl_rlp::impl_fixed_hash_rlp;
+
     impl_fixed_hash_rlp!(H224, 28);
 }
 

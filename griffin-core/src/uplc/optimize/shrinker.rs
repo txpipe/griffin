@@ -1,16 +1,20 @@
 use super::interner::CodeGenInterner;
+use crate::pallas_primitives::conway::{BigInt, PlutusData};
 use crate::uplc::{
     ast::{Constant, Data, Name, NamedDeBruijn, Program, Term, Type},
     builder::{CONSTR_FIELDS_EXPOSER, CONSTR_INDEX_EXPOSER, INDICES_CONVERTER},
     builtins::DefaultFunction,
     machine::{cost_model::ExBudget, runtime::Compressable, value::from_pallas_bigint},
 };
+use alloc::{
+    rc::Rc,
+    string::{String, ToString},
+    vec::Vec,
+};
 use blst::{blst_p1, blst_p2};
+use core::{cmp::Ordering, iter, ops::Neg};
 use hashbrown::HashMap;
 use itertools::{FoldWhile, Itertools};
-use crate::pallas_primitives::conway::{BigInt, PlutusData};
-use alloc::{rc::Rc, string::{String, ToString}, vec::Vec};
-use core::{cmp::Ordering, iter, ops::Neg};
 use strum::IntoEnumIterator;
 
 #[derive(Eq, Hash, PartialEq, Clone, Debug, PartialOrd)]
@@ -2718,13 +2722,13 @@ fn id_vec_function_to_var(func_name: &str, id_vec: &[usize]) -> String {
 #[cfg(test)]
 mod tests {
     use super::NO_INLINE;
+    use crate::pallas_primitives::conway::{BigInt, PlutusData};
     use crate::uplc::{
         ast::{Constant, Data, Name, NamedDeBruijn, Program, Term},
         builder::{CONSTR_FIELDS_EXPOSER, CONSTR_INDEX_EXPOSER},
         builtins::DefaultFunction,
         optimize::interner::CodeGenInterner,
     };
-    use crate::pallas_primitives::conway::{BigInt, PlutusData};
     use pretty_assertions::assert_eq;
 
     fn compare_optimization(

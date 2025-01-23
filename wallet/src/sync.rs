@@ -16,6 +16,11 @@ use std::path::PathBuf;
 
 use crate::rpc;
 use anyhow::anyhow;
+use griffin_core::{
+    pallas_codec::minicbor::decode::{Decode as MiniDecode, Decoder as MiniDecoder},
+    types::{Address, Datum, FakeDatum, Input, OpaqueBlock, Transaction, Value},
+};
+use jsonrpsee::http_client::HttpClient;
 use parity_scale_codec::{Decode, Encode};
 use sled::Db;
 use sp_core::H256;
@@ -23,13 +28,6 @@ use sp_runtime::{
     traits::{BlakeTwo256, Hash},
     OpaqueExtrinsic,
 };
-use griffin_core::{
-    types::{
-        Transaction, Value, Input, OpaqueBlock, Address, Datum, FakeDatum
-    },
-    pallas_codec::minicbor::decode::{Decode as MiniDecode, Decoder as MiniDecoder},
-};
-use jsonrpsee::http_client::HttpClient;
 
 /// The identifier for the blocks tree in the db.
 const BLOCKS: &str = "blocks";
@@ -100,20 +98,14 @@ pub(crate) fn open_db(
     Ok(db)
 }
 
-pub(crate) async fn synchronize(
-    db: &Db,
-    client: &HttpClient,
-) -> anyhow::Result<()> {
+pub(crate) async fn synchronize(db: &Db, client: &HttpClient) -> anyhow::Result<()> {
     synchronize_helper(db, client).await
 }
 
 /// Synchronize the local database to the database of the running node.
 /// The wallet entirely trusts the data the node feeds it. In the bigger
 /// picture, that means run your own (light) node.
-pub(crate) async fn synchronize_helper(
-    db: &Db,
-    client: &HttpClient,
-) -> anyhow::Result<()> {
+pub(crate) async fn synchronize_helper(db: &Db, client: &HttpClient) -> anyhow::Result<()> {
     log::debug!("Synchronizing wallet with node.");
 
     // Start the algorithm at the height that the wallet currently thinks is best.
@@ -180,7 +172,9 @@ pub(crate) fn get_unspent(
         return Ok(None);
     };
 
-    Ok(Some(<(Address, Value, std::option::Option<Datum>)>::decode(&mut &ivec[..])?))
+    Ok(Some(
+        <(Address, Value, std::option::Option<Datum>)>::decode(&mut &ivec[..])?,
+    ))
 }
 
 /// Gets the block hash from the local database given a block height. Similar the Node's RPC.
@@ -198,11 +192,7 @@ pub(crate) fn get_block_hash(db: &Db, height: u32) -> anyhow::Result<Option<H256
 }
 
 /// Apply a block to the local database
-pub(crate) async fn apply_block(
-    db: &Db,
-    b: OpaqueBlock,
-    block_hash: H256,
-) -> anyhow::Result<()> {
+pub(crate) async fn apply_block(db: &Db, b: OpaqueBlock, block_hash: H256) -> anyhow::Result<()> {
     log::debug!("Applying Block {:?}, Block_Hash {:?}", b, block_hash);
     // Write the hash to the block_hashes table
     let wallet_block_hashes_tree = db.open_tree(BLOCK_HASHES)?;
@@ -222,10 +212,7 @@ pub(crate) async fn apply_block(
 
 /// Apply a single transaction to the local database
 /// The owner-specific tables are mappings from inputs to coin amounts
-async fn apply_transaction(
-    db: &Db,
-    opaque_tx: OpaqueExtrinsic,
-) -> anyhow::Result<()> {
+async fn apply_transaction(db: &Db, opaque_tx: OpaqueExtrinsic) -> anyhow::Result<()> {
     let encoded_extrinsic = opaque_tx.encode();
     let tx_hash = BlakeTwo256::hash_of(&encoded_extrinsic);
     log::debug!("syncing transaction {tx_hash:?}");
@@ -256,7 +243,10 @@ pub(crate) fn add_unspent_output(
     datum_option: &Option<Datum>,
 ) -> anyhow::Result<()> {
     let unspent_tree = db.open_tree(UNSPENT)?;
-    unspent_tree.insert(input.encode(), (owner_pubkey, amount, datum_option).encode())?;
+    unspent_tree.insert(
+        input.encode(),
+        (owner_pubkey, amount, datum_option).encode(),
+    )?;
 
     Ok(())
 }
@@ -385,12 +375,13 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
             None => None,
             Some(d) => MiniDecode::decode(&mut MiniDecoder::new(d.0.as_slice()), &mut ()).unwrap(),
         };
-        
-        println!("{}: owner address {}, datum {:?}, amount: {}",
-                 input,
-                 owner_pubkey,
-                 fake_option,
-                 amount.normalize(),
+
+        println!(
+            "{}: owner address {}, datum {:?}, amount: {}",
+            input,
+            owner_pubkey,
+            fake_option,
+            amount.normalize(),
         );
     }
 
@@ -405,10 +396,10 @@ pub(crate) fn get_balances(db: &Db) -> anyhow::Result<impl Iterator<Item = (Addr
     let wallet_unspent_tree = db.open_tree(UNSPENT)?;
 
     for raw_data in wallet_unspent_tree.iter() {
-        let (_ , owner_amount_datum_ivec) = raw_data?;
+        let (_, owner_amount_datum_ivec) = raw_data?;
         let (owner, amount, _) =
             <(Address, Value, Option<Datum>)>::decode(&mut &owner_amount_datum_ivec[..])?;
-        
+
         balances
             .entry(owner)
             .and_modify(|old| *old += amount.clone())

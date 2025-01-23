@@ -2,24 +2,15 @@
 
 use std::path::PathBuf;
 
-use clap::{ArgAction::Append, Args, Parser, Subcommand};
-use griffin_core::{
-    types::{
-        Coin, Input, Address, PolicyId,
-    },
-    genesis::{
-        SHAWN_PUB_KEY, SHAWN_ADDRESS,
-    },
-};
 use crate::{
-    input_from_string,
-    DEFAULT_ENDPOINT,
-    address_from_string,
-    h256_from_string,
-    h224_from_string,
+    address_from_string, h224_from_string, h256_from_string, input_from_string, DEFAULT_ENDPOINT,
     H256,
 };
-
+use clap::{ArgAction::Append, Args, Parser, Subcommand};
+use griffin_core::{
+    genesis::{SHAWN_ADDRESS, SHAWN_PUB_KEY},
+    types::{Address, Coin, Input, PolicyId},
+};
 
 #[doc(hidden)]
 /// The default number of coins to be minted.
@@ -68,7 +59,6 @@ pub enum Command {
     // /// If publickKey of owner is not passed, then by default SHAWN_PUB_KEY is used.
     // #[command(verbatim_doc_comment)]
     // MintCoins(MintCoinArgs),
-
     /// Verify that a particular output ref exists.
     /// Show its value and owner address from both chain storage and the local database.
     #[command(verbatim_doc_comment)]
@@ -150,7 +140,7 @@ pub struct SpendValueArgs {
     /// An amount of `Coin`s to be included in the output value.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub amount: Option<Coin>,
-    
+
     /// Policy ID of the asset to be spent.
     #[arg(long, short, verbatim_doc_comment, value_parser = h224_from_string, action = Append, value_name = "POLICY_ID")]
     pub policy: Vec<PolicyId>,

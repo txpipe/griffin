@@ -1,29 +1,22 @@
 //! Types used to construct Griffin transactions.
-use parity_scale_codec::{Decode, Encode};
+use crate::h224::H224;
+use crate::pallas_applying::utils::BabbageError;
 use crate::pallas_codec::minicbor::{
-    self, Encoder, Decoder,
-    decode::Error as MiniDecError,
-    encode::Error as MiniEncError,
-    encode::Write as MiniWrite,
-    Decode as MiniDecode,
-    Encode as MiniEncode,
+    self, decode::Error as MiniDecError, encode::Error as MiniEncError, encode::Write as MiniWrite,
+    Decode as MiniDecode, Decoder, Encode as MiniEncode, Encoder,
 };
+use crate::pallas_crypto::hash::Hash as PallasHash;
+use alloc::{collections::BTreeMap, string::String, vec::Vec};
+use core::ops::{Add, AddAssign, Sub, SubAssign};
+use core::{fmt, ops::Deref};
+use parity_scale_codec::{Decode, Encode};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
-use sp_core::{
-    H256,
-    ed25519::Public,
-};
-use crate::h224::H224;
+use sp_core::{ed25519::Public, H256};
 use sp_runtime::{
     traits::{BlakeTwo256, Extrinsic, Hash as HashT},
     transaction_validity::InvalidTransaction,
 };
-use alloc::{vec::Vec, collections::BTreeMap, string::String};
-use core::{fmt, ops::Deref};
-use crate::pallas_crypto::hash::Hash as PallasHash;
-use crate::pallas_applying::utils::BabbageError;
-use core::ops::{Add, AddAssign, Sub, SubAssign};
 
 pub type Coin = u64;
 
@@ -46,7 +39,9 @@ pub struct Input {
     pub index: u32,
 }
 
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default)]
+#[derive(
+    Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default,
+)]
 pub struct TransactionBody {
     pub inputs: Vec<Input>,
     pub outputs: Vec<Output>,
@@ -58,10 +53,8 @@ pub type PolicyId = H224;
 
 // TODO: Minicbor implementation needed for temporary `FakeDatum` struct.
 impl<'b, C> MiniDecode<'b, C> for PolicyId {
-    fn decode(
-        d: &mut Decoder<'b>, ctx: &mut C
-    ) -> Result<Self, MiniDecError> {
-        let tx_hash28: PallasHash::<28> = d.decode_with(ctx)?;
+    fn decode(d: &mut Decoder<'b>, ctx: &mut C) -> Result<Self, MiniDecError> {
+        let tx_hash28: PallasHash<28> = d.decode_with(ctx)?;
 
         Ok(H224::from(tx_hash28.deref()))
     }
@@ -82,11 +75,39 @@ impl<C> MiniEncode<C> for PolicyId {
 
 /// Name of a Cardano asset as byte sequence.
 // TODO: Mini traits needed to encode temporary `FakeDatum`
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, PartialOrd, Ord, MiniEncode, MiniDecode)]
+#[derive(
+    Serialize,
+    Deserialize,
+    Encode,
+    Decode,
+    Debug,
+    PartialEq,
+    Eq,
+    Clone,
+    TypeInfo,
+    Default,
+    PartialOrd,
+    Ord,
+    MiniEncode,
+    MiniDecode,
+)]
 pub struct AssetName(#[n(0)] pub String);
 
 /// `BTreeMap`, encapsulated in order to implement relevant traits.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default, PartialOrd, Ord)]
+#[derive(
+    Serialize,
+    Deserialize,
+    Encode,
+    Decode,
+    Debug,
+    PartialEq,
+    Eq,
+    Clone,
+    TypeInfo,
+    Default,
+    PartialOrd,
+    Ord,
+)]
 pub struct EncapBTree<K: Ord, V>(pub BTreeMap<K, V>);
 
 impl<K: Ord, V> EncapBTree<K, V> {
@@ -107,7 +128,7 @@ impl<T: Clone + fmt::Display> fmt::Display for Multiasset<T> {
             res += &format!("  ({p}) {}: {a}\n", n.0);
         }
         res.pop(); // Remove the last newline.
-        write!(f,"{res}")
+        write!(f, "{res}")
     }
 }
 
@@ -127,7 +148,7 @@ pub enum Value {
 impl fmt::Display for Value {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use Value::*;
-        
+
         match self {
             Coin(c) => write!(f, "{} Coins", c),
             Multiasset(c, ma) => write!(f, "{} Coins, Multiassets:\n{}", c, ma),
@@ -163,7 +184,9 @@ pub enum RedeemerTag {
     Mint,
 }
 
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, PartialOrd)]
+#[derive(
+    Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash, PartialOrd,
+)]
 pub struct PlutusData(pub Vec<u8>);
 
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
@@ -184,13 +207,21 @@ pub struct WitnessSet {
 
 impl Default for WitnessSet {
     fn default() -> Self {
-        Self{ vkeywitness: None, plutus_script: None, redeemer: None }
+        Self {
+            vkeywitness: None,
+            plutus_script: None,
+            redeemer: None,
+        }
     }
 }
 
 impl From<Vec<VKeyWitness>> for WitnessSet {
     fn from(wits: Vec<VKeyWitness>) -> Self {
-        Self{ vkeywitness: Some(wits), plutus_script: None, redeemer: None }
+        Self {
+            vkeywitness: Some(wits),
+            plutus_script: None,
+            redeemer: None,
+        }
     }
 }
 
@@ -227,7 +258,10 @@ impl Decode for Transaction {
         let transaction_body = <TransactionBody as Decode>::decode(input)?;
         let transaction_witness_set = <WitnessSet as Decode>::decode(input)?;
 
-        Ok(Transaction { transaction_body, transaction_witness_set })
+        Ok(Transaction {
+            transaction_body,
+            transaction_witness_set,
+        })
     }
 }
 
@@ -248,7 +282,7 @@ impl Extrinsic for Transaction {
     }
 }
 
-/// Reasons to reject a transaction. 
+/// Reasons to reject a transaction.
 #[derive(Debug)]
 pub enum UTxOError {
     /// A Babbage era validation error returned by Pallas.
@@ -261,8 +295,8 @@ pub enum UTxOError {
 impl From<UTxOError> for InvalidTransaction {
     fn from(utxo_error: UTxOError) -> Self {
         use BabbageError::*;
-        use UTxOError::*;
         use InvalidTransaction::Custom;
+        use UTxOError::*;
 
         match utxo_error {
             Fail => Custom(32),
@@ -331,7 +365,11 @@ impl<C> MiniDecode<'_, C> for Datum {
 }
 
 impl<C> MiniEncode<C> for Datum {
-    fn encode<W: MiniWrite>(&self, e: &mut Encoder<W>, _: &mut C) -> Result<(), MiniEncError<W::Error>> {
+    fn encode<W: MiniWrite>(
+        &self,
+        e: &mut Encoder<W>,
+        _: &mut C,
+    ) -> Result<(), MiniEncError<W::Error>> {
         e.bytes(&self.0)?.ok()
     }
 }
@@ -376,45 +414,73 @@ impl fmt::Debug for Address {
 
 impl From<(Address, Coin)> for Output {
     fn from(a_c: (Address, Coin)) -> Self {
-        Self { address: a_c.0, value: Value::Coin(a_c.1), datum_option: None }
+        Self {
+            address: a_c.0,
+            value: Value::Coin(a_c.1),
+            datum_option: None,
+        }
     }
 }
 
 impl From<(Address, Value)> for Output {
     fn from((address, value): (Address, Value)) -> Self {
-        Self { address, value, datum_option: None }
+        Self {
+            address,
+            value,
+            datum_option: None,
+        }
     }
 }
 
 impl From<(Address, Coin, Datum)> for Output {
     fn from(a_c_d: (Address, Coin, Datum)) -> Self {
-        Self { address: a_c_d.0, value: Value::Coin(a_c_d.1), datum_option: Some(a_c_d.2) }
+        Self {
+            address: a_c_d.0,
+            value: Value::Coin(a_c_d.1),
+            datum_option: Some(a_c_d.2),
+        }
     }
 }
 
 impl From<(Address, Value, Datum)> for Output {
     fn from((address, value, datum): (Address, Value, Datum)) -> Self {
-        Self { address, value, datum_option: Some(datum) }
+        Self {
+            address,
+            value,
+            datum_option: Some(datum),
+        }
     }
 }
 
 impl From<(Address, Coin, Option<Datum>)> for Output {
     fn from((address, coin, datum_option): (Address, Coin, Option<Datum>)) -> Self {
-        Self { address, value: Value::Coin(coin), datum_option }
+        Self {
+            address,
+            value: Value::Coin(coin),
+            datum_option,
+        }
     }
 }
 
 impl From<(Address, Coin, Multiasset<Coin>, Option<Datum>)> for Output {
     fn from(
-        (address, coin, ma, datum_option): (Address, Coin, Multiasset<Coin>, Option<Datum>))
-        -> Self {
-        Self { address, value: Value::Multiasset(coin,ma), datum_option }
+        (address, coin, ma, datum_option): (Address, Coin, Multiasset<Coin>, Option<Datum>),
+    ) -> Self {
+        Self {
+            address,
+            value: Value::Multiasset(coin, ma),
+            datum_option,
+        }
     }
 }
 
 impl From<(Address, Value, Option<Datum>)> for Output {
     fn from((address, value, datum_option): (Address, Value, Option<Datum>)) -> Self {
-        Self { address, value, datum_option }
+        Self {
+            address,
+            value,
+            datum_option,
+        }
     }
 }
 
@@ -439,8 +505,7 @@ impl From<(Vec<u8>, Vec<u8>)> for VKeyWitness {
 impl From<(Vec<Input>, Vec<Output>)> for Transaction {
     fn from((inputs, outputs): (Vec<Input>, Vec<Output>)) -> Self {
         Self {
-            transaction_body: TransactionBody
-            {
+            transaction_body: TransactionBody {
                 inputs,
                 outputs,
                 mint: None,
@@ -457,20 +522,23 @@ pub fn address_from_hex(hex: &str) -> Address {
 }
 
 pub fn address_from_pk(pk: &Public) -> Address {
-    use crate::pallas_crypto::hash::{Hasher as PallasHasher};
-    
+    use crate::pallas_crypto::hash::Hasher as PallasHasher;
+
     let mut keyhash_with_header: Vec<u8> = alloc::vec![0x61];
-    let mut keyhash: Vec<u8>  = PallasHasher::<224>::hash(&pk.0).to_vec();
+    let mut keyhash: Vec<u8> = PallasHasher::<224>::hash(&pk.0).to_vec();
     keyhash_with_header.append(&mut keyhash);
-    
+
     Address(keyhash_with_header)
 }
 
 impl<A> From<(PolicyId, AssetName, A)> for Multiasset<A> {
     fn from((policy, name, amount): (PolicyId, AssetName, A)) -> Self {
-        EncapBTree::<PolicyId, EncapBTree<AssetName, A>>(
-            BTreeMap::from([(policy, EncapBTree::<AssetName, A>(BTreeMap::from([(name, amount); 1]))); 1])
-        )
+        EncapBTree::<PolicyId, EncapBTree<AssetName, A>>(BTreeMap::from(
+            [(
+                policy,
+                EncapBTree::<AssetName, A>(BTreeMap::from([(name, amount); 1])),
+            ); 1],
+        ))
     }
 }
 
@@ -486,16 +554,17 @@ impl From<(Coin, PolicyId, AssetName, Coin)> for Value {
     }
 }
 
-impl<K: Ord + Clone, V: Add<Output = V> + Clone> Add for EncapBTree::<K, V> {
+impl<K: Ord + Clone, V: Add<Output = V> + Clone> Add for EncapBTree<K, V> {
     type Output = Self;
-    
+
     /// Coordinate-wise addition of `EncapBTree`s
     fn add(self, other: Self) -> Self {
         let mut res = EncapBTree::<K, V>::new();
 
         for (k, v) in self.0.into_iter() {
-            res.0.insert(k.clone(),
-                         other.0.get(&k).map_or(v.clone(), |w| v.clone() + w.clone()),
+            res.0.insert(
+                k.clone(),
+                other.0.get(&k).map_or(v.clone(), |w| v.clone() + w.clone()),
             );
         }
 
@@ -505,19 +574,19 @@ impl<K: Ord + Clone, V: Add<Output = V> + Clone> Add for EncapBTree::<K, V> {
 
 impl Add for Value {
     type Output = Self;
-    
+
     /// Coordinate-wise addition of `Value`s
     fn add(self, other: Self) -> Self {
         use Value::*;
-        
+
         match self {
             Coin(c) => match other {
-                Coin(d)          => Coin(c+d),
-                Multiasset(d, ma) => Multiasset(c+d, ma),
+                Coin(d) => Coin(c + d),
+                Multiasset(d, ma) => Multiasset(c + d, ma),
             },
             Multiasset(c, ma) => match other {
-                Coin(d)          => Multiasset(c+d, ma),
-                Multiasset(d, mb) => Multiasset(c+d, ma+mb),
+                Coin(d) => Multiasset(c + d, ma),
+                Multiasset(d, mb) => Multiasset(c + d, ma + mb),
             },
         }
     }
@@ -529,16 +598,17 @@ impl AddAssign for Value {
     }
 }
 
-impl<K: Ord + Clone, V: Sub<Output = V> + Clone> Sub for EncapBTree::<K, V> {
+impl<K: Ord + Clone, V: Sub<Output = V> + Clone> Sub for EncapBTree<K, V> {
     type Output = Self;
-    
+
     /// Coordinate-wise subtraction of `EncapBTree`s
     fn sub(self, other: Self) -> Self {
         let mut res = EncapBTree::<K, V>::new();
 
         for (k, v) in self.0.into_iter() {
-            res.0.insert(k.clone(),
-                         other.0.get(&k).map_or(v.clone(), |w| v.clone() - w.clone()),
+            res.0.insert(
+                k.clone(),
+                other.0.get(&k).map_or(v.clone(), |w| v.clone() - w.clone()),
             );
         }
 
@@ -548,19 +618,19 @@ impl<K: Ord + Clone, V: Sub<Output = V> + Clone> Sub for EncapBTree::<K, V> {
 
 impl Sub for Value {
     type Output = Self;
-    
+
     /// Coordinate-wise subtraction of `Value`s
     fn sub(self, other: Self) -> Self {
         use Value::*;
-        
+
         match self {
             Coin(c) => match other {
-                Coin(d)          => Coin(c-d),
-                Multiasset(d, ma) => Multiasset(c-d, ma),
+                Coin(d) => Coin(c - d),
+                Multiasset(d, ma) => Multiasset(c - d, ma),
             },
             Multiasset(c, ma) => match other {
-                Coin(d)          => Multiasset(c-d, ma),
-                Multiasset(d, mb) => Multiasset(c-d, ma-mb),
+                Coin(d) => Multiasset(c - d, ma),
+                Multiasset(d, mb) => Multiasset(c - d, ma - mb),
             },
         }
     }
@@ -574,16 +644,13 @@ impl SubAssign for Value {
 
 /// Decides if the first multiasset is orderly smaller than or equal to the
 /// second one. Useful before subtracting.
-pub fn multiasset_leq(
-    small: &Multiasset<Coin>,
-    big: &Multiasset<Coin>,
-) -> bool {
+pub fn multiasset_leq(small: &Multiasset<Coin>, big: &Multiasset<Coin>) -> bool {
     for (pol, names_big) in big.0.iter() {
         if let Some(names_small) = small.0.get(pol) {
             for (name_big, amount_big) in names_big.0.iter() {
                 if let Some(amount_small) = names_small.0.get(name_big) {
                     if amount_small > amount_big {
-                        return false
+                        return false;
                     }
                 }
             }
@@ -593,30 +660,27 @@ pub fn multiasset_leq(
         if !big.0.contains_key(pol) {
             for (_, amount_small) in names_small.0.iter() {
                 if *amount_small != 0 {
-                    return false
+                    return false;
                 }
             }
         }
     }
-    
+
     true
 }
-    
+
 /// Decides if the first `Value` is orderly smaller than or equal to the
 /// second one. Useful before subtracting.
-pub fn value_leq(
-    small: &Value,
-    big: &Value,
-) -> bool {
+pub fn value_leq(small: &Value, big: &Value) -> bool {
     use Value::*;
-    
+
     match small {
         Coin(c) => match big {
-            Coin(d)          => c <= d,
+            Coin(d) => c <= d,
             Multiasset(d, _) => c <= d,
         },
         Multiasset(c, ma) => match big {
-            Coin(d)           => (c <= d) & ma.is_null(),
+            Coin(d) => (c <= d) & ma.is_null(),
             Multiasset(d, mb) => (c <= d) & multiasset_leq(ma, mb),
         },
     }
@@ -625,9 +689,7 @@ pub fn value_leq(
 impl Multiasset<Coin> {
     /// Decides if (each amount in) a [Multiasset] is null.
     pub fn is_null(&self) -> bool {
-        self.0
-            .iter()
-            .all(|(_, v)| v.0.iter().all(|(_, c)| *c == 0))
+        self.0.iter().all(|(_, v)| v.0.iter().all(|(_, c)| *c == 0))
     }
 
     /// Puts a [Multiasset] in normal form, eliminating null amounts.
@@ -639,7 +701,7 @@ impl Multiasset<Coin> {
                     if amount != 0 {
                         names.0.remove(&name);
                     }
-                };
+                }
             } else {
                 res.0.remove(&pol);
             }
@@ -647,7 +709,7 @@ impl Multiasset<Coin> {
         res
     }
 }
-    
+
 impl<T: Clone> From<&Multiasset<T>> for Vec<(PolicyId, AssetName, T)> {
     fn from(ma: &Multiasset<T>) -> Vec<(PolicyId, AssetName, T)> {
         let mut res = Vec::<(PolicyId, AssetName, T)>::new();
@@ -683,12 +745,12 @@ impl Value {
                 } else {
                     Multiasset(*c, ma.normalize())
                 }
-            },
+            }
             Coin(c) => Coin(*c),
         }
     }
 }
-    
+
 impl From<String> for AssetName {
     fn from(string: String) -> Self {
         Self(string)

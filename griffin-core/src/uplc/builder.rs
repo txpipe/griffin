@@ -1,8 +1,8 @@
+use crate::pallas_primitives::alonzo::PlutusData;
 use crate::uplc::{
     ast::{Constant, Name, Term, Type},
     builtins::DefaultFunction,
 };
-use crate::pallas_primitives::alonzo::PlutusData;
 use alloc::{rc::Rc, string::ToString, vec::Vec};
 
 pub const CONSTR_FIELDS_EXPOSER: &str = "__constr_fields_exposer";

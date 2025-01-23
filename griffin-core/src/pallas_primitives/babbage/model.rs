@@ -19,8 +19,8 @@ pub use crate::pallas_primitives::{
 };
 
 // no std:
-use core::clone;
 use alloc::vec::Vec;
+use core::clone;
 
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone)]
 pub struct HeaderBody {
@@ -705,7 +705,7 @@ where
     T1: clone::Clone,
     T2: clone::Clone,
     T3: clone::Clone,
-    {
+{
     #[n(0)]
     pub transaction_body: T1,
 

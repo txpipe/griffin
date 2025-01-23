@@ -1,10 +1,10 @@
-use crate::pallas_traverse::{ComputeHash, OriginalHash};
 use crate::pallas_codec::utils::KeepRaw;
 use crate::pallas_crypto::{
     hash::{Hash, Hasher},
     key::ed25519::PublicKey,
 };
 use crate::pallas_primitives::{alonzo, babbage, byron, conway};
+use crate::pallas_traverse::{ComputeHash, OriginalHash};
 
 impl ComputeHash<32> for byron::EbbHead {
     fn compute_hash(&self) -> Hash<32> {

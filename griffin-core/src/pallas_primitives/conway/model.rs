@@ -3,8 +3,8 @@
 //! Handcrafted, idiomatic rust artifacts based on based on the [Conway CDDL](https://github.com/IntersectMBO/cardano-ledger/blob/master/eras/conway/impl/cddl-files/conway.cddl) file in IntersectMBO repo.
 
 // no std:
+use alloc::{boxed::Box, string::String, vec::Vec};
 use core::clone;
-use alloc::{string::String, vec::Vec, boxed::Box};
 use serde::{Deserialize, Serialize};
 
 use crate::pallas_codec::minicbor::{self, Decode, Encode};
@@ -1186,7 +1186,11 @@ where
 }
 
 pub type PostAlonzoTransactionOutput =
-   crate::pallas_primitives::babbage::PseudoPostAlonzoTransactionOutput<Value, DatumOption, ScriptRef>;
+    crate::pallas_primitives::babbage::PseudoPostAlonzoTransactionOutput<
+        Value,
+        DatumOption,
+        ScriptRef,
+    >;
 
 pub type TransactionOutput = PseudoTransactionOutput<PostAlonzoTransactionOutput>;
 
@@ -1202,11 +1206,12 @@ impl<'b> From<MintedTransactionOutput<'b>> for TransactionOutput {
     }
 }
 
-pub type MintedPostAlonzoTransactionOutput<'b> =crate::pallas_primitives::babbage::PseudoPostAlonzoTransactionOutput<
-    Value,
-    MintedDatumOption<'b>,
-    MintedScriptRef<'b>,
->;
+pub type MintedPostAlonzoTransactionOutput<'b> =
+    crate::pallas_primitives::babbage::PseudoPostAlonzoTransactionOutput<
+        Value,
+        MintedDatumOption<'b>,
+        MintedScriptRef<'b>,
+    >;
 
 impl<'b> From<MintedPostAlonzoTransactionOutput<'b>> for PostAlonzoTransactionOutput {
     fn from(value: MintedPostAlonzoTransactionOutput<'b>) -> Self {

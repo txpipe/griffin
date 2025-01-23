@@ -1,14 +1,12 @@
+use alloc::{str::FromStr, string::String, vec::Vec};
+use core::{fmt, hash::Hash as StdHash, ops::Deref};
+use hashbrown::HashMap;
 use minicbor::{
     data::{IanaTag, Tag, Type},
     decode::Error,
     Decode, Encode,
 };
 use serde::{Deserialize, Serialize};
-use core::{fmt, hash::Hash as StdHash, ops::Deref};
-use alloc::{
-    string::String, vec::Vec, str::FromStr,
-};
-use hashbrown::HashMap;
 
 static TAG_SET: u64 = 258;
 

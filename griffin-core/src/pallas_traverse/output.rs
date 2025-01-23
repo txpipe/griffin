@@ -1,5 +1,5 @@
 // use std::{borrow::Cow, ops::Deref};
-use alloc::{vec::Vec, boxed::Box, borrow::Cow};
+use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 use core::ops::Deref;
 
 use crate::pallas_addresses::{Address, ByronAddress, Error as AddressError};

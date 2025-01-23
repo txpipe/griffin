@@ -45,9 +45,7 @@ pub fn weight(x: &[u8]) -> u64 {
     const M8: u64 = 0x00FF00FF00FF00FF;
 
     type T30 = [u64; 30];
-    let (head, thirty, tail) = unsafe {
-        util::align_to::<_, T30>(x)
-    };
+    let (head, thirty, tail) = unsafe { util::align_to::<_, T30>(x) };
 
     let mut count = naive(head) + naive(tail);
     for array in thirty {
@@ -69,8 +67,8 @@ pub fn weight(x: &[u8]) -> u64 {
             acc += (count1 & M4) + ((count1 >> 4) & M4);
         }
         acc = (acc & M8) + ((acc >> 8) & M8);
-        acc =  acc       +  (acc >> 16);
-        acc =  acc       +  (acc >> 32);
+        acc = acc + (acc >> 16);
+        acc = acc + (acc >> 32);
         count += acc & 0xFFFF;
     }
     count

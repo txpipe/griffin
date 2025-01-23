@@ -2,26 +2,21 @@
 
 #[cfg(feature = "std")]
 pub use super::WASM_BINARY;
-use super::{
-    Transaction,
-    Output
-};
-use alloc::{ vec::Vec, vec, string::String, collections::BTreeMap };
+use super::{Output, Transaction};
+use alloc::{collections::BTreeMap, string::String, vec, vec::Vec};
+use core::str::FromStr;
 use griffin_core::{
-    types::{
-        address_from_hex, Coin, AssetName, EncapBTree, Multiasset,
-    },
     h224::H224,
     pallas_crypto::hash::Hash,
+    types::{address_from_hex, AssetName, Coin, EncapBTree, Multiasset},
 };
+use hex::FromHex;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use hex::FromHex;
-use core::str::FromStr;
 
 /// The default genesis. It can be replaced by a custom one by providing the
 /// node with an analogous JSON file through the `--chain` flag
-pub const GENESIS_DEFAULT_JSON: &str =  r#"
+pub const GENESIS_DEFAULT_JSON: &str = r#"
 [
   {
     "address": "6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4",
@@ -67,7 +62,7 @@ pub fn development_genesis_transactions(genesis_json: String) -> Vec<Transaction
 
     vec![Transaction::from((
         vec![],
-        transp_outputs.into_iter().map(transp_to_output).collect()
+        transp_outputs.into_iter().map(transp_to_output).collect(),
     ))]
 }
 
@@ -85,20 +80,20 @@ fn transp_to_assets(transp: Vec<(String, Coin)>) -> EncapBTree<AssetName, Coin> 
     for (name, amount) in transp {
         asset_btree.insert(<_>::from(name), amount);
     }
-    
+
     EncapBTree(asset_btree)
 }
 
 fn transp_to_value(transp: Vec<TransparentMultiasset>) -> Multiasset<Coin> {
     let mut ma_btree = BTreeMap::new();
 
-    for TransparentMultiasset{ policy, assets } in transp {
+    for TransparentMultiasset { policy, assets } in transp {
         ma_btree.insert(
             H224::from(Hash::from_str(&policy).unwrap()),
             transp_to_assets(assets),
         );
     }
-    
+
     EncapBTree(ma_btree)
 }
 
@@ -107,6 +102,8 @@ fn transp_to_output(transp: TransparentOutput) -> Output {
         address_from_hex(&transp.address),
         transp.coin,
         transp_to_value(transp.value),
-        transp.datum.map(|v| <_>::from(<Vec<u8>>::from_hex(v).unwrap())),
+        transp
+            .datum
+            .map(|v| <_>::from(<Vec<u8>>::from_hex(v).unwrap())),
     ))
 }

@@ -1,55 +1,45 @@
 //! Wallet features related to spending money and checking balances.
 
 use crate::{
-    cli::{
-        MintCoinArgs, SpendValueArgs,
-    },
+    cli::{MintCoinArgs, SpendValueArgs},
     rpc::fetch_storage,
     sync,
 };
 use anyhow::anyhow;
+use griffin_core::{
+    checks_interface::{babbage_minted_tx_from_cbor, babbage_tx_to_cbor},
+    genesis::SHAWN_ADDRESS,
+    pallas_primitives::babbage::{MintedTx, Tx as PallasTransaction},
+    pallas_traverse::OriginalHash,
+    types::{
+        address_from_hex, value_leq, AssetName, Input, Output, PolicyId, Transaction, VKeyWitness,
+        Value,
+    },
+};
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use parity_scale_codec::Encode;
 use sc_keystore::LocalKeystore;
 use sled::Db;
-use sp_runtime::traits::{BlakeTwo256, Hash};
-use griffin_core::{
-    types::{
-        Value, Input, Output, Transaction, VKeyWitness, address_from_hex,
-        PolicyId, AssetName, value_leq,
-    },
-    checks_interface::{
-        babbage_tx_to_cbor,
-        babbage_minted_tx_from_cbor,
-    },
-    pallas_traverse::OriginalHash,
-    pallas_primitives::babbage::{
-    Tx as PallasTransaction, MintedTx,
-    },
-    genesis::SHAWN_ADDRESS,
-};
 use sp_core::ed25519::Public;
+use sp_runtime::traits::{BlakeTwo256, Hash};
 use std::vec;
 
 #[allow(dead_code)]
 #[doc(hidden)]
 /// Create and send a transaction that mints the coins on the network
-pub async fn mint_coins(
-    client: &HttpClient,
-    args: MintCoinArgs,
-) -> anyhow::Result<()> {
+pub async fn mint_coins(client: &HttpClient, args: MintCoinArgs) -> anyhow::Result<()> {
     log::debug!("The args are:: {:?}", args);
 
     let mut transaction = Transaction::from((
-            Vec::new(),
-            vec![Output::from((args.recipient, args.amount))]
+        Vec::new(),
+        vec![Output::from((args.recipient, args.amount))],
     ));
-  
+
     // The input appears as a new output.
     let utxo = fetch_storage(&args.input, client).await?;
     transaction.transaction_body.inputs.push(args.input.clone());
     transaction.transaction_body.outputs.push(utxo);
-    
+
     let encoded_tx = hex::encode(Encode::encode(&transaction));
     let params = rpc_params![encoded_tx];
     let spawn_response: Result<String, _> = client.request("author_submitExtrinsic", params).await;
@@ -91,19 +81,19 @@ pub async fn spend_value(
     if num_pol > num_nam {
         Err(anyhow!(
             "Policy ID {} does not correspond to any asset name.",
-            args.policy[num_pol-1],
+            args.policy[num_pol - 1],
         ))?;
     }
     if num_nam > num_tok {
         Err(anyhow!(
             "Missing token amount for asset {:?}.",
-            args.name[num_nam-1],
+            args.name[num_nam - 1],
         ))?;
     }
     if (num_tok != 0) & ((num_nam == 0) | (num_pol == 0)) {
         Err(anyhow!("Missing policy ID(s) and/or asset name."))?;
     }
-    
+
     // Construct a template Transaction to push coins into later
     let mut transaction = Transaction::from((Vec::new(), Vec::new()));
 
@@ -147,23 +137,21 @@ pub async fn spend_value(
             args.token_amount[count],
         ));
     }
-    
+
     // Construct the output and then push to the transaction
     let output = Output::from((args.recipient.clone(), output_value.clone()));
     transaction.transaction_body.outputs.push(output);
-    
+
     // If the supplied inputs surpass output amount, we redirect the rest to Shawn
     if value_leq(&output_value, &input_value) {
         let remainder: Value = input_value - output_value;
         if !remainder.is_null() {
-            println!(
-                "Note: Excess input amount goes to Shawn."
-            );
+            println!("Note: Excess input amount goes to Shawn.");
             let output = Output::from((address_from_hex(SHAWN_ADDRESS), remainder));
             transaction.transaction_body.outputs.push(output);
         }
     }
-      
+
     // Push each input to the transaction.
     for input in &args.input {
         transaction.transaction_body.inputs.push(input.clone());
@@ -180,13 +168,12 @@ pub async fn spend_value(
     for witness in &args.witness {
         let vkey: Vec<u8> = Vec::from(witness.0);
         let public = Public::from_h256(*witness);
-        let signature: Vec<u8> = Vec::from(crate::keystore::sign_with(
-            keystore, &public, tx_hash
-        )?.0);
+        let signature: Vec<u8> =
+            Vec::from(crate::keystore::sign_with(keystore, &public, tx_hash)?.0);
         witnesses.push(VKeyWitness::from((vkey, signature)));
     }
     transaction.transaction_witness_set = <_>::from(witnesses);
-    
+
     log::debug!("Griffin transaction is: {:#x?}", transaction);
     let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
     log::debug!("Babbage transaction is: {:#x?}", pallas_tx);
@@ -219,16 +206,13 @@ pub async fn spend_value(
             );
         }
     }
-    
+
     Ok(())
 }
 
 /// Given an output ref, fetch the details about its value from the node's
 /// storage.
-pub async fn get_coin_from_storage(
-    input: &Input,
-    client: &HttpClient,
-) -> anyhow::Result<Value> {
+pub async fn get_coin_from_storage(input: &Input, client: &HttpClient) -> anyhow::Result<Value> {
     let utxo = fetch_storage(input, client).await?;
     let coin_in_storage: Value = utxo.value;
 
@@ -244,10 +228,11 @@ pub(crate) fn apply_transaction(
 ) -> anyhow::Result<()> {
     let input = Input { tx_hash, index };
 
-    crate::sync::add_unspent_output(db,
-                                    &input,
-                                    &output.address,
-                                    &output.value,
-                                    &output.datum_option
+    crate::sync::add_unspent_output(
+        db,
+        &input,
+        &output.address,
+        &output.value,
+        &output.datum_option,
     )
 }

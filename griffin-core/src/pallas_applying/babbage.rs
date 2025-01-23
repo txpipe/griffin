@@ -1,5 +1,6 @@
 //! Utilities required for Babbage-era transaction validation.
 
+use crate::pallas_addresses::{ScriptHash, ShelleyAddress, ShelleyPaymentPart};
 use crate::pallas_applying::utils::{
     add_minted_value, add_values, aux_data_from_babbage_minted_tx, compute_native_script_hash,
     compute_plutus_v1_script_hash, compute_plutus_v2_script_hash, empty_value, get_babbage_tx_size,
@@ -11,7 +12,6 @@ use crate::pallas_applying::utils::{
     ValidationError::{self, *},
     ValidationResult,
 };
-use crate::pallas_addresses::{ScriptHash, ShelleyAddress, ShelleyPaymentPart};
 use crate::pallas_codec::{
     minicbor::{encode, Encoder},
     utils::{Bytes, KeepRaw},
@@ -27,7 +27,7 @@ use crate::pallas_primitives::{
 };
 use crate::pallas_traverse::{MultiEraInput, MultiEraOutput, OriginalHash};
 // use std::ops::Deref;
-use alloc::{vec::Vec, borrow::ToOwned};
+use alloc::{borrow::ToOwned, vec::Vec};
 use core::ops::Deref;
 
 pub fn validate_babbage_tx(
@@ -296,7 +296,10 @@ fn val_from_multi_era_output(multi_era_output: &MultiEraOutput) -> Value {
 }
 
 // The preservation of value property holds.
-pub fn check_preservation_of_value(tx_body: &MintedTransactionBody, utxos: &UTxOs) -> ValidationResult {
+pub fn check_preservation_of_value(
+    tx_body: &MintedTransactionBody,
+    utxos: &UTxOs,
+) -> ValidationResult {
     let mut input: Value = get_consumed(tx_body, utxos)?;
     let produced: Value = get_produced(tx_body)?;
     let output: Value = add_values(
@@ -709,21 +712,27 @@ fn get_script_hash_from_reference_input(
                         let mut val_to_hash: Vec<u8> = vec![0];
                         // Then, the CBOR content.
                         val_to_hash.extend_from_slice(native_script.raw_cbor());
-                        return Some(crate::pallas_crypto::hash::Hasher::<224>::hash(&val_to_hash));
+                        return Some(crate::pallas_crypto::hash::Hasher::<224>::hash(
+                            &val_to_hash,
+                        ));
                     }
                     PseudoScript::PlutusV1Script(plutus_v1_script) => {
                         // First, the PlutusV1Script header.
                         let mut val_to_hash: Vec<u8> = vec![1];
                         // Then, the CBOR content.
                         val_to_hash.extend_from_slice(plutus_v1_script.as_ref());
-                        return Some(crate::pallas_crypto::hash::Hasher::<224>::hash(&val_to_hash));
+                        return Some(crate::pallas_crypto::hash::Hasher::<224>::hash(
+                            &val_to_hash,
+                        ));
                     }
                     PseudoScript::PlutusV2Script(plutus_v2_script) => {
                         // First, the PlutusV2Script header.
                         let mut val_to_hash: Vec<u8> = vec![2];
                         // Then, the CBOR content.
                         val_to_hash.extend_from_slice(plutus_v2_script.as_ref());
-                        return Some(crate::pallas_crypto::hash::Hasher::<224>::hash(&val_to_hash));
+                        return Some(crate::pallas_crypto::hash::Hasher::<224>::hash(
+                            &val_to_hash,
+                        ));
                     }
                 }
             }
@@ -1118,7 +1127,9 @@ fn check_vk_wit(
     data_to_verify: &[u8],
 ) -> ValidationResult {
     for (vkey_wit_covered, vkey_wit) in wits {
-        if crate::pallas_crypto::hash::Hasher::<224>::hash(&vkey_wit.vkey.clone()) == *payment_key_hash {
+        if crate::pallas_crypto::hash::Hasher::<224>::hash(&vkey_wit.vkey.clone())
+            == *payment_key_hash
+        {
             if !verify_signature(vkey_wit, data_to_verify) {
                 return Err(Babbage(VKWrongSignature));
             } else {

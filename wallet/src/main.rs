@@ -1,41 +1,39 @@
 //! CLI wallet to demostrate spending and minting transactions.
 //!
 //! ## Basic usage
-//! 
+//!
 //! In terminal, run the node in development mode:
-//! 
+//!
 //! ```bash
 //! ./target/release/griffin-solochain-node --dev
 //! ```
-//! 
+//!
 //! In another terminal, one can interact with the node by issuing wallet
 //! commands. Every time the wallet starts (without the `--help` or `--version`
 //! command-line options), it will try to synchronize its database with the
 //! present chain state through RPC port 9944 (the [DEFAULT_ENDPOINT]), unless
 //! there is a mismatch with the genesis hash.
-//! 
+//!
 //! To list the whole UTxO set, run
-//! 
+//!
 //! ```bash
 //! ./target/release/griffin-wallet show-all-outputs
 //! ```
 
 extern crate alloc;
 
+use alloc::{string::String, vec::Vec};
 use clap::Parser;
+use griffin_core::{
+    h224::H224,
+    pallas_crypto::hash::Hasher as PallasHasher,
+    types::{Address, Input, Value},
+};
+use hex::FromHex;
 use jsonrpsee::http_client::HttpClientBuilder;
 use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 use std::path::PathBuf;
-use griffin_core::{
-    types::{
-    Input, Address, Value
-    },
-    pallas_crypto::hash::{Hasher as PallasHasher},
-    h224::H224,
-};
-use alloc::{vec::Vec, string::String};
-use hex::FromHex;
 
 mod cli;
 mod keystore;
@@ -146,7 +144,7 @@ async fn main() -> anyhow::Result<()> {
         }
         Some(cli::Command::SpendValue(args)) => {
             money::spend_value(&db, &client, &keystore, args).await
-        },
+        }
         Some(Command::InsertKey { seed }) => crate::keystore::insert_key(&keystore, &seed),
         Some(Command::GenerateKey { password }) => {
             crate::keystore::generate_key(&keystore, password)?;
@@ -155,7 +153,8 @@ async fn main() -> anyhow::Result<()> {
         Some(Command::ShowKeys) => {
             crate::keystore::get_keys(&keystore)?.for_each(|pubkey| {
                 let pk_str: &str = &hex::encode(pubkey);
-                let hash: String  = PallasHasher::<224>::hash(&<[u8; 32]>::from_hex(pk_str).unwrap()).to_string();
+                let hash: String =
+                    PallasHasher::<224>::hash(&<[u8; 32]>::from_hex(pk_str).unwrap()).to_string();
                 println!("key: 0x{}; addr: 0x61{}", pk_str, hash);
             });
 
@@ -184,7 +183,7 @@ async fn main() -> anyhow::Result<()> {
                 total += balance.clone();
                 println!("{account}: {balance}");
             }
-            println!("{:-<58}","");
+            println!("{:-<58}", "");
             println!("Total:   {}", total.normalize());
 
             Ok(())
@@ -194,11 +193,11 @@ async fn main() -> anyhow::Result<()> {
             sync::print_unspent_tree(&db)?;
             println!("To see all details of a particular UTxO, invoke the `verify-utxo` command.");
             Ok(())
-        },
+        }
         None => {
             log::info!("No Wallet Command invoked. Exiting.");
             Ok(())
-        },
+        }
     }?;
 
     if tmp {

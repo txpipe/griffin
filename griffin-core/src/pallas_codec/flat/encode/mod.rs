@@ -2,7 +2,7 @@ mod encoder;
 mod error;
 
 use crate::pallas_codec::flat::filler::Filler;
-use alloc::{string::String, vec::Vec, boxed::Box};
+use alloc::{boxed::Box, string::String, vec::Vec};
 
 use num_bigint::BigInt;
 

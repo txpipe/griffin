@@ -1,7 +1,7 @@
 //! UTxO interface to storage.
 
 use crate::{
-    types::{Output, Input},
+    types::{Input, Output},
     LOG_TARGET,
 };
 use parity_scale_codec::{Decode, Encode};

@@ -162,13 +162,15 @@ impl<'b> MultiEraTx<'b> {
 
     pub fn find_spend_redeemer(&self, input_order: u32) -> Option<MultiEraRedeemer> {
         self.redeemers().into_iter().find(|r| {
-            r.tag() == crate::pallas_primitives::conway::RedeemerTag::Spend && r.index() == input_order
+            r.tag() == crate::pallas_primitives::conway::RedeemerTag::Spend
+                && r.index() == input_order
         })
     }
 
     pub fn find_mint_redeemer(&self, mint_order: u32) -> Option<MultiEraRedeemer> {
         self.redeemers().into_iter().find(|r| {
-            r.tag() == crate::pallas_primitives::conway::RedeemerTag::Mint && r.index() == mint_order
+            r.tag() == crate::pallas_primitives::conway::RedeemerTag::Mint
+                && r.index() == mint_order
         })
     }
 

@@ -1,16 +1,13 @@
 //! Wallet's local keystore.
 
 use anyhow::anyhow;
+use griffin_core::{genesis::SHAWN_PHRASE, types::address_from_pk};
 use sc_keystore::LocalKeystore;
 use sp_core::{
     // The `Pair` trait is used to have `Pair::{generate_with,from}_phrase`
-    crypto::{Pair as _, KeyTypeId},
+    crypto::{KeyTypeId, Pair as _},
     ed25519::{Pair, Public, Signature},
     H256,
-};
-use griffin_core::{
-    types::{ address_from_pk },
-    genesis::SHAWN_PHRASE,
 };
 use sp_keystore::Keystore;
 use std::path::Path;
@@ -19,9 +16,7 @@ use std::path::Path;
 const KEY_TYPE: KeyTypeId = KeyTypeId(*b"_gri");
 
 /// Insert the example "Shawn" key into the keystore for the current session only.
-pub fn insert_development_key_for_this_session(
-    keystore: &LocalKeystore
-) -> anyhow::Result<()> {
+pub fn insert_development_key_for_this_session(keystore: &LocalKeystore) -> anyhow::Result<()> {
     keystore.ed25519_generate_new(KEY_TYPE, Some(SHAWN_PHRASE))?;
 
     Ok(())
@@ -55,14 +50,14 @@ pub fn insert_key(keystore: &LocalKeystore, seed: &str) -> anyhow::Result<()> {
 
 /// Generate a new key from system entropy and insert it into the keystore, optionally
 /// protected by a password.
-pub fn generate_key(
-    keystore: &LocalKeystore,
-    password: Option<String>
-) -> anyhow::Result<()> {
+pub fn generate_key(keystore: &LocalKeystore, password: Option<String>) -> anyhow::Result<()> {
     let (pair, phrase, _) = Pair::generate_with_phrase(password.as_deref());
     println!("Generated public key is {:?}", pair.public());
     println!("Generated Phrase is {:?}", phrase);
-    println!("Associated address is 0x{}", address_from_pk(&pair.public()));
+    println!(
+        "Associated address is 0x{}",
+        address_from_pk(&pair.public())
+    );
     keystore
         .insert(KEY_TYPE, phrase.as_ref(), pair.public().as_ref())
         .map_err(|()| anyhow!("Error inserting key"))?;
@@ -70,9 +65,7 @@ pub fn generate_key(
     Ok(())
 }
 
-pub fn get_keys(
-    keystore: &LocalKeystore
-) -> anyhow::Result<impl Iterator<Item = Vec<u8>>> {
+pub fn get_keys(keystore: &LocalKeystore) -> anyhow::Result<impl Iterator<Item = Vec<u8>>> {
     Ok(keystore.keys(KEY_TYPE)?.into_iter())
 }
 
@@ -80,7 +73,11 @@ pub fn get_keys(
 pub fn remove_key(keystore_path: &Path, pub_key: &H256) -> anyhow::Result<()> {
     // The keystore doesn't provide an API for removing keys, so we
     // remove them from the filesystem directly
-    let filename = format!("{}{}", hex::encode(KEY_TYPE.0), hex::encode(pub_key.0.clone()));
+    let filename = format!(
+        "{}{}",
+        hex::encode(KEY_TYPE.0),
+        hex::encode(pub_key.0.clone())
+    );
     let path = keystore_path.join(filename);
 
     std::fs::remove_file(path)?;

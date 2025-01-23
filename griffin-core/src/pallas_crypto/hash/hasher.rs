@@ -1,6 +1,6 @@
+use crate::pallas_codec::minicbor;
 use crate::pallas_crypto::hash::Hash;
 use cryptoxide::blake2b::Blake2b;
-use crate::pallas_codec::minicbor;
 
 /// handy method to create a hash of given `SIZE` bit size.
 ///

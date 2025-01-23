@@ -3,7 +3,6 @@
 pub mod environment;
 pub mod validation;
 
-pub use environment::*;
 use crate::pallas_addresses::{Address, ShelleyAddress, ShelleyPaymentPart};
 use crate::pallas_codec::{
     minicbor::encode,
@@ -20,11 +19,12 @@ use crate::pallas_primitives::{
     UnitInterval, VrfKeyhash,
 };
 use crate::pallas_traverse::{time::Slot, MultiEraInput, MultiEraOutput};
+pub use environment::*;
 // use std::collections::HashMap;
 // use std::ops::Deref;
-use hashbrown::HashMap;
-use core::ops::Deref;
 use alloc::vec::Vec;
+use core::ops::Deref;
+use hashbrown::HashMap;
 
 pub use validation::*;
 

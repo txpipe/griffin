@@ -2,16 +2,20 @@ use super::{
     error::Error,
     script_context::{sort_voters, DataLookupTable, ResolvedInput, ScriptPurpose, ScriptVersion},
 };
-use crate::uplc::tx::script_context::sort_reward_accounts;
-use itertools::Itertools;
 use crate::pallas_addresses::{Address, ScriptHash, ShelleyPaymentPart, StakePayload};
 use crate::pallas_codec::utils::Nullable;
 use crate::pallas_primitives::conway::{
     Certificate, GovAction, MintedTx, PolicyId, RedeemerTag, Redeemers, RedeemersKey,
     RewardAccount, StakeCredential, TransactionOutput, Voter,
 };
+use crate::uplc::tx::script_context::sort_reward_accounts;
+use alloc::{
+    borrow::ToOwned,
+    string::{String, ToString},
+    vec::Vec,
+};
 use hashbrown::HashMap;
-use alloc::{borrow::ToOwned, string::{String, ToString}, vec::Vec};
+use itertools::Itertools;
 
 type ScriptsNeeded = Vec<(ScriptPurpose, ScriptHash)>;
 

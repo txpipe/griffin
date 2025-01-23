@@ -2,15 +2,15 @@ use super::{
     runtime::{self, BuiltinRuntime},
     Error,
 };
+use crate::pallas_primitives::conway::{self, PlutusData};
 use crate::uplc::{
     ast::{Constant, NamedDeBruijn, Term, Type},
     builtins::DefaultFunction,
 };
-use num_bigint::BigInt;
-use num_traits::{Signed, ToPrimitive, Zero};
-use crate::pallas_primitives::conway::{self, PlutusData};
 use alloc::{collections::VecDeque, rc::Rc, string::String, vec::Vec};
 use core::{mem::size_of, ops::Deref};
+use num_bigint::BigInt;
+use num_traits::{Signed, ToPrimitive, Zero};
 
 pub(super) type Env = Rc<Vec<Value>>;
 
