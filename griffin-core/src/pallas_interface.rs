@@ -3,7 +3,9 @@ use crate::pallas_codec::{
     minicbor::{encode, Decode, Decoder},
     utils::{
         Bytes,
+        CborWrap,
         KeyValuePairs, // CborWrap, KeepRaw, MaybeIndefArray,
+        NonEmptyKeyValuePairs,
         Nullable,
     },
 };
@@ -12,11 +14,17 @@ use crate::pallas_primitives::babbage::{
     AssetName as PallasAssetName, DatumOption, ExUnits as PallasExUnits, LegacyTransactionOutput,
     Multiasset as PallasMultiasset, PlutusData as PallasPlutusData,
     PlutusScript as PallasPlutusScript, PolicyId as PallasPolicyId, PostAlonzoTransactionOutput,
-    Redeemer as PallasRedeemer, RedeemerTag as PallasRedeemerTag,
+    PseudoDatumOption::Data, Redeemer as PallasRedeemer, RedeemerTag as PallasRedeemerTag,
     TransactionBody as PallasTransactionBody, TransactionInput as PallasInput,
     TransactionOutput as PallasOutput, Tx as PallasTransaction, VKeyWitness as PallasVKeyWitness,
     Value as PallasValue, WitnessSet as PallasWitnessSet,
 };
+use crate::pallas_primitives::conway::{
+    DatumOption as ConwayDatumOption, Multiasset as ConwayMultiasset,
+    PostAlonzoTransactionOutput as ConwayPostAlonzoTransactionOutput,
+    TransactionOutput as ConwayOutput, Value as ConwayValue,
+};
+use crate::pallas_primitives::{AddrKeyhash, PositiveCoin};
 use crate::{types::*, H224};
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 use core::{default::Default, ops::Deref};
@@ -100,6 +108,29 @@ impl<A: Clone> From<Multiasset<A>> for PallasMultiasset<A> {
     }
 }
 
+impl From<Multiasset<Coin>> for ConwayMultiasset<PositiveCoin> {
+    fn from(val: Multiasset<Coin>) -> Self {
+        let mut res: Vec<(
+            PallasPolicyId,
+            NonEmptyKeyValuePairs<PallasAssetName, PositiveCoin>,
+        )> = Vec::new();
+
+        for (k, v) in val.0.into_iter() {
+            res.push((
+                <_>::from(k),
+                <_>::try_from(
+                    v.0.into_iter()
+                        .map(|(k, v)| (<_>::from(k), PositiveCoin(v)))
+                        .collect::<Vec<_>>(),
+                )
+                .unwrap(),
+            ))
+        }
+
+        NonEmptyKeyValuePairs::try_from(res).unwrap()
+    }
+}
+
 impl<A: Clone> From<PallasMultiasset<A>> for Multiasset<A> {
     fn from(val: PallasMultiasset<A>) -> Self {
         let mut res: Vec<(PolicyId, EncapBTree<AssetName, A>)> = Vec::new();
@@ -128,11 +159,38 @@ impl From<Value> for PallasValue {
     }
 }
 
+impl From<Value> for ConwayValue {
+    fn from(val: Value) -> Self {
+        match val {
+            Value::Coin(c) => Self::Coin(c),
+            Value::Multiasset(c, m) => Self::Multiasset(c, <_>::from(m)),
+        }
+    }
+}
+
 impl From<PallasValue> for Value {
     fn from(val: PallasValue) -> Self {
         match val {
             PallasValue::Coin(c) => Self::Coin(c),
             PallasValue::Multiasset(c, m) => Self::Multiasset(c, <_>::from(m)),
+        }
+    }
+}
+
+impl From<Output> for ConwayPostAlonzoTransactionOutput {
+    fn from(val: Output) -> Self {
+        // FIXME: Add error handling
+        let datum_option: Option<ConwayDatumOption> = val.datum_option.map(|d| {
+            Data(CborWrap(
+                Decode::decode(&mut Decoder::new(d.0.as_slice()), &mut ()).unwrap(),
+            ))
+        });
+
+        Self {
+            address: <_>::from(val.address.0),
+            value: <_>::from(val.value),
+            datum_option,
+            script_ref: Default::default(),
         }
     }
 }
@@ -198,6 +256,12 @@ impl From<LegacyTransactionOutput> for Output {
 impl From<Output> for PallasOutput {
     fn from(val: Output) -> Self {
         PallasOutput::PostAlonzo(<_>::from(val))
+    }
+}
+
+impl From<Output> for ConwayOutput {
+    fn from(val: Output) -> Self {
+        ConwayOutput::PostAlonzo(<_>::from(val))
     }
 }
 

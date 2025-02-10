@@ -984,7 +984,7 @@ impl From<&AnyUInt> for u64 {
 /// positive_coin = 1 .. 18446744073709551615
 #[derive(Debug, PartialEq, Copy, Clone, PartialOrd, Eq, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct PositiveCoin(u64);
+pub struct PositiveCoin(pub u64);
 
 impl TryFrom<u64> for PositiveCoin {
     type Error = u64;
