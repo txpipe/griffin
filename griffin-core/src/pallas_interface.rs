@@ -198,9 +198,11 @@ impl From<Output> for ConwayPostAlonzoTransactionOutput {
 impl From<Output> for PostAlonzoTransactionOutput {
     fn from(val: Output) -> Self {
         // FIXME: Add error handling
-        let datum_option: Option<DatumOption> = val
-            .datum_option
-            .map(|d| Decode::decode(&mut Decoder::new(d.0.as_slice()), &mut ()).unwrap());
+        let datum_option: Option<DatumOption> = val.datum_option.map(|d| {
+            Data(CborWrap(
+                Decode::decode(&mut Decoder::new(d.0.as_slice()), &mut ()).unwrap(),
+            ))
+        });
 
         Self {
             address: <_>::from(val.address.0),
