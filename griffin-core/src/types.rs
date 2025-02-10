@@ -39,13 +39,17 @@ pub struct Input {
     pub index: u32,
 }
 
+pub type RequiredSigner = H224;
+
 #[derive(
     Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Default,
 )]
 pub struct TransactionBody {
     pub inputs: Vec<Input>,
     pub outputs: Vec<Output>,
+    pub validity_interval_start: Option<u64>,
     pub mint: Option<Mint>,
+    pub required_signers: Option<Vec<RequiredSigner>>,
 }
 
 /// Hash of a 28-byte Cardano policy ID.
@@ -508,7 +512,9 @@ impl From<(Vec<Input>, Vec<Output>)> for Transaction {
             transaction_body: TransactionBody {
                 inputs,
                 outputs,
+                validity_interval_start: Some(0),
                 mint: None,
+                required_signers: None,
             },
             transaction_witness_set: WitnessSet::default(),
         }

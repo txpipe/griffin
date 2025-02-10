@@ -22,6 +22,8 @@ use alloc::{collections::BTreeMap, string::String, vec::Vec};
 use core::{default::Default, ops::Deref};
 use sp_core::H256;
 
+type PallasRequiredSigner = AddrKeyhash;
+
 impl From<Input> for PallasInput {
     fn from(val: Input) -> Self {
         Self {
@@ -327,11 +329,15 @@ impl From<TransactionBody> for PallasTransactionBody {
             withdrawals: None,
             update: None,
             auxiliary_data_hash: None,
-            validity_interval_start: None,
+            validity_interval_start: val.validity_interval_start,
             mint: val.mint.map(|m| PallasMultiasset::from(m)),
             script_data_hash: None,
             collateral: None,
-            required_signers: None,
+            required_signers: val.required_signers.map(|rss| {
+                rss.into_iter()
+                    .map(|rs| PallasRequiredSigner::from(rs))
+                    .collect::<Vec<_>>()
+            }),
             network_id: None,
             collateral_return: None,
             total_collateral: None,
@@ -345,7 +351,13 @@ impl From<PallasTransactionBody> for TransactionBody {
         Self {
             inputs: val.inputs.into_iter().map(|i| Input::from(i)).collect(),
             outputs: val.outputs.into_iter().map(|i| Output::from(i)).collect(),
+            validity_interval_start: val.validity_interval_start,
             mint: val.mint.map(|m| Multiasset::from(m)),
+            required_signers: val.required_signers.map(|rss| {
+                rss.into_iter()
+                    .map(|rs| RequiredSigner::from(rs))
+                    .collect::<Vec<_>>()
+            }),
         }
     }
 }
