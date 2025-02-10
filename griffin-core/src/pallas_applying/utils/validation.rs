@@ -155,6 +155,7 @@ pub enum BabbageError {
     ScriptIntegrityHash,
     DuplicateInput,
     OutputAlreadyInUTxO,
+    PhaseTwoValidationError,
 }
 
 pub type ValidationResult = Result<(), ValidationError>;

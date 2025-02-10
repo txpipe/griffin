@@ -349,6 +349,7 @@ impl From<UTxOError> for InvalidTransaction {
                 UnneededRedeemer => Custom(244),
                 ReqSignerWrongSig => Custom(245),
                 VKWrongSignature => Custom(246),
+                PhaseTwoValidationError => Custom(247),
             },
         }
     }

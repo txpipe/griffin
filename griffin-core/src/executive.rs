@@ -16,16 +16,21 @@ use crate::pallas_applying::{
     UTxOs,
 };
 use crate::pallas_codec::utils::CborWrap;
-use crate::pallas_primitives::babbage::{
-    MintedDatumOption, MintedScriptRef, MintedTransactionBody, MintedTx, Tx as PallasTransaction,
-    Value as PallasValue,
+use crate::pallas_primitives::{
+    babbage::{
+        MintedDatumOption, MintedScriptRef, MintedTransactionBody, MintedTx,
+        Tx as PallasTransaction, Value as PallasValue,
+    },
+    conway::{MintedTx as ConwayMintedTx, TransactionInput, TransactionOutput},
 };
+use crate::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
 use crate::{
     checks_interface::{
-        babbage_minted_tx_from_cbor, babbage_tx_to_cbor, check_min_coin, mk_utxo_for_babbage_tx,
+        babbage_minted_tx_from_cbor, babbage_tx_to_cbor, check_min_coin,
+        conway_minted_tx_from_cbor, mk_utxo_for_babbage_tx,
     },
     ensure,
-    types::{Block, BlockNumber, DispatchResult, Header, Input, Transaction, UTxOError},
+    types::{Block, BlockNumber, DispatchResult, Header, Input, Output, Transaction, UTxOError},
     utxo_set::TransparentUtxoSet,
     EXTRINSIC_KEY, HEADER_KEY, HEIGHT_KEY, LOG_TARGET,
 };
@@ -108,6 +113,7 @@ where
         }
 
         let mut tx_outs_info: OutputInfoList = Vec::new();
+        let mut resolved_inputs: Vec<Output> = Vec::new();
 
         // Add present inputs to a list to be used to produce the local UTxO set.
         // Keep track of any missing inputs for use in the tagged transaction pool
@@ -116,10 +122,11 @@ where
             if let Some(u) = TransparentUtxoSet::peek_utxo(&input) {
                 tx_outs_info.push((
                     hex::encode(u.address.0.as_slice()),
-                    PallasValue::from(u.value),
+                    PallasValue::from(u.clone().value),
                     None,
                     None,
                 ));
+                resolved_inputs.push(u);
             } else {
                 missing_inputs.push(input.clone().encode());
             }
@@ -184,6 +191,41 @@ where
                 },
             ));
         }
+
+        // Run phase-two validation
+        let conway_mtx: ConwayMintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
+        let pallas_inputs = transaction
+            .transaction_body
+            .inputs
+            .iter()
+            .map(|i| TransactionInput::from(i.clone()))
+            .collect::<Vec<_>>();
+        let pallas_resolved_inputs = resolved_inputs
+            .iter()
+            .map(|ri| TransactionOutput::from(ri.clone()))
+            .collect::<Vec<_>>();
+        let pallas_input_utxos: Vec<ResolvedInput> = pallas_inputs
+            .iter()
+            .zip(pallas_resolved_inputs.iter())
+            .map(|(input, output)| ResolvedInput {
+                input: input.clone(),
+                output: output.clone(),
+            })
+            .collect();
+
+        let phase_two_result = eval_phase_two(
+            &conway_mtx,
+            &pallas_input_utxos,
+            None,
+            None,
+            &SlotConfig::default(),
+            false,
+            |_| (),
+        );
+        ensure!(
+            phase_two_result.is_ok(),
+            UTxOError::Babbage(PhaseTwoValidationError)
+        );
 
         // Return the valid transaction
         Ok((
