@@ -13,6 +13,7 @@ use crate::pallas_primitives::{
         MintedTransactionBody, MintedTransactionOutput, MintedTx as BabbageMintedTx,
         PseudoTransactionOutput, Tx as BabbageTx,
     },
+    conway::MintedTx as ConwayMintedTx,
 };
 use crate::pallas_traverse::{MultiEraInput, MultiEraOutput};
 use crate::types::{
@@ -44,6 +45,10 @@ pub fn babbage_tx_to_cbor(tx: &BabbageTx) -> Vec<u8> {
 
 pub fn babbage_minted_tx_from_cbor(tx_cbor: &[u8]) -> BabbageMintedTx<'_> {
     crate::pallas_codec::minicbor::decode::<BabbageMintedTx>(&tx_cbor[..]).unwrap()
+}
+
+pub fn conway_minted_tx_from_cbor(tx_cbor: &[u8]) -> ConwayMintedTx<'_> {
+    crate::pallas_codec::minicbor::decode::<ConwayMintedTx>(&tx_cbor[..]).unwrap()
 }
 
 pub fn mk_utxo_for_babbage_tx<'a>(

@@ -244,7 +244,7 @@ where
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(into = "String")]
 #[serde(try_from = "String")]
-pub struct BoundedBytes(Vec<u8>);
+pub struct BoundedBytes(pub Vec<u8>);
 
 impl From<Vec<u8>> for BoundedBytes {
     fn from(xs: Vec<u8>) -> Self {
