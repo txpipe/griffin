@@ -14,8 +14,9 @@ use griffin_core::{
     },
     pallas_traverse::OriginalHash,
     types::{
-        address_from_hex, value_leq, Address, AssetName, Datum, ExUnits, Input, OrderDatum, Output,
-        PlutusData, PlutusScript, Redeemer, RedeemerTag, Transaction, VKeyWitness, Value,
+        address_from_hex, value_leq, Address, AssetClass, AssetName, Datum, ExUnits, Input,
+        OrderDatum, Output, PlutusData, PlutusScript, Redeemer, RedeemerTag, Transaction,
+        VKeyWitness, Value,
     },
 };
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
@@ -63,9 +64,11 @@ pub async fn start_order(
 
     let order_datum: Datum = <_>::from(OrderDatum::Ok {
         sender_payment_hash: args.sender_ph,
-        policy_id: args.ordered_policy,
-        asset_name: AssetName::from(args.ordered_name),
-        amount: args.ordered_amount,
+        ordered_class: AssetClass {
+            policy_id: args.ordered_policy,
+            asset_name: AssetName::from(args.ordered_name),
+        },
+        ordered_amount: args.ordered_amount,
     });
 
     // Construct the output and then push to the transaction
@@ -176,17 +179,19 @@ pub async fn resolve_order(
             OrderDatum::MalformedOrderDatum => Err(anyhow!("Malformed order datum"))?,
             OrderDatum::Ok {
                 sender_payment_hash,
-                policy_id,
-                asset_name,
-                amount: _,
+                ordered_class,
+                ordered_amount: _,
             } => {
                 let sender_ph = hex::encode(sender_payment_hash.0);
 
                 let sender_address: Address =
                     Address(hex::decode("61".to_owned() + &sender_ph).unwrap());
 
-                let payment_value: Value = Value::from((policy_id, asset_name, args.paid_amount))
-                    + Value::Coin(MIN_COIN_PER_OUTPUT);
+                let payment_value: Value = Value::from((
+                    ordered_class.policy_id,
+                    ordered_class.asset_name,
+                    args.paid_amount,
+                )) + Value::Coin(MIN_COIN_PER_OUTPUT);
 
                 // Construct the output and then push to the transaction
                 let payment_output = Output::from((sender_address, payment_value.clone()));
@@ -312,9 +317,8 @@ pub async fn cancel_order(
             OrderDatum::MalformedOrderDatum => Err(anyhow!("Malformed order datum"))?,
             OrderDatum::Ok {
                 sender_payment_hash,
-                policy_id: _,
-                asset_name: _,
-                amount: _,
+                ordered_class: _,
+                ordered_amount: _,
             } => {
                 // Construct the output and then push to the transaction
                 let output = Output::from((address_from_hex(SHAWN_ADDRESS), order_value));

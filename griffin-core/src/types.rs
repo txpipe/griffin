@@ -394,12 +394,17 @@ pub enum FakeDatum {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
+pub struct AssetClass {
+    pub policy_id: PolicyId,
+    pub asset_name: AssetName,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum OrderDatum {
     Ok {
         sender_payment_hash: H224,
-        policy_id: PolicyId,
-        asset_name: AssetName,
-        amount: Coin,
+        ordered_class: AssetClass,
+        ordered_amount: Coin,
     },
     MalformedOrderDatum,
 }

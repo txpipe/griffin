@@ -478,8 +478,8 @@ fn test_eval_order_resolve() {
         TransactionOutput,
     };
     use crate::types::{
-        Address, AssetName, Datum, ExUnits, Input, OrderDatum, Output, PlutusData, PlutusScript,
-        Redeemer, RedeemerTag, VKeyWitness, Value,
+        Address, AssetClass, AssetName, Datum, ExUnits, Input, OrderDatum, Output, PlutusData,
+        PlutusScript, Redeemer, RedeemerTag, VKeyWitness, Value,
     };
     use crate::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
     use crate::H224;
@@ -520,9 +520,11 @@ fn test_eval_order_resolve() {
     );
     let order_datum = OrderDatum::Ok {
         sender_payment_hash: sender_payment_hash,
-        policy_id: token_b_policy,
-        asset_name: AssetName::from(token_b_name.to_string()),
-        amount: token_b_amount,
+        ordered_class: AssetClass {
+            policy_id: token_b_policy,
+            asset_name: AssetName::from(token_b_name.to_string()),
+        },
+        ordered_amount: token_b_amount,
     };
 
     let script = hex::decode("59036a01000032323232323232232322322533300732533300830063009375400826464a66601a6020004266e3c004dd7180198061baa3003300c37540122c6eb8c038004dd618069807180718071807180718071807180718051baa3001300a3754004264646464646464a66601e66ebcc020c044dd5003180399809980399809980418089baa30083011375401c97ae0330134c103d87a80004bd7008008a50533300e3375e600c66024602600666024602600497ae0300730103754600860206ea8c01cc040dd5006899b89375a600860206ea8c010c040dd5180398081baa00d00114a06eb4c048c04c004c048004c94ccc030cdc79bae3005300e3754600a601c6ea8c008c038dd5180298071baa00b488100132325333011301400213233013301400233013301400133013301430150014bd70180a0008b1bac3012001300137566004601c6ea800c4c8c94ccc044c0500084c8cc04cc050008cc04cc050004cc04cc050c0540052f5c060280022c6eb0c048004c004c8cc004004dd5980198079baa00422533301100114bd6f7b630099191919299980919b8f489000021003133016337606ea4008dd3000998030030019bab3013003375c6022004602a00460260024646600200200444a666022002297ae01323332223233001001003225333017001100313233019374e660326ea4018cc064dd49bae30160013301937506eb4c05c0052f5c066006006603600460320026eb8c040004dd5980880099801801980a8011809800918081808800992999805180418059baa0011300f300c37540022c64a66601a0022980103d87a8000130023300e300f0014bd701bac300e300f300f300b3754600460166ea800cdd2a40004601a00229309b2b19299980318020008a99980498041baa00214985854ccc018cdc3a40040022a66601260106ea8008526161630063754002a666006600260086ea80084c8c94ccc020c02c0084c9265333005300330063754002264646464a666018601e004264932999804980398051baa001132323232533301030130021324994ccc034c02cc038dd5001899191919299980a180b8010a4c2c6eb8c054004c054008dd7180980098079baa0031616375a60220026022004601e00260166ea80045858c034004c034008dd7180580098039baa00116163009001300537540042c6e1d20005734aae7555cf2ab9f5740ae855d11").unwrap();
@@ -643,8 +645,8 @@ fn test_eval_order_cancel() {
         TransactionOutput,
     };
     use crate::types::{
-        Address, AssetName, Datum, ExUnits, Input, OrderDatum, Output, PlutusData, PlutusScript,
-        Redeemer, RedeemerTag, VKeyWitness, Value,
+        Address, AssetClass, AssetName, Datum, ExUnits, Input, OrderDatum, Output, PlutusData,
+        PlutusScript, Redeemer, RedeemerTag, VKeyWitness, Value,
     };
     use crate::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
     use crate::H224;
@@ -672,9 +674,11 @@ fn test_eval_order_cancel() {
 
     let order_datum = OrderDatum::Ok {
         sender_payment_hash: sender_payment_hash,
-        policy_id: token_b_policy,
-        asset_name: AssetName::from(token_b_name.to_string()),
-        amount: token_b_amount,
+        ordered_class: AssetClass {
+            policy_id: token_b_policy,
+            asset_name: AssetName::from(token_b_name.to_string()),
+        },
+        ordered_amount: token_b_amount,
     };
 
     let resolved_inputs = vec![Output {

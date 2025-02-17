@@ -335,9 +335,8 @@ impl From<OrderDatum> for PallasPlutusData {
         match order_datum {
             OrderDatum::Ok {
                 sender_payment_hash,
-                policy_id,
-                asset_name,
-                amount,
+                ordered_class,
+                ordered_amount,
             } => PallasPlutusData::Constr(Constr {
                 tag: 121,
                 any_constructor: None,
@@ -361,17 +360,21 @@ impl From<OrderDatum> for PallasPlutusData {
                                                 fields: Indef(
                                                     [
                                                         PallasPlutusData::BoundedBytes(
-                                                            BoundedBytes(policy_id.0.to_vec()),
+                                                            BoundedBytes(
+                                                                ordered_class.policy_id.0.to_vec(),
+                                                            ),
                                                         ),
                                                         PallasPlutusData::BoundedBytes(
-                                                            BoundedBytes(asset_name.0.into()),
+                                                            BoundedBytes(
+                                                                ordered_class.asset_name.0.into(),
+                                                            ),
                                                         ),
                                                     ]
                                                     .to_vec(),
                                                 ),
                                             }),
                                             PallasPlutusData::BigInt(BigInt::Int(Int(
-                                                minicbor::data::Int::from(amount),
+                                                minicbor::data::Int::from(ordered_amount),
                                             ))),
                                         ]
                                         .to_vec(),
@@ -424,11 +427,16 @@ impl From<PallasPlutusData> for OrderDatum {
                                 sender_payment_hash: H224::from(PallasHash::from(
                                     sender_payment_hash_vec.as_slice(),
                                 )),
-                                policy_id: H224::from(PallasHash::from(policy_id_vec.as_slice())),
-                                asset_name: AssetName(
-                                    String::from_utf8(asset_name_vec.to_vec()).unwrap(),
-                                ),
-                                amount: TryFrom::<minicbor::data::Int>::try_from(*amount).unwrap(),
+                                ordered_class: AssetClass {
+                                    policy_id: H224::from(PallasHash::from(
+                                        policy_id_vec.as_slice(),
+                                    )),
+                                    asset_name: AssetName(
+                                        String::from_utf8(asset_name_vec.to_vec()).unwrap(),
+                                    ),
+                                },
+                                ordered_amount: TryFrom::<minicbor::data::Int>::try_from(*amount)
+                                    .unwrap(),
                             }
                         } else {
                             OrderDatum::MalformedOrderDatum
