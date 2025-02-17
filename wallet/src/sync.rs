@@ -389,18 +389,36 @@ pub(crate) fn print_orders(db: &Db) -> anyhow::Result<()> {
     for x in wallet_unspent_tree.iter() {
         let (input_ivec, owner_amount_datum_ivec) = x?;
         let input = hex::encode(input_ivec);
-        let (owner_pubkey, amount, datum_option) =
+        let (owner_pubkey, value, datum_option) =
             <(Address, Value, Option<Datum>)>::decode(&mut &owner_amount_datum_ivec[..])?;
 
         let order_address = Address(hex::decode(ORDER_ADDRESS_HEX).unwrap());
         if owner_pubkey == order_address {
             let order_datum = datum_option.map(|d| OrderDatum::from(d));
-            println!(
-                "{}: datum {:?}, amount: {}",
-                input,
-                order_datum,
-                amount.normalize(),
-            );
+            match order_datum {
+                None | Some(OrderDatum::MalformedOrderDatum) => {
+                    println!(
+                        "{}: datum {:?}, value: {}",
+                        input,
+                        order_datum,
+                        value.normalize(),
+                    );
+                }
+                Some(OrderDatum::Ok {
+                    sender_payment_hash,
+                    ordered_class,
+                    ordered_amount,
+                }) => {
+                    println!(
+                        "{}:\n SENDER_PH: {:?}\n ORDERED_CLASS: {:#?}\n ORDERED_AMOUNT: {}\n VALUE: {}",
+                        input,
+                        sender_payment_hash,
+                        ordered_class,
+                        ordered_amount,
+                        value.normalize(),
+                    );
+                }
+            }
         }
     }
 
