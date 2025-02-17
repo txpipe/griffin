@@ -455,7 +455,7 @@ where
             .map_err(|e| {
                 log::warn!(
                     target: LOG_TARGET,
-                    "Griffin Transaction did not validate (in the pool): {:?}",
+                    "⛔ Griffin Transaction did not validate (in the pool): {:?}",
                     e,
                 );
                 TransactionValidityError::Invalid(e.into())
