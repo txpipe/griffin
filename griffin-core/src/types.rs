@@ -6,6 +6,7 @@ use crate::pallas_codec::minicbor::{
     Decode as MiniDecode, Decoder, Encode as MiniEncode, Encoder,
 };
 use crate::pallas_crypto::hash::Hash as PallasHash;
+use crate::pallas_primitives::babbage::PlutusData as PallasPlutusData;
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 use core::{fmt, ops::Deref};
@@ -390,6 +391,29 @@ pub enum FakeDatum {
 
     #[n(2)]
     ReceiverValue(#[n(0)] PolicyId, #[n(1)] AssetName, #[n(2)] Coin),
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum OrderDatum {
+    Ok {
+        sender_payment_hash: H224,
+        policy_id: PolicyId,
+        asset_name: AssetName,
+        amount: Coin,
+    },
+    MalformedOrderDatum,
+}
+
+impl From<OrderDatum> for Datum {
+    fn from(order_datum: OrderDatum) -> Self {
+        Datum(PlutusData::from(PallasPlutusData::from(order_datum)).0)
+    }
+}
+
+impl From<Datum> for OrderDatum {
+    fn from(datum: Datum) -> Self {
+        <_>::from(PallasPlutusData::from(PlutusData(datum.0)))
+    }
 }
 
 /// Bytes of a Cardano address.
