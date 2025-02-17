@@ -3,7 +3,7 @@
 //! Ledger primitives and cbor codec for the Cardano eras
 
 mod framework;
-pub mod plutus_data;
+mod plutus_data;
 
 pub mod alonzo;
 pub mod babbage;
