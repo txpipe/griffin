@@ -38,6 +38,7 @@ use std::path::PathBuf;
 mod cli;
 mod keystore;
 mod money;
+mod order_book;
 mod rpc;
 mod sync;
 
@@ -193,6 +194,20 @@ async fn main() -> anyhow::Result<()> {
             sync::print_unspent_tree(&db)?;
             println!("To see all details of a particular UTxO, invoke the `verify-utxo` command.");
             Ok(())
+        }
+        Some(Command::ShowAllOrders) => {
+            println!("###### Available Orders ###########");
+            sync::print_orders(&db)?;
+            Ok(())
+        }
+        Some(cli::Command::StartOrder(args)) => {
+            order_book::start_order(&db, &client, &keystore, args).await
+        }
+        Some(cli::Command::ResolveOrder(args)) => {
+            order_book::resolve_order(&db, &client, &keystore, args).await
+        }
+        Some(cli::Command::CancelOrder(args)) => {
+            order_book::cancel_order(&db, &client, &keystore, args).await
         }
         None => {
             log::info!("No Wallet Command invoked. Exiting.");

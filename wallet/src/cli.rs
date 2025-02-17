@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use crate::{
     address_from_string, h224_from_string, h256_from_string, input_from_string, DEFAULT_ENDPOINT,
-    H256,
+    H224, H256,
 };
 use clap::{ArgAction::Append, Args, Parser, Subcommand};
 use griffin_core::{
@@ -104,6 +104,14 @@ pub enum Command {
 
     /// Show the complete list of UTXOs known to the wallet.
     ShowAllOutputs,
+
+    StartOrder(StartOrderArgs),
+
+    ShowAllOrders,
+
+    ResolveOrder(ResolveOrderArgs),
+
+    CancelOrder(CancelOrderArgs),
 }
 
 #[doc(hidden)]
@@ -120,6 +128,81 @@ pub struct MintCoinArgs {
     /// 28-byte hash-address of the recipient.
     #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS)]
     pub recipient: Address,
+}
+
+#[derive(Debug, Args)]
+pub struct StartOrderArgs {
+    /// An input to be consumed by this transaction. This argument may be specified multiple times.
+    /// Used to pay for the value sent.
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "OUTPUT_REF")]
+    pub input: Vec<Input>,
+
+    /// 32-byte H256 public key of an input owner.
+    /// Their pk/sk pair must be registered in the wallet's keystore.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY, value_name = "PUBLIC_KEY")]
+    pub witness: Vec<H256>,
+
+    /// Payment hash of the sender.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h224_from_string, required = true, value_name = "PAYMENT_HASH")]
+    pub sender_ph: H224,
+
+    /// Policy ID of the sent asset class.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h224_from_string, required = true, value_name = "SENT_POLICY_ID")]
+    pub sent_policy: PolicyId,
+
+    /// Asset name of the sent asset class.
+    #[arg(long, short, verbatim_doc_comment, action = Append, required = true, value_name = "SENT_ASSET_NAME")]
+    pub sent_name: String,
+
+    /// Amount of the sent asset class.
+    #[arg(long, short, verbatim_doc_comment, action = Append, required = true, value_name = "SENT_AMOUNT")]
+    pub sent_amount: Coin,
+
+    /// Policy ID of the ordered asset class.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h224_from_string, required = true, value_name = "ORDERED_POLICY_ID")]
+    pub ordered_policy: PolicyId,
+
+    /// Asset name of the ordered asset class.
+    #[arg(long, short, verbatim_doc_comment, action = Append, required = true, value_name = "ORDERED_ASSET_NAME")]
+    pub ordered_name: String,
+
+    /// Amount of the ordered asset class.
+    #[arg(long, short, verbatim_doc_comment, action = Append, required = true, value_name = "ORDERED_AMOUNT")]
+    pub ordered_amount: Coin,
+}
+
+#[derive(Debug, Args)]
+pub struct ResolveOrderArgs {
+    /// An input to be consumed by this transaction. This argument may be specified multiple times.
+    /// Used to pay for the value expected by the order creator, as specified in the order datum.
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "OUTPUT_REF")]
+    pub input: Vec<Input>,
+
+    /// 32-byte H256 public key of an input owner.
+    /// Their pk/sk pair must be registered in the wallet's keystore.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY, value_name = "PUBLIC_KEY")]
+    pub witness: Vec<H256>,
+
+    /// Input order to be resolved.
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "OUTPUT_REF")]
+    pub order_input: Input,
+
+    /// Amount of the asset class expected by the sender.
+    /// This can be retreived from the order datum, but we leave it on purpose to check that phase-two validation fails when we pay less than expected.
+    #[arg(long, short, verbatim_doc_comment, action = Append, required = true, value_name = "PAID_AMOUNT")]
+    pub paid_amount: Coin,
+}
+
+#[derive(Debug, Args)]
+pub struct CancelOrderArgs {
+    /// Input order to be canceled.
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "OUTPUT_REF")]
+    pub order_input: Input,
+
+    /// 32-byte H256 public key of an input owner.
+    /// Their pk/sk pair must be registered in the wallet's keystore.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY, value_name = "PUBLIC_KEY")]
+    pub witness: Vec<H256>,
 }
 
 #[derive(Debug, Args)]

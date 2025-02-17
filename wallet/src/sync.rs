@@ -14,12 +14,10 @@
 
 use std::path::PathBuf;
 
+use crate::order_book::ORDER_ADDRESS_HEX;
 use crate::rpc;
 use anyhow::anyhow;
-use griffin_core::{
-    pallas_codec::minicbor::decode::{Decode as MiniDecode, Decoder as MiniDecoder},
-    types::{Address, Datum, FakeDatum, Input, OpaqueBlock, Transaction, Value},
-};
+use griffin_core::types::{Address, Datum, Input, OpaqueBlock, OrderDatum, Transaction, Value};
 use jsonrpsee::http_client::HttpClient;
 use parity_scale_codec::{Decode, Encode};
 use sled::Db;
@@ -371,18 +369,39 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
             <(Address, Value, Option<Datum>)>::decode(&mut &owner_amount_datum_ivec[..])?;
         // In order to use another datatype in place of `FakeDatum`, just
         // put that type in the line below.
-        let fake_option: Option<FakeDatum> = match datum_option {
-            None => None,
-            Some(d) => MiniDecode::decode(&mut MiniDecoder::new(d.0.as_slice()), &mut ()).unwrap(),
-        };
+        let datum_option_hex = datum_option.map(|datum| hex::encode(datum.0));
 
         println!(
             "{}: owner address {}, datum {:?}, amount: {}",
             input,
             owner_pubkey,
-            fake_option,
+            datum_option_hex,
             amount.normalize(),
         );
+    }
+
+    Ok(())
+}
+
+/// Print the available orders.
+pub(crate) fn print_orders(db: &Db) -> anyhow::Result<()> {
+    let wallet_unspent_tree = db.open_tree(UNSPENT)?;
+    for x in wallet_unspent_tree.iter() {
+        let (input_ivec, owner_amount_datum_ivec) = x?;
+        let input = hex::encode(input_ivec);
+        let (owner_pubkey, amount, datum_option) =
+            <(Address, Value, Option<Datum>)>::decode(&mut &owner_amount_datum_ivec[..])?;
+
+        let order_address = Address(hex::decode(ORDER_ADDRESS_HEX).unwrap());
+        if owner_pubkey == order_address {
+            let order_datum = datum_option.map(|d| OrderDatum::from(d));
+            println!(
+                "{}: datum {:?}, amount: {}",
+                input,
+                order_datum,
+                amount.normalize(),
+            );
+        }
     }
 
     Ok(())
