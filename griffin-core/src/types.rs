@@ -625,6 +625,7 @@ impl Add for Value {
                 Multiasset(d, mb) => Multiasset(c + d, ma + mb),
             },
         }
+        .normalize()
     }
 }
 
@@ -669,6 +670,7 @@ impl Sub for Value {
                 Multiasset(d, mb) => Multiasset(c - d, ma - mb),
             },
         }
+        .normalize()
     }
 }
 
