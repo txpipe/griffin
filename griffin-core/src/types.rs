@@ -542,7 +542,7 @@ impl From<(Vec<Input>, Vec<Output>)> for Transaction {
             transaction_body: TransactionBody {
                 inputs,
                 outputs,
-                validity_interval_start: Some(0),
+                validity_interval_start: None,
                 mint: None,
                 required_signers: None,
             },
