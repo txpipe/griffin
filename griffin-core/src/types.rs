@@ -640,13 +640,12 @@ impl<K: Ord + Clone, V: Sub<Output = V> + Clone> Sub for EncapBTree<K, V> {
 
     /// Coordinate-wise subtraction of `EncapBTree`s
     fn sub(self, other: Self) -> Self {
-        let mut res = EncapBTree::<K, V>::new();
+        let mut res = self.clone();
 
-        for (k, v) in self.0.into_iter() {
-            res.0.insert(
-                k.clone(),
-                other.0.get(&k).map_or(v.clone(), |w| v.clone() - w.clone()),
-            );
+        for (k, v) in other.0.into_iter() {
+            if let Some(w) = self.0.get(&k) {
+                res.0.insert(k.clone(), w.clone() - v.clone());
+            };
         }
 
         res
