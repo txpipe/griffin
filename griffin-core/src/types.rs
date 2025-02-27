@@ -413,6 +413,7 @@ pub struct AssetClass {
 pub enum OrderDatum {
     Ok {
         sender_payment_hash: H224,
+        control_token_class: AssetClass,
         ordered_class: AssetClass,
         ordered_amount: Coin,
     },

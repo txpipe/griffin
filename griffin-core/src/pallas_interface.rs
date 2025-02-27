@@ -335,55 +335,79 @@ impl From<OrderDatum> for PallasPlutusData {
         match order_datum {
             OrderDatum::Ok {
                 sender_payment_hash,
+                control_token_class,
                 ordered_class,
                 ordered_amount,
             } => PallasPlutusData::Constr(Constr {
                 tag: 121,
                 any_constructor: None,
                 fields: Indef(
-                    [PallasPlutusData::Constr(Constr {
-                        tag: 121,
-                        any_constructor: None,
-                        fields: Indef(
-                            [
-                                PallasPlutusData::BoundedBytes(BoundedBytes(
-                                    sender_payment_hash.0.to_vec(),
-                                )),
-                                PallasPlutusData::Constr(Constr {
-                                    tag: 121,
-                                    any_constructor: None,
-                                    fields: Indef(
-                                        [
-                                            PallasPlutusData::Constr(Constr {
-                                                tag: 121,
-                                                any_constructor: None,
-                                                fields: Indef(
-                                                    [
-                                                        PallasPlutusData::BoundedBytes(
-                                                            BoundedBytes(
-                                                                ordered_class.policy_id.0.to_vec(),
+                    [
+                        PallasPlutusData::Constr(Constr {
+                            tag: 121,
+                            any_constructor: None,
+                            fields: Indef(
+                                [
+                                    PallasPlutusData::BoundedBytes(BoundedBytes(
+                                        sender_payment_hash.0.to_vec(),
+                                    )),
+                                    PallasPlutusData::Constr(Constr {
+                                        tag: 121,
+                                        any_constructor: None,
+                                        fields: Indef(
+                                            [
+                                                PallasPlutusData::Constr(Constr {
+                                                    tag: 121,
+                                                    any_constructor: None,
+                                                    fields: Indef(
+                                                        [
+                                                            PallasPlutusData::BoundedBytes(
+                                                                BoundedBytes(
+                                                                    ordered_class
+                                                                        .policy_id
+                                                                        .0
+                                                                        .to_vec(),
+                                                                ),
                                                             ),
-                                                        ),
-                                                        PallasPlutusData::BoundedBytes(
-                                                            BoundedBytes(
-                                                                ordered_class.asset_name.0.into(),
+                                                            PallasPlutusData::BoundedBytes(
+                                                                BoundedBytes(
+                                                                    ordered_class
+                                                                        .asset_name
+                                                                        .0
+                                                                        .into(),
+                                                                ),
                                                             ),
-                                                        ),
-                                                    ]
-                                                    .to_vec(),
-                                                ),
-                                            }),
-                                            PallasPlutusData::BigInt(BigInt::Int(Int(
-                                                minicbor::data::Int::from(ordered_amount),
-                                            ))),
-                                        ]
-                                        .to_vec(),
-                                    ),
-                                }),
-                            ]
-                            .to_vec(),
-                        ),
-                    })]
+                                                        ]
+                                                        .to_vec(),
+                                                    ),
+                                                }),
+                                                PallasPlutusData::BigInt(BigInt::Int(Int(
+                                                    minicbor::data::Int::from(ordered_amount),
+                                                ))),
+                                            ]
+                                            .to_vec(),
+                                        ),
+                                    }),
+                                ]
+                                .to_vec(),
+                            ),
+                        }),
+                        PallasPlutusData::Constr(Constr {
+                            tag: 121,
+                            any_constructor: None,
+                            fields: Indef(
+                                [
+                                    PallasPlutusData::BoundedBytes(BoundedBytes(
+                                        control_token_class.policy_id.0.to_vec(),
+                                    )),
+                                    PallasPlutusData::BoundedBytes(BoundedBytes(
+                                        control_token_class.asset_name.0.into(),
+                                    )),
+                                ]
+                                .to_vec(),
+                            ),
+                        }),
+                    ]
                     .to_vec(),
                 ),
             }),
@@ -406,6 +430,10 @@ impl From<PallasPlutusData> for OrderDatum {
                 tag: 121,
                 any_constructor: None,
                 fields: Indef(order_info),
+            }), PallasPlutusData::Constr(Constr {
+                tag: 121,
+                any_constructor: None,
+                fields: Indef(control_token_class),
             })] = &order_datum[..]
             {
                 if let [PallasPlutusData::BoundedBytes(BoundedBytes(sender_payment_hash_vec)), PallasPlutusData::Constr(Constr {
@@ -423,20 +451,40 @@ impl From<PallasPlutusData> for OrderDatum {
                         if let [PallasPlutusData::BoundedBytes(BoundedBytes(policy_id_vec)), PallasPlutusData::BoundedBytes(BoundedBytes(asset_name_vec))] =
                             &asset_class[..]
                         {
-                            OrderDatum::Ok {
-                                sender_payment_hash: H224::from(PallasHash::from(
-                                    sender_payment_hash_vec.as_slice(),
-                                )),
-                                ordered_class: AssetClass {
-                                    policy_id: H224::from(PallasHash::from(
-                                        policy_id_vec.as_slice(),
+                            if let [PallasPlutusData::BoundedBytes(BoundedBytes(
+                                control_token_policy_vec,
+                            )), PallasPlutusData::BoundedBytes(BoundedBytes(
+                                control_token_name_vec,
+                            ))] = &control_token_class[..]
+                            {
+                                OrderDatum::Ok {
+                                    sender_payment_hash: H224::from(PallasHash::from(
+                                        sender_payment_hash_vec.as_slice(),
                                     )),
-                                    asset_name: AssetName(
-                                        String::from_utf8(asset_name_vec.to_vec()).unwrap(),
-                                    ),
-                                },
-                                ordered_amount: TryFrom::<minicbor::data::Int>::try_from(*amount)
+                                    control_token_class: AssetClass {
+                                        policy_id: H224::from(PallasHash::from(
+                                            control_token_policy_vec.as_slice(),
+                                        )),
+                                        asset_name: AssetName(
+                                            String::from_utf8(control_token_name_vec.to_vec())
+                                                .unwrap(),
+                                        ),
+                                    },
+                                    ordered_class: AssetClass {
+                                        policy_id: H224::from(PallasHash::from(
+                                            policy_id_vec.as_slice(),
+                                        )),
+                                        asset_name: AssetName(
+                                            String::from_utf8(asset_name_vec.to_vec()).unwrap(),
+                                        ),
+                                    },
+                                    ordered_amount: TryFrom::<minicbor::data::Int>::try_from(
+                                        *amount,
+                                    )
                                     .unwrap(),
+                                }
+                            } else {
+                                OrderDatum::MalformedOrderDatum
                             }
                         } else {
                             OrderDatum::MalformedOrderDatum

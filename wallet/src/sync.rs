@@ -413,6 +413,7 @@ pub(crate) fn print_orders(db: &Db) -> anyhow::Result<()> {
                 }
                 Some(OrderDatum::Ok {
                     sender_payment_hash,
+                    control_token_class: _,
                     ordered_class,
                     ordered_amount,
                 }) => {
