@@ -14,10 +14,13 @@
 
 use std::path::PathBuf;
 
-use crate::order_book::ORDER_ADDRESS_HEX;
+use crate::order_book::ORDER_SCRIPT_HEX;
 use crate::rpc;
 use anyhow::anyhow;
-use griffin_core::types::{Address, Datum, Input, OpaqueBlock, OrderDatum, Transaction, Value};
+use griffin_core::types::{
+    compute_plutus_v2_script_hash, Address, Datum, Input, OpaqueBlock, OrderDatum, PlutusScript,
+    Transaction, Value,
+};
 use jsonrpsee::http_client::HttpClient;
 use parity_scale_codec::{Decode, Encode};
 use sled::Db;
@@ -392,7 +395,11 @@ pub(crate) fn print_orders(db: &Db) -> anyhow::Result<()> {
         let (owner_pubkey, value, datum_option) =
             <(Address, Value, Option<Datum>)>::decode(&mut &owner_amount_datum_ivec[..])?;
 
-        let order_address = Address(hex::decode(ORDER_ADDRESS_HEX).unwrap());
+        let script = PlutusScript(hex::decode(ORDER_SCRIPT_HEX).unwrap());
+        let script_hash = compute_plutus_v2_script_hash(script.clone());
+        let order_address =
+            Address(hex::decode("70".to_owned() + &hex::encode(script_hash)).unwrap());
+
         if owner_pubkey == order_address {
             let order_datum = datum_option.map(|d| OrderDatum::from(d));
             match order_datum {

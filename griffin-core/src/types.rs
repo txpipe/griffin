@@ -6,7 +6,9 @@ use crate::pallas_codec::minicbor::{
     Decode as MiniDecode, Decoder, Encode as MiniEncode, Encoder,
 };
 use crate::pallas_crypto::hash::Hash as PallasHash;
-use crate::pallas_primitives::babbage::PlutusData as PallasPlutusData;
+use crate::pallas_primitives::babbage::{
+    PlutusData as PallasPlutusData, PlutusScript as PallasPlutusScript,
+};
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 use core::{fmt, ops::Deref};
@@ -172,6 +174,14 @@ pub struct VKeyWitness {
 /// CBOR encoded Plutus Script.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct PlutusScript(pub Vec<u8>);
+
+pub fn compute_plutus_v2_script_hash(script: PlutusScript) -> PolicyId {
+    PolicyId::from(
+        crate::pallas_applying::utils::compute_plutus_v2_script_hash(&PallasPlutusScript::<2>(
+            <_>::from(script.0),
+        )),
+    )
+}
 
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct ExUnits {
