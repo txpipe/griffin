@@ -734,11 +734,13 @@ impl Multiasset<Coin> {
         for (pol, mut names) in res.clone().0.into_iter() {
             if !names.0.is_empty() {
                 for (name, amount) in names.clone().0.into_iter() {
-                    if amount != 0 {
+                    if amount == 0 {
                         names.0.remove(&name);
                     }
                 }
-            } else {
+            }
+            // After the previous removal of names, we must re-check:
+            if names.0.is_empty() {
                 res.0.remove(&pol);
             }
         }
