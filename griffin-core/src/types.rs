@@ -595,7 +595,7 @@ impl<K: Ord + Clone, V: Add<Output = V> + Clone> Add for EncapBTree<K, V> {
 
     /// Coordinate-wise addition of `EncapBTree`s
     fn add(self, other: Self) -> Self {
-        let mut res = EncapBTree::<K, V>::new();
+        let mut res = other.clone();
 
         for (k, v) in self.0.into_iter() {
             res.0.insert(
