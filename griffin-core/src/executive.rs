@@ -924,6 +924,264 @@ fn test_eval_order_cancel() {
 }
 
 #[test]
+fn test_one_shot_mp() {
+    use crate::checks_interface::conway_minted_tx_from_cbor;
+    use crate::pallas_codec::utils::{
+        Int,
+        MaybeIndefArray::{Def, Indef},
+    };
+    use crate::pallas_crypto::hash::Hash;
+    use crate::pallas_primitives::conway::{
+        BigInt, BoundedBytes, Constr, MintedTx as ConwayMintedTx, PlutusData as PallasPlutusData,
+        TransactionInput, TransactionOutput,
+    };
+    use crate::pallas_primitives::Fragment;
+    use crate::types::{
+        compute_plutus_v2_script_hash, Address, AssetName, ExUnits, Input, Multiasset, Output,
+        PlutusData, PlutusScript, Redeemer, RedeemerTag, Value,
+    };
+    use crate::uplc::tx::{apply_params_to_script, eval_phase_two, ResolvedInput, SlotConfig};
+    use crate::H224;
+    use core::str::FromStr;
+    use sp_core::H256;
+
+    let parameterized_script_hex = "59026e01010032323232323232323222253330053232323232533300a3370e900018061baa004132533300f001153300c00a161325333010301300213232533300e533300e3370e004900108008a5014a2266e1c0092001323300100100622533301300114a0264a66602066ebcc058c04cdd5180b0010070a511330030030013016001375a601e0022a6601a0162c602200264a66601666e1d2002300d3754002297adef6c60137566022601c6ea8004c8c8cc004004c8cc004004010894ccc04800452f5bded8c0264646464a66602466e45220100002153330123371e91010000210031005133017337606ea4008dd3000998030030019bab3014003375c6024004602c004602800244a666022002298103d87a800013232323253330113372200e0042a66602266e3c01c0084cdd2a40006602c6e980052f5c02980103d87a8000133006006003375660260066eb8c044008c054008c04c004dd7180818069baa004153300b49120657870656374204d696e7428706f6c6963795f696429203d20707572706f736500163756601e60206020602060200046eb0c038004c028dd518068011806180680098041baa001149854cc0192411856616c696461746f722072657475726e65642066616c7365001365649188657870656374205b50616972285f2c207175616e74697479295d203d0a2020202020206d696e740a20202020202020207c3e2076616c75652e66726f6d5f6d696e7465645f76616c75650a20202020202020207c3e2076616c75652e746f6b656e7328706f6c6963795f6964290a20202020202020207c3e20646963742e746f5f70616972732829005734ae7155ceaab9e5573eae815d0aba21";
+    let input_tx_id = "25667b8e0fbf599ee2d640a4ab74accdb07a4c4b99b3a62f27e8e865f7ef5774";
+    let input_index = 0;
+
+    let input = Input {
+        tx_hash: H256::from_slice(hex::decode(input_tx_id).unwrap().as_slice()),
+        index: input_index,
+    };
+
+    let utxo_ref_data = PallasPlutusData::Array(Indef(
+        [PallasPlutusData::Constr(Constr {
+            tag: 121,
+            any_constructor: None,
+            fields: Indef(
+                [
+                    PallasPlutusData::Constr(Constr {
+                        tag: 121,
+                        any_constructor: None,
+                        fields: Indef(
+                            [PallasPlutusData::BoundedBytes(BoundedBytes(
+                                hex::decode(input_tx_id).unwrap(),
+                            ))]
+                            .to_vec(),
+                        ),
+                    }),
+                    PallasPlutusData::BigInt(BigInt::Int(Int(minicbor::data::Int::from(
+                        input_index,
+                    )))),
+                ]
+                .to_vec(),
+            ),
+        })]
+        .to_vec(),
+    ));
+
+    let script = PlutusScript(
+        apply_params_to_script(
+            utxo_ref_data.encode_fragment().unwrap().as_slice(),
+            hex::decode(parameterized_script_hex).unwrap().as_slice(),
+        )
+        .unwrap(),
+    );
+    let policy = compute_plutus_v2_script_hash(script.clone());
+
+    let sender_payment_hash = H224::from(
+        Hash::from_str("5b6de1be218ebb35fc08b2983e3a1d72aec969c8d2a6301212e2ea9a").unwrap(),
+    );
+
+    let inputs = vec![input];
+    let resolved_inputs = vec![Output {
+        address: Address(hex::decode("70".to_owned() + &hex::encode(sender_payment_hash)).unwrap()),
+        value: Value::Coin(10),
+        datum_option: None,
+    }];
+
+    let pallas_inputs = inputs
+        .iter()
+        .map(|i| TransactionInput::from(i.clone()))
+        .collect::<Vec<_>>();
+    let pallas_resolved_inputs = resolved_inputs
+        .iter()
+        .map(|ri| TransactionOutput::from(ri.clone()))
+        .collect::<Vec<_>>();
+
+    let mut transaction = Transaction::from((Vec::new(), Vec::new()));
+    for input in inputs {
+        transaction.transaction_body.inputs.push(input.clone());
+    }
+
+    let mint_redeemer = Redeemer {
+        tag: RedeemerTag::Mint,
+        index: 0,
+        data: PlutusData::from(PallasPlutusData::Constr(Constr {
+            tag: 121,
+            any_constructor: None,
+            fields: Def([].to_vec()),
+        })),
+        ex_units: ExUnits {
+            mem: 661056,
+            steps: 159759842,
+        },
+    };
+    let mint = Some(Multiasset::from((
+        policy,
+        AssetName::from("oneShot".to_string()),
+        1,
+    )));
+
+    transaction.transaction_body.mint = mint;
+    transaction.transaction_witness_set.redeemer = Some(vec![mint_redeemer]);
+    transaction.transaction_witness_set.plutus_script = Some(vec![script]);
+
+    let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
+    let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
+    let mtx: ConwayMintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
+
+    let input_utxos: Vec<ResolvedInput> = pallas_inputs
+        .iter()
+        .zip(pallas_resolved_inputs.iter())
+        .map(|(input, output)| ResolvedInput {
+            input: input.clone(),
+            output: output.clone(),
+        })
+        .collect();
+
+    let redeemers = eval_phase_two(
+        &mtx,
+        &input_utxos,
+        None,
+        None,
+        &SlotConfig::default(),
+        false,
+        |_| (),
+    )
+    .unwrap();
+    assert_eq!(redeemers.len(), 1);
+}
+
+#[test]
+fn test_aiken_hello_world() {
+    use crate::checks_interface::conway_minted_tx_from_cbor;
+    use crate::pallas_codec::utils::MaybeIndefArray::Indef;
+    use crate::pallas_crypto::hash::Hash;
+    use crate::pallas_primitives::conway::{
+        BoundedBytes, Constr, MintedTx as ConwayMintedTx, PlutusData as PallasPlutusData,
+        TransactionInput, TransactionOutput,
+    };
+    use crate::types::{
+        compute_plutus_v2_script_hash, Address, Datum, ExUnits, Input, Output, PlutusData,
+        PlutusScript, Redeemer, RedeemerTag, VKeyWitness, Value,
+    };
+    use crate::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
+    use crate::H224;
+    use core::str::FromStr;
+    use sp_core::H256;
+
+    let script = PlutusScript(hex::decode("58f2010000323232323232323222232325333008323232533300b002100114a06644646600200200644a66602200229404c8c94ccc040cdc78010028a511330040040013014002375c60240026eb0c038c03cc03cc03cc03cc03cc03cc03cc03cc020c008c020014dd71801180400399b8f375c6002600e00a91010d48656c6c6f2c20576f726c6421002300d00114984d958c94ccc020cdc3a400000226464a66601a601e0042930b1bae300d00130060041630060033253330073370e900000089919299980618070010a4c2c6eb8c030004c01401058c01400c8c014dd5000918019baa0015734aae7555cf2ab9f5742ae881").unwrap());
+    let script_hash = compute_plutus_v2_script_hash(script.clone());
+
+    let owner = H224::from(
+        Hash::from_str("5b6de1be218ebb35fc08b2983e3a1d72aec969c8d2a6301212e2ea9a").unwrap(),
+    );
+
+    let datum = PallasPlutusData::Constr(Constr {
+        tag: 121,
+        any_constructor: None,
+        fields: Indef(
+            [PallasPlutusData::BoundedBytes(BoundedBytes(
+                owner.0.to_vec(),
+            ))]
+            .to_vec(),
+        ),
+    });
+
+    let inputs = vec![Input {
+        tx_hash: H256::from_slice(
+            hex::decode("88832d2909740fdedac6b39348303b62a2d3d7f6d25a79c349768fe113dab451")
+                .unwrap()
+                .as_slice(),
+        ),
+        index: 0,
+    }];
+    let resolved_inputs = vec![Output {
+        address: Address(hex::decode("70".to_owned() + &hex::encode(script_hash)).unwrap()),
+        value: Value::Coin(10),
+        datum_option: Some(Datum(PlutusData::from(datum.clone()).0)),
+    }];
+
+    let pallas_inputs = inputs
+        .iter()
+        .map(|i| TransactionInput::from(i.clone()))
+        .collect::<Vec<_>>();
+    let pallas_resolved_inputs = resolved_inputs
+        .iter()
+        .map(|ri| TransactionOutput::from(ri.clone()))
+        .collect::<Vec<_>>();
+
+    let redeemer = Redeemer {
+        tag: RedeemerTag::Spend,
+        index: 0,
+        data: PlutusData::from(PallasPlutusData::Constr(Constr {
+            tag: 121,
+            any_constructor: None,
+            fields: Indef(
+                [PallasPlutusData::BoundedBytes(BoundedBytes(
+                    "Hello, World!".as_bytes().to_vec(),
+                ))]
+                .to_vec(),
+            ),
+        })),
+        ex_units: ExUnits {
+            mem: 661056,
+            steps: 159759842,
+        },
+    };
+
+    let mut transaction = Transaction::from((Vec::new(), Vec::new()));
+    for input in inputs {
+        transaction.transaction_body.inputs.push(input.clone());
+    }
+
+    transaction.transaction_body.required_signers = Some(vec![owner]);
+    let vkeywitness = VKeyWitness {
+        vkey: hex::decode("F6E9814CE6626EB532372B1740127E153C28D643A9384F51B1B0229AEDA43717").unwrap(),
+        signature: hex::decode("A4ACDA77397F7A80B21FA17AE95FCC99C255069B8135897BA8A7A5EC0E829DBA91171FBF794C1A5E6249263B04075C659BDEBA1B1E10E38F734539626BFF6905").unwrap()
+    };
+    transaction.transaction_witness_set.vkeywitness = Some(vec![vkeywitness]);
+    transaction.transaction_witness_set.redeemer = Some(vec![redeemer]);
+    transaction.transaction_witness_set.plutus_script = Some(vec![script]);
+
+    let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
+    let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
+    let mtx: ConwayMintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
+
+    let input_utxos: Vec<ResolvedInput> = pallas_inputs
+        .iter()
+        .zip(pallas_resolved_inputs.iter())
+        .map(|(input, output)| ResolvedInput {
+            input: input.clone(),
+            output: output.clone(),
+        })
+        .collect();
+
+    let redeemers = eval_phase_two(
+        &mtx,
+        &input_utxos,
+        None,
+        None,
+        &SlotConfig::default(),
+        false,
+        |_| (),
+    )
+    .unwrap();
+    assert_eq!(redeemers.len(), 1);
+}
+
+#[test]
 fn test_eval_vesting() {
     /* TESTED CONTRACT:
 
