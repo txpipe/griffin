@@ -209,6 +209,15 @@ async fn main() -> anyhow::Result<()> {
         Some(cli::Command::CancelOrder(args)) => {
             order_book::cancel_order(&db, &client, &keystore, args).await
         }
+        Some(cli::Command::PayToScript(args)) => {
+            money::pay_to_script(&db, &client, &keystore, args).await
+        }
+        Some(cli::Command::SpendScript(args)) => {
+            money::spend_script(&db, &client, &keystore, args).await
+        }
+        Some(cli::Command::MintAsset(args)) => {
+            money::mint_asset(&db, &client, &keystore, args).await
+        }
         None => {
             log::info!("No Wallet Command invoked. Exiting.");
             Ok(())
