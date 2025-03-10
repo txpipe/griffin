@@ -255,6 +255,16 @@ pub struct PayToScriptArgs {
     )]
     pub script_hex_file: String,
 
+    /// File containging the cbor of the parameter list (if any) to be applied to the script.
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        default_value = "",
+        value_name = "PARAMETER_LIST_CBOR_FILE"
+    )]
+    pub script_params_cbor_file: String,
+
     /// File containging the cbor of the datum (if any) being paid to the script address.
     #[arg(
         long,
@@ -302,6 +312,16 @@ pub struct SpendScriptArgs {
         value_name = "SCRIPT_FILE"
     )]
     pub script_hex_file: String,
+
+    /// File containging the cbor of the parameter list (if any) to be applied to the script.
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        default_value = "",
+        value_name = "PARAMETER_LIST_CBOR_FILE"
+    )]
+    pub script_params_cbor_file: String,
 
     /// File containging the cbor of the redeemer to the script input.
     #[arg(
