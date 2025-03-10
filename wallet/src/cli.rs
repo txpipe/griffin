@@ -278,15 +278,15 @@ pub struct PayToScriptArgs {
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub amount: Option<Coin>,
 
-    /// Policy ID of the asset to be spent.
+    /// Policy ID of the assets to be to be included in the output value.
     #[arg(long, short, verbatim_doc_comment, value_parser = h224_from_string, action = Append, value_name = "POLICY_ID")]
     pub policy: Vec<PolicyId>,
 
-    /// Name of the asset to be spent.
+    /// Name of the assets to be included in the output value.
     #[arg(long, short, verbatim_doc_comment, action = Append, value_name = "ASSET_NAME")]
     pub name: Vec<String>,
 
-    /// How many tokens of the given asset should be included.
+    /// How many tokens of each asset should be included in the output value.
     #[arg(long, short, verbatim_doc_comment, action = Append, value_name = "AMOUNT")]
     pub token_amount: Vec<Coin>,
 }
