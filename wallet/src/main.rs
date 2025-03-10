@@ -36,6 +36,7 @@ use sp_core::H256;
 use std::path::PathBuf;
 
 mod cli;
+mod eutxo;
 mod keystore;
 mod money;
 mod order_book;
@@ -210,13 +211,13 @@ async fn main() -> anyhow::Result<()> {
             order_book::cancel_order(&db, &client, &keystore, args).await
         }
         Some(cli::Command::PayToScript(args)) => {
-            money::pay_to_script(&db, &client, &keystore, args).await
+            eutxo::pay_to_script(&db, &client, &keystore, args).await
         }
         Some(cli::Command::SpendScript(args)) => {
-            money::spend_script(&db, &client, &keystore, args).await
+            eutxo::spend_script(&db, &client, &keystore, args).await
         }
         Some(cli::Command::MintAsset(args)) => {
-            money::mint_asset(&db, &client, &keystore, args).await
+            eutxo::mint_asset(&db, &client, &keystore, args).await
         }
         None => {
             log::info!("No Wallet Command invoked. Exiting.");
