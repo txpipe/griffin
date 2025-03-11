@@ -14,12 +14,12 @@
 
 use std::path::PathBuf;
 
-use crate::order_book::ORDER_SCRIPT_HEX;
+use crate::order_book::{OrderDatum, ORDER_SCRIPT_HEX};
 use crate::rpc;
 use anyhow::anyhow;
 use griffin_core::types::{
-    compute_plutus_v2_script_hash, Address, Datum, Input, OpaqueBlock, OrderDatum, PlutusScript,
-    Transaction, Value,
+    compute_plutus_v2_script_hash, Address, Datum, Input, OpaqueBlock, PlutusScript, Transaction,
+    Value,
 };
 use jsonrpsee::http_client::HttpClient;
 use parity_scale_codec::{Decode, Encode};
