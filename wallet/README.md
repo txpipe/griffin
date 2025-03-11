@@ -148,12 +148,12 @@ This command pays some coins and assets to the script specified by `script-hex-f
 
 ```bash
 ./target/release/griffin-wallet pay-to-script \
---script-hex-file [PATH_TO_SCRIPT_HEX] \
---script_params_cbor_file [PATH_TO_PARAM_LIST_CBOR] \
---datum-cbor-file [PATH_TO_DATUM_CBOR] \
+--script-hex-file PATH_TO_SCRIPT_HEX \
+--script_params_cbor_file PATH_TO_PARAM_LIST_CBOR \
+--datum-cbor-file PATH_TO_DATUM_CBOR \
 --input [INPUT_REF] \
---witness [WITNESSES] \
---amount [AMOUNT] \
+--witness [WITNESS] \
+--amount AMOUNT \
 --policy [POLICY_ID] \
 --name [ASSET_NAME] \
 --token-amount [TOKEN_AMOUNT]
@@ -175,12 +175,12 @@ In order to spend a script UTxO, we need to specify the file containing the scri
 
 ```bash
 ./target/release/griffin-wallet pay-to-script \
---script-hex-file [PATH_TO_SCRIPT_HEX] \
---script_params_cbor_file [PATH_TO_PARAM_LIST_CBOR] \
---redeemer-cbor-file [PATH_TO_REDEEMER_CBOR]
+--script-hex-file PATH_TO_SCRIPT_HEX \
+--script_params_cbor_file PATH_TO_PARAM_LIST_CBOR \
+--redeemer-cbor-file PATH_TO_REDEEMER_CBOR
 --input [INPUT_REF] \
 --required-signer [REQUIRED_SIGNER]
---witness [WITNESSES]
+--witness [WITNESS]
 ```
 
 For instance, to spend the UTxO sitting at the "hello-world" address that we created in [Paying to a Script Address](#paying-to-a-script-address), we use the following command (the input script ref may vary):
@@ -198,14 +198,14 @@ To mint an asset with some policy id, we need to specify the minting script hex,
 
 ```bash
 ./target/release/griffin-wallet mint-asset \
---script-hex-file [PATH_TO_MINTING_POLICY_HEX] \
---script-params-cbor-file [PATH_TO_PARAM_LIST_CBOR] \
---redeemer-cbor-file [PATH_TO_REDEEMER_CBOR] \
+--script-hex-file PATH_TO_MINTING_POLICY_HEX \
+--script-params-cbor-file PATH_TO_PARAM_LIST_CBOR \
+--redeemer-cbor-file PATH_TO_REDEEMER_CBOR \
 --input [INPUT_REF] \
---witness [RECIPIENT] \
---recipient [RECIPIENT_ADDRESS] \
---name [ASSET_NAME] \
---token-amount [MINT_AMOUNT]
+--witness [WITNESS] \
+--recipient RECIPIENT_ADDRESS \
+--name ASSET_NAME \
+--token-amount MINT_AMOUNT
 ```
 
 As an example, we can mint a singleton with name "oneShot", for a plutusV2 script version of the "one-shot" minting policy (takes a ref input as a parameter, and if minting checks that `input_is_consumed && minted_amount == 1`, or just `minted_amount == -1` if burning). In this case we are sending the minted amount back to Shawn (input ref may vary):
