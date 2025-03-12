@@ -208,14 +208,14 @@ To mint an asset with some policy id, we need to specify the minting script hex,
 --token-amount MINT_AMOUNT
 ```
 
-As an example, we can mint a singleton with name "oneShot", for a plutusV2 script version of the "one-shot" minting policy (takes a ref input as a parameter, and if minting checks that `input_is_consumed && minted_amount == 1`, or just `minted_amount == -1` if burning). In this case we are sending the minted amount back to Shawn (input ref may vary):
+As an example, we can mint a singleton with name "oneShot", for a plutusV2 script version of the "one-shot" minting policy (takes a ref input as a parameter, and if minting checks that `input_is_consumed && minted_amount == 1`, or just `minted_amount == -1` if burning). In this case we are sending the minted amount back to Shawn (if the input ref is different, you should replace it both in the parameter list cbor as in the `input` argument below):
 
 ```bash
 ./target/release/griffin-wallet mint-asset \
 --script-hex-file ./wallet/src/eutxo_examples/one_shot_mp/script.txt \
 --script-params-cbor-file ./wallet/src/eutxo_examples/one_shot_mp/parameters.txt \
 --redeemer-cbor-file ./wallet/src/eutxo_examples/one_shot_mp/redeemer.txt \
---input 25667b8e0fbf599ee2d640a4ab74accdb07a4c4b99b3a62f27e8e865f7ef577400000000 \
+--input 76196d9dc867051484c523112f2c4861795566edd5817e41db15be0c4d556e8501000000 \
 --name oneShot \
 --token-amount 1
 ```
