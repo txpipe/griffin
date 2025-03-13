@@ -370,8 +370,6 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
         let input = hex::encode(input_ivec);
         let (owner_pubkey, amount, datum_option) =
             <(Address, Value, Option<Datum>)>::decode(&mut &owner_amount_datum_ivec[..])?;
-        // In order to use another datatype in place of `FakeDatum`, just
-        // put that type in the line below.
         let datum_option_hex = datum_option.map(|datum| hex::encode(datum.0));
 
         println!(
