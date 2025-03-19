@@ -21,7 +21,7 @@ use crate::pallas_primitives::{
         MintedDatumOption, MintedScriptRef, MintedTransactionBody, MintedTx,
         Tx as PallasTransaction, Value as PallasValue,
     },
-    conway::{MintedTx as ConwayMintedTx, TransactionInput, TransactionOutput},
+    conway::{MintedTx as ConwayMintedTx, TransactionOutput},
 };
 use crate::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
 use crate::{
@@ -83,6 +83,40 @@ where
         Ok(())
     }
 
+    fn phase_two_checks(tx_cbor_bytes: &Vec<u8>, input_utxos: Vec<Output>) -> DispatchResult {
+        let conway_mtx: ConwayMintedTx = conway_minted_tx_from_cbor(&tx_cbor_bytes);
+        let pallas_input_utxos = input_utxos
+            .iter()
+            .map(|ri| TransactionOutput::from(ri.clone()))
+            .collect::<Vec<_>>();
+        let pallas_resolved_inputs: Vec<ResolvedInput> = conway_mtx
+            .transaction_body
+            .inputs
+            .iter()
+            .zip(pallas_input_utxos.iter())
+            .map(|(input, output)| ResolvedInput {
+                input: input.clone(),
+                output: output.clone(),
+            })
+            .collect();
+
+        let phase_two_result = eval_phase_two(
+            &conway_mtx,
+            &pallas_resolved_inputs,
+            None,
+            None,
+            &SlotConfig::default(),
+            false,
+            |_| (),
+        );
+        ensure!(
+            phase_two_result.is_ok(),
+            UTxOError::Babbage(PhaseTwoValidationError)
+        );
+
+        Ok(())
+    }
+
     /// Does pool-style validation of a griffin transaction.
     /// Does not commit anything to storage.
     /// This returns Ok even if some inputs are still missing because the tagged transaction pool can handle that.
@@ -92,7 +126,7 @@ where
     /// checks (in order to avoid a further db search).
     fn validate_griffin_transaction(
         transaction: &Transaction,
-    ) -> Result<(OutputInfoList, ValidTransaction), UTxOError> {
+    ) -> Result<ValidTransaction, UTxOError> {
         debug!(
             target: LOG_TARGET,
             "validating griffin transaction",
@@ -113,7 +147,7 @@ where
         }
 
         let mut tx_outs_info: OutputInfoList = Vec::new();
-        let mut resolved_inputs: Vec<Output> = Vec::new();
+        let mut input_utxos: Vec<Output> = Vec::new();
 
         // Add present inputs to a list to be used to produce the local UTxO set.
         // Keep track of any missing inputs for use in the tagged transaction pool
@@ -123,10 +157,11 @@ where
                 tx_outs_info.push((
                     hex::encode(u.address.0.as_slice()),
                     PallasValue::from(u.clone().value),
-                    None,
+                    None, // irrelevant for phase 1 checks (always inline datum)
                     None,
                 ));
-                resolved_inputs.push(u);
+                // Repeated info in tx_outs_info, but we need this type for phase 2 checks
+                input_utxos.push(u);
             } else {
                 missing_inputs.push(input.clone().encode());
             }
@@ -180,64 +215,29 @@ where
                 target: LOG_TARGET,
                 "Transaction is valid but still has missing inputs. Returning early.",
             );
-            return Ok((
-                tx_outs_info,
-                ValidTransaction {
-                    requires: missing_inputs,
-                    provides,
-                    priority: 0,
-                    longevity: TransactionLongevity::MAX,
-                    propagate: true,
-                },
-            ));
-        }
-
-        // Run phase-two validation
-        let conway_mtx: ConwayMintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
-        let pallas_inputs = transaction
-            .transaction_body
-            .inputs
-            .iter()
-            .map(|i| TransactionInput::from(i.clone()))
-            .collect::<Vec<_>>();
-        let pallas_resolved_inputs = resolved_inputs
-            .iter()
-            .map(|ri| TransactionOutput::from(ri.clone()))
-            .collect::<Vec<_>>();
-        let pallas_input_utxos: Vec<ResolvedInput> = pallas_inputs
-            .iter()
-            .zip(pallas_resolved_inputs.iter())
-            .map(|(input, output)| ResolvedInput {
-                input: input.clone(),
-                output: output.clone(),
-            })
-            .collect();
-
-        let phase_two_result = eval_phase_two(
-            &conway_mtx,
-            &pallas_input_utxos,
-            None,
-            None,
-            &SlotConfig::default(),
-            false,
-            |_| (),
-        );
-        ensure!(
-            phase_two_result.is_ok(),
-            UTxOError::Babbage(PhaseTwoValidationError)
-        );
-
-        // Return the valid transaction
-        Ok((
-            tx_outs_info,
-            ValidTransaction {
-                requires: Vec::new(),
+            return Ok(ValidTransaction {
+                requires: missing_inputs,
                 provides,
                 priority: 0,
                 longevity: TransactionLongevity::MAX,
                 propagate: true,
-            },
-        ))
+            });
+        }
+
+        // These checks were done in `apply_griffin_transaction`, but we do them here for simplicity.
+        // This might limit the ledger's ability to accept transactions that would be valid
+        // in a block, as in chaining.
+        Self::ledger_checks(&mtx, &utxos)?;
+        Self::phase_two_checks(&cbor_bytes, input_utxos)?;
+
+        // Return the valid transaction
+        Ok(ValidTransaction {
+            requires: Vec::new(),
+            provides,
+            priority: 0,
+            longevity: TransactionLongevity::MAX,
+            propagate: true,
+        })
     }
 
     /// Does full verification and application of griffin transactions.
@@ -251,7 +251,7 @@ where
 
         // Re-do the pre-checks. These should have been done in the pool, but we can't
         // guarantee that foreign nodes do these checks faithfully, so we need to check on-chain.
-        let (outs_info, valid_transaction) = Self::validate_griffin_transaction(transaction)?;
+        let valid_transaction = Self::validate_griffin_transaction(transaction)?;
 
         // If there are still missing inputs, we cannot execute this,
         // although it would be valid in the pool
@@ -259,17 +259,6 @@ where
             valid_transaction.requires.is_empty(),
             UTxOError::Babbage(InputNotInUTxO)
         );
-
-        // FIXME: Duplicate code
-        // Griffin Tx -> Pallas Tx -> CBOR -> Minted Pallas Tx
-        // This last one is used to produce the local UTxO set.
-        let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
-        let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
-        let mtx: MintedTx = babbage_minted_tx_from_cbor(&cbor_bytes);
-        let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
-        let utxos: UTxOs = mk_utxo_for_babbage_tx(tx_body, outs_info.as_slice());
-
-        Self::ledger_checks(&mtx, &utxos)?;
 
         // At this point, all validation is complete, so we can commit the storage changes.
         Self::update_storage(transaction);
@@ -451,16 +440,14 @@ where
             block_hash
         );
 
-        let r = Self::validate_griffin_transaction(&tx)
-            .map_err(|e| {
-                log::warn!(
-                    target: LOG_TARGET,
-                    "⛔ Griffin Transaction did not validate (in the pool): {:?}",
-                    e,
-                );
-                TransactionValidityError::Invalid(e.into())
-            })
-            .map(|x| x.1);
+        let r = Self::validate_griffin_transaction(&tx).map_err(|e| {
+            log::warn!(
+                target: LOG_TARGET,
+                "⛔ Griffin Transaction did not validate (in the pool): {:?}",
+                e,
+            );
+            TransactionValidityError::Invalid(e.into())
+        });
 
         debug!(target: LOG_TARGET, "Validation result: {:?}", r);
 
