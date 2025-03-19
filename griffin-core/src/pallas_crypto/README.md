@@ -8,7 +8,7 @@ Crate with all the cryptographic material to support Cardano protocol:
 - [x] Ed25519 Extended asymmetric key pair
 - [ ] Bip32-Ed25519 key derivation
 - [ ] BIP39 mnemonics
-- [ ] VRF
-- [ ] KES
+- [x] VRF
+- [x] KES
 - [ ] SECP256k1
-
+- [x] Nonce calculations

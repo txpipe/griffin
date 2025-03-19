@@ -1,17 +1,16 @@
 //! Utilities required for Alonzo-era transaction validation.
 
+use crate::pallas_addresses::{ScriptHash, ShelleyAddress, ShelleyPaymentPart};
 use crate::pallas_applying::utils::{
     add_minted_value, add_values, aux_data_from_alonzo_minted_tx, compute_native_script_hash,
-    compute_plutus_script_hash, empty_value, get_alonzo_comp_tx_size, get_lovelace_from_alonzo_val,
-    get_network_id_value, get_payment_part, get_shelley_address, get_val_size_in_words,
+    compute_plutus_v1_script_hash, empty_value, get_alonzo_comp_tx_size,
+    get_lovelace_from_alonzo_val, get_payment_part, get_shelley_address, get_val_size_in_words,
     mk_alonzo_vk_wits_check_list, values_are_equal, verify_signature,
     AlonzoError::*,
     AlonzoProtParams, UTxOs,
     ValidationError::{self, *},
     ValidationResult,
 };
-use hex;
-use crate::pallas_addresses::{ScriptHash, ShelleyAddress, ShelleyPaymentPart};
 use crate::pallas_codec::{
     minicbor::{encode, Encoder},
     utils::{Bytes, KeepRaw},
@@ -26,10 +25,10 @@ use crate::pallas_primitives::{
     byron::TxOut,
 };
 use crate::pallas_traverse::{MultiEraInput, MultiEraOutput, OriginalHash};
+use hex;
 // use std::ops::Deref;
-use alloc::vec::Vec;
+use alloc::{borrow::ToOwned, vec::Vec};
 use core::ops::Deref;
-use alloc::borrow::ToOwned;
 
 pub fn validate_alonzo_tx(
     mtx: &MintedTx,
@@ -162,7 +161,7 @@ fn check_min_fee(
 fn presence_of_plutus_scripts(mtx: &MintedTx) -> bool {
     let minted_witness_set: &MintedWitnessSet = &mtx.transaction_witness_set;
     match &minted_witness_set.plutus_script {
-        Some(plutus_scripts) => !plutus_scripts.is_empty(),
+        Some(plutus_v1_scripts) => !plutus_v1_scripts.is_empty(),
         None => false,
     }
 }
@@ -358,7 +357,7 @@ fn check_tx_outs_network_id(tx_body: &TransactionBody, network_id: &u8) -> Valid
 // global network ID.
 fn check_tx_network_id(tx_body: &TransactionBody, network_id: &u8) -> ValidationResult {
     if let Some(tx_network_id) = tx_body.network_id {
-        if get_network_id_value(tx_network_id) != *network_id {
+        if u8::from(tx_network_id) != *network_id {
             return Err(Alonzo(TxWrongNetworkID));
         }
     }
@@ -405,11 +404,11 @@ fn check_witness_set(mtx: &MintedTx, utxos: &UTxOs) -> ValidationResult {
         Some(scripts) => scripts.clone().iter().map(|x| x.clone().unwrap()).collect(),
         None => Vec::new(),
     };
-    let plutus_scripts: Vec<PlutusScript> = match &tx_wits.plutus_script {
+    let plutus_v1_scripts: Vec<PlutusScript<1>> = match &tx_wits.plutus_script {
         Some(scripts) => scripts.clone(),
         None => Vec::new(),
     };
-    check_needed_scripts_are_included(tx_body, utxos, &native_scripts, &plutus_scripts)?;
+    check_needed_scripts_are_included(tx_body, utxos, &native_scripts, &plutus_v1_scripts)?;
     check_datums(tx_body, utxos, &tx_wits.plutus_data)?;
     check_redeemers(tx_body, tx_wits, utxos)?;
     check_required_signers(&tx_body.required_signers, vkey_wits, tx_hash)?;
@@ -423,21 +422,23 @@ fn check_needed_scripts_are_included(
     tx_body: &TransactionBody,
     utxos: &UTxOs,
     native_scripts: &[NativeScript],
-    plutus_scripts: &[PlutusScript],
+    plutus_v1_scripts: &[PlutusScript<1>],
 ) -> ValidationResult {
     let mut native_scripts: Vec<(bool, NativeScript)> =
         native_scripts.iter().map(|x| (false, x.clone())).collect();
-    let mut plutus_scripts: Vec<(bool, PlutusScript)> =
-        plutus_scripts.iter().map(|x| (false, x.clone())).collect();
-    check_script_inputs(tx_body, &mut native_scripts, &mut plutus_scripts, utxos)?;
-    check_minting_policies(tx_body, &mut native_scripts, &mut plutus_scripts)?;
+    let mut plutus_v1_scripts: Vec<(bool, PlutusScript<1>)> = plutus_v1_scripts
+        .iter()
+        .map(|x| (false, x.clone()))
+        .collect();
+    check_script_inputs(tx_body, &mut native_scripts, &mut plutus_v1_scripts, utxos)?;
+    check_minting_policies(tx_body, &mut native_scripts, &mut plutus_v1_scripts)?;
     for (native_script_covered, _) in native_scripts.iter() {
         if !native_script_covered {
             return Err(Alonzo(UnneededNativeScript));
         }
     }
-    for (plutus_script_covered, _) in plutus_scripts.iter() {
-        if !plutus_script_covered {
+    for (plutus_v1_script_covered, _) in plutus_v1_scripts.iter() {
+        if !plutus_v1_script_covered {
             return Err(Alonzo(UnneededPlutusScript));
         }
     }
@@ -557,7 +558,7 @@ fn mk_plutus_script_redeemer_pointers(
             for (index, input) in sorted_inputs.iter().enumerate() {
                 if let Some(script_hash) = get_script_hash_from_input(input, utxos) {
                     for plutus_script in plutus_scripts.iter() {
-                        let hashed_script: PolicyId = compute_plutus_script_hash(plutus_script);
+                        let hashed_script: PolicyId = compute_plutus_v1_script_hash(plutus_script);
                         if script_hash == hashed_script {
                             res.push(RedeemerPointer {
                                 tag: RedeemerTag::Spend,
@@ -567,23 +568,22 @@ fn mk_plutus_script_redeemer_pointers(
                     }
                 }
             }
-            match mint {
-                Some(minted_value) => {
-                    let sorted_policies: Vec<PolicyId> = sort_policies(minted_value);
-                    for (index, policy) in sorted_policies.iter().enumerate() {
-                        for plutus_script in plutus_scripts.iter() {
-                            let hashed_script: PolicyId = compute_plutus_script_hash(plutus_script);
-                            if *policy == hashed_script {
-                                res.push(RedeemerPointer {
-                                    tag: RedeemerTag::Mint,
-                                    index: index as u32,
-                                })
-                            }
+
+            if let Some(minted_value) = mint {
+                let sorted_policies: Vec<PolicyId> = sort_policies(minted_value);
+                for (index, policy) in sorted_policies.iter().enumerate() {
+                    for plutus_script in plutus_scripts.iter() {
+                        let hashed_script: PolicyId = compute_plutus_v1_script_hash(plutus_script);
+                        if *policy == hashed_script {
+                            res.push(RedeemerPointer {
+                                tag: RedeemerTag::Mint,
+                                index: index as u32,
+                            })
                         }
                     }
                 }
-                None => (),
             }
+
             res
         }
         None => Vec::new(),
@@ -629,7 +629,7 @@ fn redeemer_pointers_coincide(
 fn check_script_inputs(
     tx_body: &TransactionBody,
     native_scripts: &mut [(bool, NativeScript)],
-    plutus_scripts: &mut [(bool, PlutusScript)],
+    plutus_v1_scripts: &mut [(bool, PlutusScript<1>)],
     utxos: &UTxOs,
 ) -> ValidationResult {
     let mut inputs: Vec<(bool, ScriptHash)> = get_script_hashes(tx_body, utxos);
@@ -641,8 +641,8 @@ fn check_script_inputs(
                 *native_script_covered = true;
             }
         }
-        for (plutus_script_covered, plutus_script) in plutus_scripts.iter_mut() {
-            let hashed_script: PolicyId = compute_plutus_script_hash(plutus_script);
+        for (plutus_script_covered, plutus_v1_script) in plutus_v1_scripts.iter_mut() {
+            let hashed_script: PolicyId = compute_plutus_v1_script_hash(plutus_v1_script);
             if *input_script_hash == hashed_script {
                 *input_script_covered = true;
                 *plutus_script_covered = true;
@@ -681,7 +681,7 @@ fn get_script_hash_from_input(input: &TransactionInput, utxos: &UTxOs) -> Option
 fn check_minting_policies(
     tx_body: &TransactionBody,
     native_scripts: &mut [(bool, NativeScript)],
-    plutus_scripts: &mut [(bool, PlutusScript)],
+    plutus_v1_scripts: &mut [(bool, PlutusScript<1>)],
 ) -> ValidationResult {
     match &tx_body.mint {
         None => Ok(()),
@@ -696,8 +696,8 @@ fn check_minting_policies(
                         *native_script_covered = true;
                     }
                 }
-                for (plutus_script_covered, plutus_script) in plutus_scripts.iter_mut() {
-                    let hashed_script: PolicyId = compute_plutus_script_hash(plutus_script);
+                for (plutus_script_covered, plutus_v1_script) in plutus_v1_scripts.iter_mut() {
+                    let hashed_script: PolicyId = compute_plutus_v1_script_hash(plutus_v1_script);
                     if *policy == hashed_script {
                         *policy_covered = true;
                         *plutus_script_covered = true;
@@ -727,10 +727,11 @@ fn check_vkey_input_wits(
     let tx_hash: &Vec<u8> = &Vec::from(mtx.transaction_body.original_hash().as_ref());
     let mut inputs_and_collaterals: Vec<TransactionInput> = Vec::new();
     inputs_and_collaterals.extend(tx_body.inputs.clone());
-    match &tx_body.collateral {
-        Some(collaterals) => inputs_and_collaterals.extend(collaterals.clone()),
-        None => (),
+
+    if let Some(collaterals) = &tx_body.collateral {
+        inputs_and_collaterals.extend(collaterals.clone());
     }
+
     for input in inputs_and_collaterals.iter() {
         match utxos.get(&MultiEraInput::from_alonzo_compatible(input)) {
             Some(multi_era_output) => {
@@ -757,7 +758,9 @@ fn check_vk_wit(
     data_to_verify: &[u8],
 ) -> ValidationResult {
     for (vkey_wit_covered, vkey_wit) in wits {
-        if crate::pallas_crypto::hash::Hasher::<224>::hash(&vkey_wit.vkey.clone()) == *payment_key_hash {
+        if crate::pallas_crypto::hash::Hasher::<224>::hash(&vkey_wit.vkey.clone())
+            == *payment_key_hash
+        {
             if !verify_signature(vkey_wit, data_to_verify) {
                 return Err(Alonzo(VKWrongSignature));
             } else {
@@ -926,18 +929,18 @@ fn check_minting(tx_body: &TransactionBody, mtx: &MintedTx) -> ValidationResult 
                         .map(|x| x.clone().unwrap())
                         .collect(),
                 };
-            let plutus_script_wits: Vec<PlutusScript> =
+            let plutus_v1_script_wits: Vec<PlutusScript<1>> =
                 match &mtx.transaction_witness_set.plutus_script {
                     None => Vec::new(),
-                    Some(plutus_script_wits) => plutus_script_wits.clone(),
+                    Some(plutus_v1_script_wits) => plutus_v1_script_wits.clone(),
                 };
             for (policy, _) in minted_value.iter() {
                 if native_script_wits
                     .iter()
                     .all(|native_script| compute_native_script_hash(native_script) != *policy)
-                    && plutus_script_wits
-                        .iter()
-                        .all(|plutus_script| compute_plutus_script_hash(plutus_script) != *policy)
+                    && plutus_v1_script_wits.iter().all(|plutus_v1_script| {
+                        compute_plutus_v1_script_hash(plutus_v1_script) != *policy
+                    })
                 {
                     return Err(Alonzo(MintingLacksPolicy));
                 }

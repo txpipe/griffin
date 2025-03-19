@@ -6,7 +6,7 @@
 //! and it now includes a clone of six crates from the
 //! [Pallas](https://github.com/txpipe/pallas) suite, with modifications in
 //! order to be used in a `no-std` setting.
-//! 
+//!
 //! The Core main purpose is to bring the Griffin node to life. The node is
 //! based on Substrate / Polkadot SDK, and the instructions to make it run can
 //! be found
@@ -19,18 +19,19 @@ extern crate alloc;
 
 mod executive;
 
+pub mod checks_interface;
+pub mod genesis;
+pub mod h224;
+pub mod pallas_addresses;
+pub mod pallas_applying;
 pub mod pallas_codec;
 pub mod pallas_crypto;
-pub mod pallas_addresses;
+pub mod pallas_interface;
 pub mod pallas_primitives;
 pub mod pallas_traverse;
-pub mod pallas_applying;
 pub mod support_macros;
 pub mod types;
-pub mod genesis;
-pub mod pallas_interface;
-pub mod checks_interface;
-pub mod h224;
+pub mod uplc;
 use h224::H224;
 pub mod utxo_set;
 pub use executive::Executive;

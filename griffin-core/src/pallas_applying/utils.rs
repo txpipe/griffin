@@ -3,7 +3,6 @@
 pub mod environment;
 pub mod validation;
 
-pub use environment::*;
 use crate::pallas_addresses::{Address, ShelleyAddress, ShelleyPaymentPart};
 use crate::pallas_codec::{
     minicbor::encode,
@@ -12,17 +11,20 @@ use crate::pallas_codec::{
 use crate::pallas_crypto::key::ed25519::{PublicKey, Signature};
 use crate::pallas_primitives::{
     alonzo::{
-        AssetName, AuxiliaryData, Coin, MintedTx as AlonzoMintedTx, Multiasset, NativeScript,
-        NetworkId, PlutusScript, PolicyId, VKeyWitness, Value,
+        AuxiliaryData, MintedTx as AlonzoMintedTx, Multiasset, NativeScript, VKeyWitness, Value,
     },
-    babbage::{MintedTx as BabbageMintedTx, PlutusV2Script},
+    babbage::MintedTx as BabbageMintedTx,
+    AddrKeyhash, AssetName, Coin, Epoch, GenesisDelegateHash, Genesishash, NetworkId, PlutusScript,
+    PolicyId, PoolKeyhash, PoolMetadata, Relay, RewardAccount, StakeCredential, TransactionIndex,
+    UnitInterval, VrfKeyhash,
 };
-use crate::pallas_traverse::{MultiEraInput, MultiEraOutput};
+use crate::pallas_traverse::{time::Slot, MultiEraInput, MultiEraOutput};
+pub use environment::*;
 // use std::collections::HashMap;
 // use std::ops::Deref;
-use hashbrown::HashMap;
-use core::ops::Deref;
 use alloc::vec::Vec;
+use core::ops::Deref;
+use hashbrown::HashMap;
 
 pub use validation::*;
 
@@ -167,7 +169,7 @@ fn coerce_to_coin(
     err: &ValidationError,
 ) -> Result<Multiasset<Coin>, ValidationError> {
     let mut res: Vec<(PolicyId, KeyValuePairs<AssetName, Coin>)> = Vec::new();
-    for (policy, assets) in value.clone().to_vec().iter() {
+    for (policy, assets) in value.iter() {
         let mut aa: Vec<(AssetName, Coin)> = Vec::new();
         for (asset_name, amount) in assets.clone().to_vec().iter() {
             if *amount < 0 {
@@ -270,11 +272,9 @@ pub fn get_lovelace_from_alonzo_val(val: &Value) -> Coin {
     }
 }
 
+#[deprecated(since = "0.31.0", note = "use `u8::from(...)` instead")]
 pub fn get_network_id_value(network_id: NetworkId) -> u8 {
-    match network_id {
-        NetworkId::One => 0,
-        NetworkId::Two => 1,
-    }
+    u8::from(network_id)
 }
 
 pub fn mk_alonzo_vk_wits_check_list(
@@ -340,14 +340,75 @@ pub fn compute_native_script_hash(script: &NativeScript) -> PolicyId {
     crate::pallas_crypto::hash::Hasher::<224>::hash(&payload)
 }
 
-pub fn compute_plutus_script_hash(script: &PlutusScript) -> PolicyId {
+#[deprecated(since = "0.31.0", note = "use `compute_plutus_v1_script_hash` instead")]
+pub fn compute_plutus_script_hash(script: &PlutusScript<1>) -> PolicyId {
+    compute_plutus_v1_script_hash(script)
+}
+
+pub fn compute_plutus_v1_script_hash(script: &PlutusScript<1>) -> PolicyId {
     let mut payload: Vec<u8> = Vec::from(script.as_ref());
     payload.insert(0, 1);
     crate::pallas_crypto::hash::Hasher::<224>::hash(&payload)
 }
 
-pub fn compute_plutus_v2_script_hash(script: &PlutusV2Script) -> PolicyId {
+pub fn compute_plutus_v2_script_hash(script: &PlutusScript<2>) -> PolicyId {
     let mut payload: Vec<u8> = Vec::from(script.as_ref());
     payload.insert(0, 2);
     crate::pallas_crypto::hash::Hasher::<224>::hash(&payload)
+}
+
+pub type CertificateIndex = u32;
+
+#[derive(PartialEq, Eq, Hash, Clone)]
+pub struct CertPointer {
+    pub slot: Slot,
+    pub tx_ix: TransactionIndex,
+    pub cert_ix: CertificateIndex,
+}
+
+pub type GenesisDelegation = HashMap<Genesishash, (GenesisDelegateHash, VrfKeyhash)>;
+pub type FutGenesisDelegation = HashMap<(Slot, Genesishash), (GenesisDelegateHash, VrfKeyhash)>;
+pub type InstantaneousRewards = (
+    HashMap<StakeCredential, Coin>,
+    HashMap<StakeCredential, Coin>,
+);
+
+#[derive(Default, Clone)] // for testing
+pub struct DState {
+    pub rewards: HashMap<StakeCredential, Coin>,
+    pub delegations: HashMap<StakeCredential, PoolKeyhash>,
+    pub ptrs: HashMap<CertPointer, StakeCredential>,
+    pub fut_gen_delegs: FutGenesisDelegation,
+    pub gen_delegs: GenesisDelegation,
+    pub inst_rewards: InstantaneousRewards,
+}
+
+// Essentially part of the `PoolRegistration` component of `Certificate` at
+// alonzo/src/model.rs
+#[derive(Clone, Debug)]
+pub struct PoolParam {
+    pub vrf_keyhash: VrfKeyhash,
+    pub pledge: Coin,
+    pub cost: Coin,
+    pub margin: UnitInterval,
+    pub reward_account: RewardAccount, // FIXME: Should be a `StakeCredential`, or `Hash<_>`???
+    pub pool_owners: Vec<AddrKeyhash>,
+    pub relays: Vec<Relay>,
+    pub pool_metadata: Nullable<PoolMetadata>,
+}
+
+#[derive(Default, Clone)] // for testing
+pub struct PState {
+    pub pool_params: HashMap<PoolKeyhash, PoolParam>,
+    pub fut_pool_params: HashMap<PoolKeyhash, PoolParam>,
+    pub retiring: HashMap<PoolKeyhash, Epoch>,
+}
+
+// Originally `DPState` in ShelleyMA specs, then updated to
+// `CertState` in Haskell sources at Intersect (#3369).
+#[non_exhaustive]
+#[derive(Default, Clone)] // for testing
+pub struct CertState {
+    pub pstate: PState,
+    pub dstate: DState,
 }

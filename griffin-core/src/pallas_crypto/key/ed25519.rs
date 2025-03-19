@@ -9,12 +9,12 @@
 //! (using `ed25519_bip32` or otherwise).
 
 use crate::pallas_crypto::memsec::Scrubbed as _;
+use alloc::string::{String, ToString};
+use core::{any::type_name, convert::TryFrom, fmt, str::FromStr};
 use cryptoxide::ed25519::{
     self, EXTENDED_KEY_LENGTH, PRIVATE_KEY_LENGTH, PUBLIC_KEY_LENGTH, SIGNATURE_LENGTH,
 };
 use rand_core::{CryptoRng, RngCore};
-use core::{any::type_name, convert::TryFrom, fmt, str::FromStr};
-use alloc::string::{String, ToString};
 
 use thiserror_no_std::Error;
 
@@ -155,7 +155,7 @@ impl SecretKey {
     /// # Example
     ///
     /// ```
-    /// # use pallas_crypto::key::ed25519::SecretKey;
+    /// # use crate::pallas_crypto::key::ed25519::SecretKey;
     /// #
     /// let key: SecretKey = // ...
     /// # [0; SecretKey::SIZE].into() ;
@@ -209,7 +209,7 @@ impl SecretKeyExtended {
     /// # Example
     ///
     /// ```
-    /// # use pallas_crypto::key::ed25519::{SecretKeyExtended, TryFromSecretKeyExtendedError};
+    /// # use crate::pallas_crypto::key::ed25519::{SecretKeyExtended, TryFromSecretKeyExtendedError};
     /// #
     /// # fn test() -> Result<(), TryFromSecretKeyExtendedError> {
     /// let bytes = // ...
@@ -246,7 +246,7 @@ impl SecretKeyExtended {
     /// # Example
     ///
     /// ```
-    /// # use pallas_crypto::key::ed25519::SecretKeyExtended;
+    /// # use crate::pallas_crypto::key::ed25519::SecretKeyExtended;
     /// #
     /// let bytes = // ...
     /// # [0; 64] ;
@@ -303,7 +303,7 @@ impl SecretKeyExtended {
     /// # Example
     ///
     /// ```
-    /// # use pallas_crypto::key::ed25519::SecretKeyExtended;
+    /// # use crate::pallas_crypto::key::ed25519::SecretKeyExtended;
     /// #
     /// let key: SecretKeyExtended = // ...
     /// # unsafe { SecretKeyExtended::from_bytes_unchecked([0; SecretKeyExtended::SIZE]) };

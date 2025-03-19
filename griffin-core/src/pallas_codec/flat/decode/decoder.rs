@@ -1,10 +1,8 @@
 use super::Decode;
 use super::Error;
 use crate::pallas_codec::flat::zigzag::ZigZag;
-use alloc::string::String;
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 
-#[cfg(feature = "num-bigint")]
 use num_bigint::{BigInt, BigUint};
 
 #[derive(Debug)]
@@ -54,7 +52,6 @@ impl<'b> Decoder<'b> {
     /// so on. If the most significant bit was instead 0 we stop decoding
     /// any more bits. Finally we use zigzag to convert the unsigned integer
     /// back to a signed integer.
-    #[cfg(feature = "num-bigint")]
     pub fn big_integer(&mut self) -> Result<BigInt, Error> {
         Ok(self.big_word()?.zigzag())
     }
@@ -169,7 +166,6 @@ impl<'b> Decoder<'b> {
     /// filling in the next 7 least significant bits of the unsigned integer and
     /// so on. If the most significant bit was instead 0 we stop decoding
     /// any more bits.
-    #[cfg(feature = "num-bigint")]
     pub fn big_word(&mut self) -> Result<BigUint, Error> {
         let mut leading_bit = 1;
         let mut final_word: BigUint = (0_u8).into();

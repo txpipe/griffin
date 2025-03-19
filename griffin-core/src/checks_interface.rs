@@ -3,16 +3,9 @@
 //!
 //! Some of these functions were brought directly from Pallas since they belong
 //! to its test suit.
-use crate::pallas_applying::{
-    UTxOs,
-    utils::{ValidationError},
-};
-use crate::types::{
-    UTxOError::{self, *},
-    DispatchResult,
-    value_leq,
-};
+use crate::pallas_applying::{utils::ValidationError, UTxOs};
 use crate::pallas_codec::minicbor::encode;
+use crate::pallas_codec::utils::{Bytes, CborWrap};
 use crate::pallas_primitives::{
     alonzo::Value,
     babbage::{
@@ -20,15 +13,15 @@ use crate::pallas_primitives::{
         MintedTransactionBody, MintedTransactionOutput, MintedTx as BabbageMintedTx,
         PseudoTransactionOutput, Tx as BabbageTx,
     },
+    conway::MintedTx as ConwayMintedTx,
 };
 use crate::pallas_traverse::{MultiEraInput, MultiEraOutput};
-use alloc::{
-    borrow::Cow, vec::Vec,
-    string::String,
-    boxed::Box,
+use crate::types::{
+    value_leq, DispatchResult,
+    UTxOError::{self, *},
 };
+use alloc::{borrow::Cow, boxed::Box, string::String, vec::Vec};
 use core::iter::zip;
-use crate::pallas_codec::utils::{Bytes, CborWrap};
 
 /// Every output must contain this many `Coin`s.
 pub const MIN_COIN_PER_OUTPUT: crate::types::Coin = 10;
@@ -52,6 +45,10 @@ pub fn babbage_tx_to_cbor(tx: &BabbageTx) -> Vec<u8> {
 
 pub fn babbage_minted_tx_from_cbor(tx_cbor: &[u8]) -> BabbageMintedTx<'_> {
     crate::pallas_codec::minicbor::decode::<BabbageMintedTx>(&tx_cbor[..]).unwrap()
+}
+
+pub fn conway_minted_tx_from_cbor(tx_cbor: &[u8]) -> ConwayMintedTx<'_> {
+    crate::pallas_codec::minicbor::decode::<ConwayMintedTx>(&tx_cbor[..]).unwrap()
 }
 
 pub fn mk_utxo_for_babbage_tx<'a>(
@@ -88,17 +85,15 @@ pub fn mk_utxo_for_babbage_tx<'a>(
 pub fn check_min_coin(tx_body: &MintedTransactionBody) -> DispatchResult {
     use crate::pallas_applying::utils::BabbageError::MinLovelaceUnreached;
 
-    let min_reached: bool = tx_body.outputs.iter().all(
-        |out| value_leq(
+    let min_reached: bool = tx_body.outputs.iter().all(|out| {
+        value_leq(
             &crate::types::Value::Coin(MIN_COIN_PER_OUTPUT),
-            &<_>::from(
-                match out {
-                    PseudoTransactionOutput::PostAlonzo(pos) => pos.value.clone(),
-                    _ => return false, // Legacy outputs should not be here!
-                }
-            ),
+            &<_>::from(match out {
+                PseudoTransactionOutput::PostAlonzo(pos) => pos.value.clone(),
+                _ => return false, // Legacy outputs should not be here!
+            }),
         )
-    );
+    });
     if min_reached {
         Ok(())
     } else {

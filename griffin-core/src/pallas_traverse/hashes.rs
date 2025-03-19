@@ -1,10 +1,10 @@
-use crate::pallas_traverse::{ComputeHash, OriginalHash};
 use crate::pallas_codec::utils::KeepRaw;
 use crate::pallas_crypto::{
     hash::{Hash, Hasher},
     key::ed25519::PublicKey,
 };
 use crate::pallas_primitives::{alonzo, babbage, byron, conway};
+use crate::pallas_traverse::{ComputeHash, OriginalHash};
 
 impl ComputeHash<32> for byron::EbbHead {
     fn compute_hash(&self) -> Hash<32> {
@@ -52,7 +52,13 @@ impl ComputeHash<32> for alonzo::Header {
     }
 }
 
-impl OriginalHash<32> for KeepRaw<'_, alonzo::Header> {
+impl OriginalHash<32> for KeepRaw<'_, alonzo::MintedHeader<'_>> {
+    fn original_hash(&self) -> crate::pallas_crypto::hash::Hash<32> {
+        Hasher::<256>::hash(self.raw_cbor())
+    }
+}
+
+impl OriginalHash<32> for KeepRaw<'_, babbage::MintedHeader<'_>> {
     fn original_hash(&self) -> crate::pallas_crypto::hash::Hash<32> {
         Hasher::<256>::hash(self.raw_cbor())
     }
@@ -76,9 +82,9 @@ impl OriginalHash<28> for KeepRaw<'_, alonzo::NativeScript> {
     }
 }
 
-impl ComputeHash<28> for alonzo::PlutusScript {
+impl<const VERSION: usize> ComputeHash<28> for alonzo::PlutusScript<VERSION> {
     fn compute_hash(&self) -> Hash<28> {
-        Hasher::<224>::hash_tagged(&self.0, 1)
+        Hasher::<224>::hash_tagged(&self.0, VERSION as u8)
     }
 }
 
@@ -118,12 +124,6 @@ impl OriginalHash<32> for KeepRaw<'_, babbage::Header> {
     }
 }
 
-impl ComputeHash<28> for babbage::PlutusV2Script {
-    fn compute_hash(&self) -> Hash<28> {
-        Hasher::<224>::hash_tagged(&self.0, 2)
-    }
-}
-
 impl ComputeHash<32> for babbage::TransactionBody {
     fn compute_hash(&self) -> Hash<32> {
         Hasher::<256>::hash_cbor(self)
@@ -152,12 +152,6 @@ impl ComputeHash<32> for babbage::DatumOption {
 }
 
 // conway
-
-impl ComputeHash<28> for conway::PlutusV3Script {
-    fn compute_hash(&self) -> Hash<28> {
-        Hasher::<224>::hash_tagged(&self.0, 3)
-    }
-}
 
 impl ComputeHash<32> for conway::TransactionBody {
     fn compute_hash(&self) -> Hash<32> {
@@ -188,7 +182,7 @@ mod tests {
     use crate::pallas_traverse::{Era, MultiEraTx};
 
     use super::{ComputeHash, OriginalHash};
-    use crate::pallas_codec::utils::Int;
+    use crate::pallas_codec::utils::{Int, MaybeIndefArray};
     use crate::pallas_codec::{minicbor, utils::Bytes};
     use crate::pallas_crypto::hash::Hash;
     use crate::pallas_crypto::key::ed25519::PublicKey;
@@ -289,31 +283,31 @@ mod tests {
         let pd = alonzo::PlutusData::Constr(alonzo::Constr::<alonzo::PlutusData> {
             tag: 1280,
             any_constructor: None,
-            fields: vec![
+            fields: MaybeIndefArray::Indef(vec![
                 alonzo::PlutusData::BigInt(alonzo::BigInt::Int(Int::from(4))),
                 alonzo::PlutusData::Constr(alonzo::Constr::<alonzo::PlutusData> {
                     tag: 124,
                     any_constructor: None,
-                    fields: vec![
+                    fields: MaybeIndefArray::Indef(vec![
                         alonzo::PlutusData::BigInt(alonzo::BigInt::Int(Int::from(-4))),
                         alonzo::PlutusData::Constr(alonzo::Constr::<alonzo::PlutusData> {
                             tag: 102,
                             any_constructor: Some(453),
-                            fields: vec![
+                            fields: MaybeIndefArray::Indef(vec![
                                 alonzo::PlutusData::BigInt(alonzo::BigInt::Int(Int::from(2))),
                                 alonzo::PlutusData::BigInt(alonzo::BigInt::Int(Int::from(3434))),
-                            ],
+                            ]),
                         }),
                         alonzo::PlutusData::BigInt(alonzo::BigInt::Int(Int::from(-11828293))),
-                    ],
+                    ]),
                 }),
                 alonzo::PlutusData::BigInt(alonzo::BigInt::Int(Int::from(11828293))),
-            ],
+            ]),
         });
 
         // if you need to try this out in the cardano-cli, uncomment this line to see
         // the json representation of the above struct:
-        // println!("{}", crate::ToCanonicalJson::to_json(&pd));
+        // println!("{}", crate::pallas_traverse::ToCanonicalJson::to_json(&pd));
 
         // hash that we assume correct since it was generated through the cardano-cli
         let cardano_cli_output = "d9bc0eb6ac664286155f70d720cafd2af16277fbd9014a930997431a2ffbe554";
@@ -328,7 +322,7 @@ mod tests {
     fn plutus_v1_script_hashes_as_cardano_cli() {
         let bytecode_hex = include_str!("../../test_data/jpgstore.plutus");
         let bytecode = hex::decode(bytecode_hex).unwrap();
-        let script = alonzo::PlutusScript(Bytes::from(bytecode));
+        let script = alonzo::PlutusScript::<1>(Bytes::from(bytecode));
 
         let generated = script.compute_hash().to_string();
 
@@ -344,7 +338,7 @@ mod tests {
     fn plutus_v2_script_hashes_as_cardano_cli() {
         let bytecode_hex = include_str!("../../test_data/v2script.plutus");
         let bytecode = hex::decode(bytecode_hex).unwrap();
-        let script = babbage::PlutusV2Script(Bytes::from(bytecode));
+        let script = babbage::PlutusScript::<2>(Bytes::from(bytecode));
 
         let generated = script.compute_hash().to_string();
 

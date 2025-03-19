@@ -6,10 +6,8 @@ use crate::pallas_codec::utils::NonZeroInt;
 use crate::pallas_codec::utils::PositiveCoin;
 // use std::{borrow::Cow, fmt::Display, hash::Hash as StdHash};
 use alloc::borrow::{Cow, ToOwned};
-use core::fmt::Display;
-use alloc::string::String;
-use alloc::boxed::Box;
-use core::hash::Hash as StdHash;
+use alloc::{boxed::Box, string::String};
+use core::{fmt::Display, hash::Hash as StdHash};
 
 use serde::{Deserialize, Serialize};
 use thiserror_no_std::Error;
@@ -38,6 +36,7 @@ pub mod size;
 pub mod time;
 pub mod tx;
 pub mod update;
+pub mod value;
 pub mod withdrawals;
 pub mod witnesses;
 
@@ -72,8 +71,8 @@ pub enum Feature {
 #[derive(Debug)]
 pub enum MultiEraHeader<'b> {
     EpochBoundary(Cow<'b, KeepRaw<'b, byron::EbbHead>>),
-    ShelleyCompatible(Cow<'b, KeepRaw<'b, alonzo::Header>>),
-    BabbageCompatible(Cow<'b, KeepRaw<'b, babbage::Header>>),
+    ShelleyCompatible(Cow<'b, KeepRaw<'b, alonzo::MintedHeader<'b>>>),
+    BabbageCompatible(Cow<'b, KeepRaw<'b, babbage::MintedHeader<'b>>>),
     Byron(Cow<'b, KeepRaw<'b, byron::BlockHead>>),
 }
 
@@ -94,6 +93,14 @@ pub enum MultiEraTx<'b> {
     Babbage(Box<Cow<'b, babbage::MintedTx<'b>>>),
     Byron(Box<Cow<'b, byron::MintedTxPayload<'b>>>),
     Conway(Box<Cow<'b, conway::MintedTx<'b>>>),
+}
+
+#[derive(Debug, Clone)]
+#[non_exhaustive]
+pub enum MultiEraValue<'b> {
+    Byron(u64),
+    AlonzoCompatible(Cow<'b, alonzo::Value>),
+    Conway(Cow<'b, conway::Value>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -184,6 +191,7 @@ pub enum MultiEraUpdate<'b> {
     Byron(u64, Box<Cow<'b, byron::UpProp>>),
     AlonzoCompatible(Box<Cow<'b, alonzo::Update>>),
     Babbage(Box<Cow<'b, babbage::Update>>),
+    Conway(Box<Cow<'b, conway::Update>>),
 }
 
 #[derive(Debug, Clone)]

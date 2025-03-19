@@ -2,24 +2,15 @@
 
 use std::path::PathBuf;
 
+use crate::{
+    address_from_string, h224_from_string, h256_from_string, input_from_string, DEFAULT_ENDPOINT,
+    H224, H256,
+};
 use clap::{ArgAction::Append, Args, Parser, Subcommand};
 use griffin_core::{
-    types::{
-        Coin, Input, Address, PolicyId,
-    },
-    genesis::{
-        SHAWN_PUB_KEY, SHAWN_ADDRESS,
-    },
+    genesis::{SHAWN_ADDRESS, SHAWN_PUB_KEY, SHAWN_PUB_KEY_HASH},
+    types::{Address, Coin, Input, PolicyId},
 };
-use crate::{
-    input_from_string,
-    DEFAULT_ENDPOINT,
-    address_from_string,
-    h256_from_string,
-    h224_from_string,
-    H256,
-};
-
 
 #[doc(hidden)]
 /// The default number of coins to be minted.
@@ -68,7 +59,6 @@ pub enum Command {
     // /// If publickKey of owner is not passed, then by default SHAWN_PUB_KEY is used.
     // #[command(verbatim_doc_comment)]
     // MintCoins(MintCoinArgs),
-
     /// Verify that a particular output ref exists.
     /// Show its value and owner address from both chain storage and the local database.
     #[command(verbatim_doc_comment)]
@@ -114,6 +104,20 @@ pub enum Command {
 
     /// Show the complete list of UTXOs known to the wallet.
     ShowAllOutputs,
+
+    StartOrder(StartOrderArgs),
+
+    ShowAllOrders,
+
+    ResolveOrder(ResolveOrderArgs),
+
+    CancelOrder(CancelOrderArgs),
+
+    PayToScript(PayToScriptArgs),
+
+    SpendScript(SpendScriptArgs),
+
+    MintAsset(MintAssetArgs),
 }
 
 #[doc(hidden)]
@@ -130,6 +134,81 @@ pub struct MintCoinArgs {
     /// 28-byte hash-address of the recipient.
     #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS)]
     pub recipient: Address,
+}
+
+#[derive(Debug, Args)]
+pub struct StartOrderArgs {
+    /// An input to be consumed by this transaction. This argument may be specified multiple times.
+    /// Used to pay for the value sent.
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "OUTPUT_REF")]
+    pub input: Vec<Input>,
+
+    /// 32-byte H256 public key of an input owner.
+    /// Their pk/sk pair must be registered in the wallet's keystore.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY, value_name = "PUBLIC_KEY")]
+    pub witness: Vec<H256>,
+
+    /// Payment hash of the sender.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h224_from_string, required = true, value_name = "PAYMENT_HASH")]
+    pub sender_ph: H224,
+
+    /// Policy ID of the sent asset class.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h224_from_string, required = true, value_name = "SENT_POLICY_ID")]
+    pub sent_policy: PolicyId,
+
+    /// Asset name of the sent asset class.
+    #[arg(long, short, verbatim_doc_comment, action = Append, required = true, value_name = "SENT_ASSET_NAME")]
+    pub sent_name: String,
+
+    /// Amount of the sent asset class.
+    #[arg(long, short, verbatim_doc_comment, action = Append, required = true, value_name = "SENT_AMOUNT")]
+    pub sent_amount: Coin,
+
+    /// Policy ID of the ordered asset class.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h224_from_string, required = true, value_name = "ORDERED_POLICY_ID")]
+    pub ordered_policy: PolicyId,
+
+    /// Asset name of the ordered asset class.
+    #[arg(long, short, verbatim_doc_comment, action = Append, required = true, value_name = "ORDERED_ASSET_NAME")]
+    pub ordered_name: String,
+
+    /// Amount of the ordered asset class.
+    #[arg(long, short, verbatim_doc_comment, action = Append, required = true, value_name = "ORDERED_AMOUNT")]
+    pub ordered_amount: Coin,
+}
+
+#[derive(Debug, Args)]
+pub struct ResolveOrderArgs {
+    /// An input to be consumed by this transaction. This argument may be specified multiple times.
+    /// Used to pay for the value expected by the order creator, as specified in the order datum.
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "OUTPUT_REF")]
+    pub input: Vec<Input>,
+
+    /// 32-byte H256 public key of an input owner.
+    /// Their pk/sk pair must be registered in the wallet's keystore.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY, value_name = "PUBLIC_KEY")]
+    pub witness: Vec<H256>,
+
+    /// Input order to be resolved.
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "OUTPUT_REF")]
+    pub order_input: Input,
+
+    /// Amount of the asset class expected by the sender.
+    /// This can be retreived from the order datum, but we leave it on purpose to check that phase-two validation fails when we pay less than expected.
+    #[arg(long, short, verbatim_doc_comment, action = Append, required = true, value_name = "PAID_AMOUNT")]
+    pub paid_amount: Coin,
+}
+
+#[derive(Debug, Args)]
+pub struct CancelOrderArgs {
+    /// Input order to be canceled.
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "OUTPUT_REF")]
+    pub order_input: Input,
+
+    /// 32-byte H256 public key of an input owner.
+    /// Their pk/sk pair must be registered in the wallet's keystore.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY, value_name = "PUBLIC_KEY")]
+    pub witness: Vec<H256>,
 }
 
 #[derive(Debug, Args)]
@@ -150,7 +229,7 @@ pub struct SpendValueArgs {
     /// An amount of `Coin`s to be included in the output value.
     #[arg(long, short, verbatim_doc_comment, action = Append)]
     pub amount: Option<Coin>,
-    
+
     /// Policy ID of the asset to be spent.
     #[arg(long, short, verbatim_doc_comment, value_parser = h224_from_string, action = Append, value_name = "POLICY_ID")]
     pub policy: Vec<PolicyId>,
@@ -162,4 +241,162 @@ pub struct SpendValueArgs {
     /// How many tokens of the given asset should be included.
     #[arg(long, short, verbatim_doc_comment, action = Append, value_name = "AMOUNT")]
     pub token_amount: Vec<Coin>,
+}
+
+#[derive(Debug, Args)]
+pub struct PayToScriptArgs {
+    /// File containing the hex of the script.
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        required = true,
+        value_name = "SCRIPT_FILE"
+    )]
+    pub script_hex_file: String,
+
+    /// File containging the cbor of the parameter list (if any) to be applied to the script.
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        default_value = "",
+        value_name = "PARAMETER_LIST_CBOR_FILE"
+    )]
+    pub script_params_cbor_file: String,
+
+    /// File containging the cbor of the datum (if any) being paid to the script address.
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        default_value = "",
+        value_name = "DATUM_CBOR_FILE"
+    )]
+    pub datum_cbor_file: String,
+
+    /// An input to be consumed by this transaction. This argument may be specified multiple times.
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "OUTPUT_REF")]
+    pub input: Vec<Input>,
+
+    /// 32-byte H256 public key of an input owner.
+    /// Their pk/sk pair must be registered in the wallet's keystore.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY, value_name = "PUBLIC_KEY")]
+    pub witness: Vec<H256>,
+
+    /// An amount of `Coin`s to be included in the output value.
+    #[arg(long, short, verbatim_doc_comment, action = Append)]
+    pub amount: Option<Coin>,
+
+    /// Policy ID of the assets to be to be included in the output value.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h224_from_string, action = Append, value_name = "POLICY_ID")]
+    pub policy: Vec<PolicyId>,
+
+    /// Name of the assets to be included in the output value.
+    #[arg(long, short, verbatim_doc_comment, action = Append, value_name = "ASSET_NAME")]
+    pub name: Vec<String>,
+
+    /// How many tokens of each asset should be included in the output value.
+    #[arg(long, short, verbatim_doc_comment, action = Append, value_name = "AMOUNT")]
+    pub token_amount: Vec<Coin>,
+}
+
+#[derive(Debug, Args)]
+pub struct SpendScriptArgs {
+    /// File containing the hex of the script.
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        required = true,
+        value_name = "SCRIPT_FILE"
+    )]
+    pub script_hex_file: String,
+
+    /// File containging the cbor of the parameter list (if any) to be applied to the script.
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        default_value = "",
+        value_name = "PARAMETER_LIST_CBOR_FILE"
+    )]
+    pub script_params_cbor_file: String,
+
+    /// File containging the cbor of the redeemer to the script input.
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        required = true,
+        value_name = "REDEEMER_CBOR_FILE"
+    )]
+    pub redeemer_cbor_file: String,
+
+    /// Script input to be consumed by this transaction.
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "SCRIPT_REF")]
+    pub input: Input,
+
+    /// Payment hash of the sender.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h224_from_string, default_value = SHAWN_PUB_KEY_HASH, value_name = "REQUIRED_SIGNERS")]
+    pub required_signers: Vec<H224>,
+
+    /// 32-byte H256 public key of an input owner.
+    /// Their pk/sk pair must be registered in the wallet's keystore.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY, value_name = "PUBLIC_KEY")]
+    pub witness: Vec<H256>,
+}
+
+#[derive(Debug, Args)]
+pub struct MintAssetArgs {
+    /// File containing the hex of the minting policy script.
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        required = true,
+        value_name = "SCRIPT_FILE"
+    )]
+    pub script_hex_file: String,
+
+    /// File containging the cbor of the parameter list (if any) to be applied to the script.
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        default_value = "",
+        value_name = "PARAMETER_LIST_CBOR_FILE"
+    )]
+    pub script_params_cbor_file: String,
+
+    /// File containging the cbor of the redeemer to the minting policy.
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        required = true,
+        value_name = "REDEEMER_CBOR_FILE"
+    )]
+    pub redeemer_cbor_file: String,
+
+    /// An input to be consumed by this transaction.
+    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string, required = true, value_name = "SCRIPT_REF")]
+    pub input: Input,
+
+    /// 32-byte H256 public key of an input owner.
+    /// Their pk/sk pair must be registered in the wallet's keystore.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY, value_name = "PUBLIC_KEY")]
+    pub witness: Vec<H256>,
+
+    /// 28-byte hash-address to which the minted asset will be sent.
+    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS)]
+    pub recipient: Address,
+
+    /// Name of the asset to be minted.
+    #[arg(long, short, verbatim_doc_comment, action = Append, value_name = "ASSET_NAME")]
+    pub name: String,
+
+    /// How many tokens of the given asset should be minted.
+    #[arg(long, short, verbatim_doc_comment, action = Append, value_name = "AMOUNT")]
+    pub token_amount: Coin,
 }

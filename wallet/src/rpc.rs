@@ -2,13 +2,10 @@
 
 use crate::strip_0x_prefix;
 use anyhow::anyhow;
+use griffin_core::types::{Input, OpaqueBlock, Output};
 use jsonrpsee::{core::client::ClientT, http_client::HttpClient, rpc_params};
 use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
-use griffin_core::{
-    types::{OpaqueBlock, Output, Input},
-
-};
 
 /// Get the Node's block hash at a particular height
 pub async fn node_get_block_hash(height: u32, client: &HttpClient) -> anyhow::Result<Option<H256>> {

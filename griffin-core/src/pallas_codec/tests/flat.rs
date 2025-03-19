@@ -1,5 +1,5 @@
-use pallas_codec::flat::filler::Filler;
-use pallas_codec::flat::{decode, encode};
+use crate::pallas_codec::flat::filler::Filler;
+use crate::pallas_codec::flat::{decode, encode};
 use proptest::prelude::*;
 
 prop_compose! {
@@ -8,11 +8,10 @@ prop_compose! {
     }
 }
 
-#[cfg(feature = "num-bigint")]
 mod bigint {
     use super::arb_big_vec;
     use num_bigint::{BigInt, Sign};
-    use pallas_codec::flat::{decode, encode};
+    use crate::pallas_codec::flat::{decode, encode};
     use proptest::prelude::*;
 
     prop_compose! {

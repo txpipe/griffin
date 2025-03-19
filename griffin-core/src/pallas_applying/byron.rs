@@ -1,9 +1,7 @@
 //! Utilities required for Byron-era transaction validation.
 
 // use std::borrow::Cow;
-use alloc::vec::Vec;
-use alloc::boxed::Box;
-use alloc::borrow::Cow;
+use alloc::{borrow::Cow, boxed::Box, vec::Vec};
 
 use crate::pallas_applying::utils::{
     ByronError::*,

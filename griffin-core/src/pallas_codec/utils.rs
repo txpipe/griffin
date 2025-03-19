@@ -1,12 +1,12 @@
+use alloc::{str::FromStr, string::String, vec::Vec};
+use core::{fmt, hash::Hash as StdHash, ops::Deref};
+use hashbrown::HashMap;
 use minicbor::{
-    data::{Tag, Type},
+    data::{IanaTag, Tag, Type},
     decode::Error,
     Decode, Encode,
 };
 use serde::{Deserialize, Serialize};
-use core::{fmt, hash::Hash as StdHash, ops::Deref};
-use alloc::string::String;
-use alloc::vec::Vec;
 
 static TAG_SET: u64 = 258;
 
@@ -66,6 +66,16 @@ where
     }
 }
 
+impl<K, V> FromIterator<(K, V)> for KeyValuePairs<K, V>
+where
+    K: Clone,
+    V: Clone,
+{
+    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
+        KeyValuePairs::Def(Vec::from_iter(iter))
+    }
+}
+
 impl<K, V> From<KeyValuePairs<K, V>> for Vec<(K, V)>
 where
     K: Clone,
@@ -86,6 +96,28 @@ where
 {
     fn from(other: Vec<(K, V)>) -> Self {
         KeyValuePairs::Def(other)
+    }
+}
+
+impl<K, V> From<KeyValuePairs<K, V>> for HashMap<K, V>
+where
+    K: Clone + Eq + core::hash::Hash,
+    V: Clone,
+{
+    fn from(other: KeyValuePairs<K, V>) -> Self {
+        match other {
+            KeyValuePairs::Def(x) => x.into_iter().collect(),
+            KeyValuePairs::Indef(x) => x.into_iter().collect(),
+        }
+    }
+}
+impl<K, V> From<HashMap<K, V>> for KeyValuePairs<K, V>
+where
+    K: Clone,
+    V: Clone,
+{
+    fn from(other: HashMap<K, V>) -> Self {
+        KeyValuePairs::Def(other.into_iter().collect())
     }
 }
 
@@ -201,6 +233,14 @@ where
     pub fn to_vec(self) -> Vec<(K, V)> {
         self.into()
     }
+
+    pub fn from_vec(x: Vec<(K, V)>) -> Option<Self> {
+        if x.is_empty() {
+            None
+        } else {
+            Some(NonEmptyKeyValuePairs::Def(x))
+        }
+    }
 }
 
 impl<K, V> From<NonEmptyKeyValuePairs<K, V>> for Vec<(K, V)>
@@ -228,6 +268,33 @@ where
             Err("NonEmptyKeyValuePairs must contain at least one element".into())
         } else {
             Ok(NonEmptyKeyValuePairs::Def(value))
+        }
+    }
+}
+
+impl<K, V> TryFrom<KeyValuePairs<K, V>> for NonEmptyKeyValuePairs<K, V>
+where
+    K: Clone,
+    V: Clone,
+{
+    type Error = String;
+
+    fn try_from(value: KeyValuePairs<K, V>) -> Result<Self, Self::Error> {
+        match value {
+            KeyValuePairs::Def(x) => {
+                if x.is_empty() {
+                    Err("NonEmptyKeyValuePairs must contain at least one element".into())
+                } else {
+                    Ok(NonEmptyKeyValuePairs::Def(x))
+                }
+            }
+            KeyValuePairs::Indef(x) => {
+                if x.is_empty() {
+                    Err("NonEmptyKeyValuePairs must contain at least one element".into())
+                } else {
+                    Ok(NonEmptyKeyValuePairs::Indef(x))
+                }
+            }
         }
     }
 }
@@ -485,7 +552,7 @@ where
             minicbor::encode::Error::message("error encoding cbor-wrapped structure")
         })?;
 
-        e.tag(Tag::Cbor)?;
+        e.tag(IanaTag::Cbor)?;
         e.bytes(&buf)?;
 
         Ok(())
@@ -529,7 +596,7 @@ where
         e: &mut minicbor::Encoder<W>,
         ctx: &mut C,
     ) -> Result<(), minicbor::encode::Error<W::Error>> {
-        e.tag(Tag::Unassigned(T))?;
+        e.tag(Tag::new(T))?;
         e.encode_with(&self.0, ctx)?;
 
         Ok(())
@@ -683,7 +750,7 @@ where
         if d.datatype()? == Type::Tag {
             let found_tag = d.tag()?;
 
-            if found_tag != Tag::Unassigned(TAG_SET) {
+            if found_tag != Tag::new(TAG_SET) {
                 return Err(Error::message(format!("Unrecognised tag: {found_tag:?}")));
             }
         }
@@ -701,7 +768,7 @@ where
         e: &mut minicbor::Encoder<W>,
         ctx: &mut C,
     ) -> Result<(), minicbor::encode::Error<W::Error>> {
-        e.tag(Tag::Unassigned(TAG_SET))?;
+        e.tag(Tag::new(TAG_SET))?;
         e.encode_with(&self.0, ctx)?;
 
         Ok(())
@@ -718,6 +785,14 @@ pub struct NonEmptySet<T>(Vec<T>);
 impl<T> NonEmptySet<T> {
     pub fn to_vec(self) -> Vec<T> {
         self.0
+    }
+
+    pub fn from_vec(x: Vec<T>) -> Option<Self> {
+        if x.is_empty() {
+            None
+        } else {
+            Some(Self(x))
+        }
     }
 }
 
@@ -766,7 +841,7 @@ where
         if d.datatype()? == Type::Tag {
             let found_tag = d.tag()?;
 
-            if found_tag != Tag::Unassigned(TAG_SET) {
+            if found_tag != Tag::new(TAG_SET) {
                 return Err(Error::message(format!("Unrecognised tag: {found_tag:?}")));
             }
         }
@@ -790,7 +865,7 @@ where
         e: &mut minicbor::Encoder<W>,
         ctx: &mut C,
     ) -> Result<(), minicbor::encode::Error<W::Error>> {
-        e.tag(Tag::Unassigned(TAG_SET))?;
+        e.tag(Tag::new(TAG_SET))?;
         e.encode_with(&self.0, ctx)?;
 
         Ok(())
@@ -909,7 +984,7 @@ impl From<&AnyUInt> for u64 {
 /// positive_coin = 1 .. 18446744073709551615
 #[derive(Debug, PartialEq, Copy, Clone, PartialOrd, Eq, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct PositiveCoin(u64);
+pub struct PositiveCoin(pub u64);
 
 impl TryFrom<u64> for PositiveCoin {
     type Error = u64;
@@ -1021,7 +1096,7 @@ impl<C> minicbor::encode::Encode<C> for NonZeroInt {
 /// # Examples
 ///
 /// ```
-/// use pallas_codec::utils::KeepRaw;
+/// use crate::pallas_codec::utils::KeepRaw;
 ///
 /// let a = (123u16, (456u16, 789u16), 123u16);
 /// let data = minicbor::to_vec(a).unwrap();
@@ -1088,7 +1163,7 @@ impl<C, T> minicbor::Encode<C> for KeepRaw<'_, T> {
 /// # Examples
 ///
 /// ```
-/// use pallas_codec::utils::AnyCbor;
+/// use crate::pallas_codec::utils::AnyCbor;
 ///
 /// let a = (123u16, (456u16, 789u16), 123u16);
 /// let data = minicbor::to_vec(a).unwrap();
@@ -1291,11 +1366,28 @@ impl Deref for Bytes {
     }
 }
 
+impl<const N: usize> TryFrom<&Bytes> for [u8; N] {
+    type Error = core::array::TryFromSliceError;
+
+    fn try_from(value: &Bytes) -> Result<Self, Self::Error> {
+        value.0.as_slice().try_into()
+    }
+}
+
 impl TryFrom<String> for Bytes {
     type Error = hex::FromHexError;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         let v = hex::decode(value)?;
+        Ok(Bytes(minicbor::bytes::ByteVec::from(v)))
+    }
+}
+
+impl FromStr for Bytes {
+    type Err = hex::FromHexError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let v = hex::decode(s)?;
         Ok(Bytes(minicbor::bytes::ByteVec::from(v)))
     }
 }

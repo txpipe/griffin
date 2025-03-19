@@ -3,9 +3,9 @@
 Most of the types defined here implements `Scrubbed` trait.
 */
 
-use core::ptr;
-use alloc::vec::Vec;
 use alloc::boxed::Box;
+use alloc::vec::Vec;
+use core::ptr;
 
 /// Types implementing this can be scrubbed, the memory is cleared and
 /// erased with a dummy value.

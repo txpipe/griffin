@@ -1,11 +1,10 @@
-
 // pub type Error = Box<dyn std::error::Error>;
 
 use crate::pallas_codec::minicbor::{decode, to_vec, Decode, Encode};
 
 // no std:
 pub type Error = Box<dyn core::error::Error>;
-use alloc::{vec::Vec, boxed::Box, string::ToString};
+use alloc::{boxed::Box, string::ToString, vec::Vec};
 
 pub trait Fragment<'a>
 where

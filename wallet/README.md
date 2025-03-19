@@ -8,7 +8,7 @@ This CLI wallet is based on a minimized version of the [Tuxedo wallet](https://g
 You should have a properly installed Griffin node to build the wallet. After following the [instructions to do that](https://github.com/txpipe/griffin/blob/main/README.md#installation), run
 
 ```bash
-cargo +nightly build --release -p griffin-wallet
+cargo build --release -p griffin-wallet
 ```
 
 As explained in the node installation instructions, omitting the `--release` will build the "debug" version.
@@ -110,7 +110,7 @@ dcb998d9e000c19fd20e41afeff6e1e0d9366e6e6c756c8173e52fc8061638f601000000: owner 
 
 Finally, to send some coins *and* `tokenA`s from the last UTxO to the other account, we do:
 ```
-./target/release/griffin-wallet spend-value --input dcb998d9e000c19fd20e41afeff6e1e0d9366e6e6c756c8173e52fc8061638f601000000 --amount 14000000 --policy 0x0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005 --name tokenA --token-amount 200000000 --recipient 0x614fdf13c0aabb2c2e6df7a0ac0f5cb5aaabca448af8287e54681273dd
+$ ./target/release/griffin-wallet spend-value --input dcb998d9e000c19fd20e41afeff6e1e0d9366e6e6c756c8173e52fc8061638f601000000 --amount 14000000 --policy 0x0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005 --name tokenA --token-amount 200000000 --recipient 0x614fdf13c0aabb2c2e6df7a0ac0f5cb5aaabca448af8287e54681273dd
 
 [2024-11-14T12:54:28Z INFO  griffin_wallet] Number of blocks in the db: 250
 [2024-11-14T12:54:28Z INFO  griffin_wallet] Wallet database synchronized with node to height 349
@@ -140,3 +140,82 @@ total      : 314000000 Coins, Multiassets:
   (0x0298…2005) tokenB: 1123581321
 ```
 
+## E-UTxO related commands
+
+### Paying to a Script Address
+
+This command pays some coins and assets to the script specified by `script-hex-file`. The optional parameters `script_params_cbor_file` and `datum-cbor-file` are used to pass the files containing the cbor of the parameter list expected by a parameterized script (if any) and the cbor of the inline datum to be included in the script output, if any. We also specify an input to be consumed by this transaction, and with `witness` the public key of an input owner (Shawn's pk implied by default). We can set as many inputs, witnesses and combinations of (policy, name, token-amount) as needed. The whole command looks like this:
+
+```bash
+./target/release/griffin-wallet pay-to-script \
+--script-hex-file PATH_TO_SCRIPT_HEX \
+--script_params_cbor_file PATH_TO_PARAM_LIST_CBOR \
+--datum-cbor-file PATH_TO_DATUM_CBOR \
+--input [INPUT_REF] \
+--witness [WITNESS] \
+--amount AMOUNT \
+--policy [POLICY_ID] \
+--name [ASSET_NAME] \
+--token-amount [TOKEN_AMOUNT]
+```
+
+For example, we can pay 2000 coins to the plutusV2 script version of [aiken's "hello-world" example](https://aiken-lang.org/example--hello-world/basics), spending an input that belongs to Shawn (its ref may vary) and with an inline datum that contains Shawn's pub key hash, like so:
+
+```bash
+./target/release/griffin-wallet pay-to-script \
+--script-hex-file ./wallet/src/eutxo_examples/hello_world/script.txt \
+--datum-cbor-file ./wallet/src/eutxo_examples/hello_world/datum.txt \
+--input 25667b8e0fbf599ee2d640a4ab74accdb07a4c4b99b3a62f27e8e865f7ef577400000000 \
+--amount 2000
+```
+
+### Spending a Script UTxO
+
+In order to spend a script UTxO, we need to specify the file containing the script hex, the file of the parameter list cbor to be applied (if any), the file containing the redeemer cbor, the script input to be consumed and optionally the required signer(s) and witness(es) (if omitted, Shawn's values go as default). The complete command looks like this:
+
+```bash
+./target/release/griffin-wallet pay-to-script \
+--script-hex-file PATH_TO_SCRIPT_HEX \
+--script_params_cbor_file PATH_TO_PARAM_LIST_CBOR \
+--redeemer-cbor-file PATH_TO_REDEEMER_CBOR
+--input [INPUT_REF] \
+--required-signer [REQUIRED_SIGNER]
+--witness [WITNESS]
+```
+
+For instance, to spend the UTxO sitting at the "hello-world" address that we created in [Paying to a Script Address](#paying-to-a-script-address), we use the following command (the input script ref may vary):
+
+```bash
+./target/release/griffin-wallet spend-script \
+--script-hex-file ./wallet/src/eutxo_examples/hello_world/script.txt \
+--redeemer-cbor-file ./wallet/src/eutxo_examples/hello_world/redeemer.txt \
+--input 76196d9dc867051484c523112f2c4861795566edd5817e41db15be0c4d556e8500000000
+```
+
+### Minting an Asset
+
+To mint an asset with some policy id, we need to specify the minting script hex, the parameter list to be applied (if any), the redeemer, an input to be consumed (every tx needs at least one, and we also need to pay for the min amount of coins in the output containing the newly minted asset), the witness(es) and recipient (by default, Shawn's pk and address are implied), the name of the asset to mint and its amount:
+
+```bash
+./target/release/griffin-wallet mint-asset \
+--script-hex-file PATH_TO_MINTING_POLICY_HEX \
+--script-params-cbor-file PATH_TO_PARAM_LIST_CBOR \
+--redeemer-cbor-file PATH_TO_REDEEMER_CBOR \
+--input [INPUT_REF] \
+--witness [WITNESS] \
+--recipient RECIPIENT_ADDRESS \
+--name ASSET_NAME \
+--token-amount MINT_AMOUNT
+```
+
+As an example, we can mint a singleton with name "oneShot", for a plutusV2 script version of the "one-shot" minting policy (takes a ref input as a parameter, and if minting checks that `input_is_consumed && minted_amount == 1`, or just `minted_amount == -1` if burning). In this case we are sending the minted amount back to Shawn (if the input ref is different, you should replace it both in the parameter list cbor as in the `input` argument below):
+
+```bash
+./target/release/griffin-wallet mint-asset \
+--script-hex-file ./wallet/src/eutxo_examples/one_shot_mp/script.txt \
+--script-params-cbor-file ./wallet/src/eutxo_examples/one_shot_mp/parameters.txt \
+--redeemer-cbor-file ./wallet/src/eutxo_examples/one_shot_mp/redeemer.txt \
+--input 76196d9dc867051484c523112f2c4861795566edd5817e41db15be0c4d556e8501000000 \
+--name oneShot \
+--token-amount 1
+```

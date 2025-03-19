@@ -4,7 +4,6 @@ use crate::pallas_codec::flat::zigzag::ZigZag;
 
 use alloc::vec::Vec;
 
-#[cfg(feature = "num-bigint")]
 use num_bigint::{BigInt, BigUint};
 
 pub struct Encoder {
@@ -114,7 +113,6 @@ impl Encoder {
     /// significant bits of the unsigned integer. If the number is greater than
     /// 127 we encode a leading 1 followed by repeating the encoding above for
     /// the next 7 bits and so on.
-    #[cfg(feature = "num-bigint")]
     pub fn big_integer(&mut self, i: BigInt) -> &mut Self {
         self.big_word(i.zigzag());
         self
@@ -182,7 +180,6 @@ impl Encoder {
     /// We encode the 7 least significant bits of the unsigned byte. If the char
     /// value is greater than 127 we encode a leading 1 followed by
     /// repeating the above for the next 7 bits and so on.
-    #[cfg(feature = "num-bigint")]
     pub fn big_word(&mut self, c: BigUint) -> &mut Self {
         let mut d = c;
         let zero = (0_u8).into();

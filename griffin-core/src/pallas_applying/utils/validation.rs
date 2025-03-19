@@ -4,6 +4,8 @@
 #[non_exhaustive]
 pub enum ValidationError {
     TxAndProtParamsDiffer,
+    PParamsByronDoesntNeedAccountState,
+    EnvMissingAccountState,
     UnknownProtParams,
     Byron(ByronError),
     ShelleyMA(ShelleyMAError),
@@ -49,6 +51,19 @@ pub enum ShelleyMAError {
     MissingScriptWitness,
     WrongSignature,
     MintingLacksPolicy,
+    KeyAlreadyRegistered,
+    KeyNotRegistered,
+    PointerInUse,
+    RewardsNotNull,
+    PoolAlreadyRegistered,
+    PoolNotRegistered,
+    PoolCostBelowMin,
+    DuplicateGenesisDelegate,
+    DuplicateGenesisVRF,
+    GenesisKeyNotInMapping,
+    InsufficientForInstantaneousRewards,
+    MIRCertificateTooLateinEpoch,
+    ScriptDenial,
 }
 
 #[derive(Debug, Clone)]
@@ -140,6 +155,7 @@ pub enum BabbageError {
     ScriptIntegrityHash,
     DuplicateInput,
     OutputAlreadyInUTxO,
+    PhaseTwoValidationError,
 }
 
 pub type ValidationResult = Result<(), ValidationError>;

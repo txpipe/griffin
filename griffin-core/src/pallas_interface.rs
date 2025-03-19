@@ -1,37 +1,36 @@
 //! Interface between Griffin and Pallas Transaction types.
-use crate::{types::*, H224};
-use sp_core::H256;
 use crate::pallas_codec::{
-    minicbor::{
-        encode, Decode, Decoder
-    },
+    minicbor::{encode, Decode, Decoder},
     utils::{
-        Bytes, Nullable, KeyValuePairs, // CborWrap, KeepRaw, MaybeIndefArray,
-    }
+        Bytes,
+        CborWrap,
+        KeyValuePairs, // CborWrap, KeepRaw, MaybeIndefArray,
+        NonEmptyKeyValuePairs,
+        Nullable,
+    },
 };
 use crate::pallas_crypto::hash::Hash as PallasHash;
 use crate::pallas_primitives::babbage::{
-    AssetName as PallasAssetName,
-    DatumOption,
-    ExUnits as PallasExUnits,
-    LegacyTransactionOutput,
-    Multiasset as PallasMultiasset,
-    PlutusData as PallasPlutusData,
-    PlutusV2Script as PallasPlutusV2Script,
-    PolicyId as PallasPolicyId,
-    PostAlonzoTransactionOutput,
-    Redeemer as PallasRedeemer,
-    RedeemerTag as PallasRedeemerTag,
-    Tx as PallasTransaction,
-    TransactionBody as PallasTransactionBody,
-    TransactionInput as PallasInput,
-    TransactionOutput as PallasOutput,
-    VKeyWitness as PallasVKeyWitness,
-    Value as PallasValue,
-    WitnessSet as PallasWitnessSet,
+    AssetName as PallasAssetName, DatumOption, ExUnits as PallasExUnits, LegacyTransactionOutput,
+    Multiasset as PallasMultiasset, PlutusData as PallasPlutusData,
+    PlutusScript as PallasPlutusScript, PolicyId as PallasPolicyId, PostAlonzoTransactionOutput,
+    PseudoDatumOption::Data, Redeemer as PallasRedeemer, RedeemerTag as PallasRedeemerTag,
+    TransactionBody as PallasTransactionBody, TransactionInput as PallasInput,
+    TransactionOutput as PallasOutput, Tx as PallasTransaction, VKeyWitness as PallasVKeyWitness,
+    Value as PallasValue, WitnessSet as PallasWitnessSet,
 };
-use alloc::{vec::Vec, collections::BTreeMap, string::String};
-use core::{ops::Deref, default::Default};
+use crate::pallas_primitives::conway::{
+    DatumOption as ConwayDatumOption, Multiasset as ConwayMultiasset,
+    PostAlonzoTransactionOutput as ConwayPostAlonzoTransactionOutput,
+    TransactionOutput as ConwayOutput, Value as ConwayValue,
+};
+use crate::pallas_primitives::{AddrKeyhash, PositiveCoin};
+use crate::{types::*, H224};
+use alloc::{collections::BTreeMap, string::String, vec::Vec};
+use core::{default::Default, ops::Deref};
+use sp_core::H256;
+
+type PallasRequiredSigner = AddrKeyhash;
 
 impl From<Input> for PallasInput {
     fn from(val: Input) -> Self {
@@ -77,9 +76,7 @@ impl From<PallasAssetName> for AssetName {
 
 impl<K: Clone + Ord, V: Clone> From<EncapBTree<K, V>> for KeyValuePairs<K, V> {
     fn from(val: EncapBTree<K, V>) -> Self {
-        let res: KeyValuePairs<K, V> = <_>::from(val.0
-                                                 .into_iter()
-                                                 .collect::<Vec<_>>());
+        let res: KeyValuePairs<K, V> = <_>::from(val.0.into_iter().collect::<Vec<_>>());
         res
     }
 }
@@ -94,32 +91,59 @@ impl<K: Clone + Ord, V: Clone> From<KeyValuePairs<K, V>> for EncapBTree<K, V> {
 
 impl<A: Clone> From<Multiasset<A>> for PallasMultiasset<A> {
     fn from(val: Multiasset<A>) -> Self {
-        let mut res: Vec<(PallasPolicyId, KeyValuePairs<PallasAssetName, A>)> =
-                      Vec::new();
-        
+        let mut res: Vec<(PallasPolicyId, KeyValuePairs<PallasAssetName, A>)> = Vec::new();
+
         for (k, v) in val.0.into_iter() {
-            res.push((<_>::from(k),
-                      <_>::from(v
-                                .0
-                                .into_iter()
-                                .map(|(k, v)| (<_>::from(k), v))
-                                .collect::<Vec<_>>())))
+            res.push((
+                <_>::from(k),
+                <_>::from(
+                    v.0.into_iter()
+                        .map(|(k, v)| (<_>::from(k), v))
+                        .collect::<Vec<_>>(),
+                ),
+            ))
         }
 
         KeyValuePairs::from(res)
     }
 }
 
+impl From<Multiasset<Coin>> for ConwayMultiasset<PositiveCoin> {
+    fn from(val: Multiasset<Coin>) -> Self {
+        let mut res: Vec<(
+            PallasPolicyId,
+            NonEmptyKeyValuePairs<PallasAssetName, PositiveCoin>,
+        )> = Vec::new();
+
+        for (k, v) in val.0.into_iter() {
+            res.push((
+                <_>::from(k),
+                <_>::try_from(
+                    v.0.into_iter()
+                        .map(|(k, v)| (<_>::from(k), PositiveCoin(v)))
+                        .collect::<Vec<_>>(),
+                )
+                .unwrap(),
+            ))
+        }
+
+        NonEmptyKeyValuePairs::try_from(res).unwrap()
+    }
+}
+
 impl<A: Clone> From<PallasMultiasset<A>> for Multiasset<A> {
     fn from(val: PallasMultiasset<A>) -> Self {
-        let mut res: Vec<(PolicyId, EncapBTree<AssetName, A>)> =
-                      Vec::new();
-        
+        let mut res: Vec<(PolicyId, EncapBTree<AssetName, A>)> = Vec::new();
+
         for (k, v) in val.iter() {
-            res.push((PolicyId::from(k.clone()),
-                      EncapBTree(<_>::from_iter(v.clone()
-                                          .iter()
-                                          .map(|(k, v)| (<_>::from(k.clone()), v.clone()))))))
+            res.push((
+                PolicyId::from(k.clone()),
+                EncapBTree(<_>::from_iter(
+                    v.clone()
+                        .iter()
+                        .map(|(k, v)| (<_>::from(k.clone()), v.clone())),
+                )),
+            ))
         }
 
         EncapBTree(<_>::from_iter(res.into_iter()))
@@ -127,6 +151,15 @@ impl<A: Clone> From<PallasMultiasset<A>> for Multiasset<A> {
 }
 
 impl From<Value> for PallasValue {
+    fn from(val: Value) -> Self {
+        match val {
+            Value::Coin(c) => Self::Coin(c),
+            Value::Multiasset(c, m) => Self::Multiasset(c, <_>::from(m)),
+        }
+    }
+}
+
+impl From<Value> for ConwayValue {
     fn from(val: Value) -> Self {
         match val {
             Value::Coin(c) => Self::Coin(c),
@@ -144,13 +177,33 @@ impl From<PallasValue> for Value {
     }
 }
 
+impl From<Output> for ConwayPostAlonzoTransactionOutput {
+    fn from(val: Output) -> Self {
+        // FIXME: Add error handling
+        let datum_option: Option<ConwayDatumOption> = val.datum_option.map(|d| {
+            Data(CborWrap(
+                Decode::decode(&mut Decoder::new(d.0.as_slice()), &mut ()).unwrap(),
+            ))
+        });
+
+        Self {
+            address: <_>::from(val.address.0),
+            value: <_>::from(val.value),
+            datum_option,
+            script_ref: Default::default(),
+        }
+    }
+}
+
 impl From<Output> for PostAlonzoTransactionOutput {
     fn from(val: Output) -> Self {
         // FIXME: Add error handling
-        let datum_option: Option<DatumOption> = val.datum_option.map(
-            |d| Decode::decode(&mut Decoder::new(d.0.as_slice()), &mut ()).unwrap()
-        );
-        
+        let datum_option: Option<DatumOption> = val.datum_option.map(|d| {
+            Data(CborWrap(
+                Decode::decode(&mut Decoder::new(d.0.as_slice()), &mut ()).unwrap(),
+            ))
+        });
+
         Self {
             address: <_>::from(val.address.0),
             value: <_>::from(val.value),
@@ -166,13 +219,13 @@ impl From<PostAlonzoTransactionOutput> for Output {
         let mut datum: Vec<u8> = Vec::new();
         if let Some(data) = val.datum_option {
             match encode(&data, &mut datum) {
-                Ok(_) =>  {
+                Ok(_) => {
                     datum_option = Some(Datum(datum));
-                },
+                }
                 Err(err) => log::info!("Unable to encode datum ({:?})", err),
             };
         };
-        
+
         Self {
             address: Address(Vec::from(val.address)),
             value: Value::from(val.value),
@@ -187,13 +240,13 @@ impl From<LegacyTransactionOutput> for Output {
         let mut datum: Vec<u8> = Vec::new();
         if let Some(data) = val.datum_hash {
             match encode(&data, &mut datum) {
-                Ok(_) =>  {
+                Ok(_) => {
                     datum_option = Some(Datum(datum));
-                },
+                }
                 Err(err) => log::info!("Unable to encode datum ({:?})", err),
             };
         };
-        
+
         Self {
             address: Address(Vec::from(val.address)),
             value: Value::from(val.amount),
@@ -208,6 +261,12 @@ impl From<Output> for PallasOutput {
     }
 }
 
+impl From<Output> for ConwayOutput {
+    fn from(val: Output) -> Self {
+        ConwayOutput::PostAlonzo(<_>::from(val))
+    }
+}
+
 impl From<PallasOutput> for Output {
     fn from(val: PallasOutput) -> Self {
         match val {
@@ -219,7 +278,7 @@ impl From<PallasOutput> for Output {
 
 impl From<VKeyWitness> for PallasVKeyWitness {
     fn from(val: VKeyWitness) -> Self {
-        Self{
+        Self {
             vkey: Bytes::from(val.vkey),
             signature: Bytes::from(val.signature),
         }
@@ -228,7 +287,7 @@ impl From<VKeyWitness> for PallasVKeyWitness {
 
 impl From<PallasVKeyWitness> for VKeyWitness {
     fn from(val: PallasVKeyWitness) -> Self {
-        Self{
+        Self {
             vkey: Vec::from(val.vkey),
             signature: Vec::from(val.signature),
         }
@@ -270,7 +329,14 @@ impl From<PallasPlutusData> for PlutusData {
 }
 
 impl From<Redeemer> for PallasRedeemer {
-    fn from(Redeemer { tag, index, ex_units, data }: Redeemer) -> Self {
+    fn from(
+        Redeemer {
+            tag,
+            index,
+            ex_units,
+            data,
+        }: Redeemer,
+    ) -> Self {
         Self {
             tag: <_>::from(tag),
             index,
@@ -282,24 +348,17 @@ impl From<Redeemer> for PallasRedeemer {
 
 impl From<WitnessSet> for PallasWitnessSet {
     fn from(val: WitnessSet) -> Self {
-        let vkeywitness: Option<Vec<PallasVKeyWitness>> =
-            val
+        let vkeywitness: Option<Vec<PallasVKeyWitness>> = val
             .vkeywitness
-            .map(
-                |vks| vks.into_iter().map(|vk| <_>::from(vk)).collect());
-        let redeemer: Option<Vec<PallasRedeemer>> =
-            val
+            .map(|vks| vks.into_iter().map(|vk| <_>::from(vk)).collect());
+        let redeemer: Option<Vec<PallasRedeemer>> = val
             .redeemer
-            .map(
-                |vks| vks.into_iter().map(|vk| <_>::from(vk)).collect());
-        let plutus_v2_script: Option<Vec<PallasPlutusV2Script>> =
-            val
-            .plutus_script
-            .map(
-                |vks| vks
-                    .into_iter()
-                    .map(|vk| PallasPlutusV2Script(<_>::from(vk.0)))
-                    .collect());
+            .map(|vks| vks.into_iter().map(|vk| <_>::from(vk)).collect());
+        let plutus_v2_script: Option<Vec<PallasPlutusScript<2>>> = val.plutus_script.map(|vks| {
+            vks.into_iter()
+                .map(|vk| PallasPlutusScript::<2>(<_>::from(vk.0)))
+                .collect()
+        });
         Self {
             vkeywitness,
             native_script: None,
@@ -315,7 +374,8 @@ impl From<WitnessSet> for PallasWitnessSet {
 impl From<PallasWitnessSet> for WitnessSet {
     fn from(val: PallasWitnessSet) -> Self {
         Self {
-            vkeywitness: val.vkeywitness
+            vkeywitness: val
+                .vkeywitness
                 .map(|v| v.into_iter().map(|y| <_>::from(y)).collect()),
             // FIXME: does not work as a `From`. Revise or eliminate all From<Pallas...>!
             plutus_script: None,
@@ -335,11 +395,15 @@ impl From<TransactionBody> for PallasTransactionBody {
             withdrawals: None,
             update: None,
             auxiliary_data_hash: None,
-            validity_interval_start: None,
+            validity_interval_start: val.validity_interval_start,
             mint: val.mint.map(|m| PallasMultiasset::from(m)),
             script_data_hash: None,
             collateral: None,
-            required_signers: None,
+            required_signers: val.required_signers.map(|rss| {
+                rss.into_iter()
+                    .map(|rs| PallasRequiredSigner::from(rs))
+                    .collect::<Vec<_>>()
+            }),
             network_id: None,
             collateral_return: None,
             total_collateral: None,
@@ -353,7 +417,13 @@ impl From<PallasTransactionBody> for TransactionBody {
         Self {
             inputs: val.inputs.into_iter().map(|i| Input::from(i)).collect(),
             outputs: val.outputs.into_iter().map(|i| Output::from(i)).collect(),
+            validity_interval_start: val.validity_interval_start,
             mint: val.mint.map(|m| Multiasset::from(m)),
+            required_signers: val.required_signers.map(|rss| {
+                rss.into_iter()
+                    .map(|rs| RequiredSigner::from(rs))
+                    .collect::<Vec<_>>()
+            }),
         }
     }
 }
@@ -377,4 +447,3 @@ impl From<PallasTransaction> for Transaction {
         }
     }
 }
-

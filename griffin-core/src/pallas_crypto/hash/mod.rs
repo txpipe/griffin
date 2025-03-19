@@ -14,7 +14,7 @@
 //! # Example
 //!
 //! ```
-//! use pallas_crypto::hash::Hasher;
+//! use crate::pallas_crypto::hash::Hasher;
 //!
 //! let mut hasher = Hasher::<224>::new();
 //! hasher.input(b"my key");

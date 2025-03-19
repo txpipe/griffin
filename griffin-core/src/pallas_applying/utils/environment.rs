@@ -2,10 +2,11 @@
 //! era.
 use crate::pallas_primitives::{
     alonzo::{
-        Coin, CostMdls, ExUnitPrices, ExUnits, Nonce, ProtocolVersion, RationalNumber, UnitInterval,
+        Coin, CostModels, ExUnitPrices, ExUnits, Nonce, ProtocolVersion, RationalNumber,
+        UnitInterval,
     },
-    babbage::CostMdls as BabbageCostMdls,
-    conway::CostMdls as ConwayCostMdls,
+    babbage::CostModels as BabbageCostModels,
+    conway::{CostModels as ConwayCostModels, Epoch},
 };
 
 #[allow(clippy::large_enum_variant)]
@@ -81,7 +82,7 @@ pub struct ShelleyProtParams {
     pub min_pool_cost: Coin,
     pub expansion_rate: UnitInterval,
     pub treasury_growth_rate: UnitInterval,
-    pub maximum_epoch: u32,
+    pub maximum_epoch: Epoch,
     pub pool_pledge_influence: RationalNumber,
     pub decentralization_constant: UnitInterval,
     pub extra_entropy: Nonce,
@@ -100,7 +101,7 @@ pub struct AlonzoProtParams {
     pub protocol_version: ProtocolVersion,
     pub min_pool_cost: Coin,
     pub ada_per_utxo_byte: Coin,
-    pub cost_models_for_script_languages: CostMdls,
+    pub cost_models_for_script_languages: CostModels,
     pub execution_costs: ExUnitPrices,
     pub max_tx_ex_units: ExUnits,
     pub max_block_ex_units: ExUnits,
@@ -109,7 +110,7 @@ pub struct AlonzoProtParams {
     pub max_collateral_inputs: u32,
     pub expansion_rate: UnitInterval,
     pub treasury_growth_rate: UnitInterval,
-    pub maximum_epoch: u32,
+    pub maximum_epoch: Epoch,
     pub pool_pledge_influence: RationalNumber,
     pub decentralization_constant: UnitInterval,
     pub extra_entropy: Nonce,
@@ -128,7 +129,7 @@ pub struct BabbageProtParams {
     pub protocol_version: ProtocolVersion,
     pub min_pool_cost: Coin,
     pub ada_per_utxo_byte: Coin,
-    pub cost_models_for_script_languages: BabbageCostMdls,
+    pub cost_models_for_script_languages: BabbageCostModels,
     pub execution_costs: ExUnitPrices,
     pub max_tx_ex_units: ExUnits,
     pub max_block_ex_units: ExUnits,
@@ -137,7 +138,7 @@ pub struct BabbageProtParams {
     pub max_collateral_inputs: u32,
     pub expansion_rate: UnitInterval,
     pub treasury_growth_rate: UnitInterval,
-    pub maximum_epoch: u32,
+    pub maximum_epoch: Epoch,
     pub pool_pledge_influence: RationalNumber,
     pub decentralization_constant: UnitInterval,
     pub extra_entropy: Nonce,
@@ -156,7 +157,7 @@ pub struct ConwayProtParams {
     pub protocol_version: ProtocolVersion,
     pub min_pool_cost: Coin,
     pub ada_per_utxo_byte: Coin,
-    pub cost_models_for_script_languages: ConwayCostMdls,
+    pub cost_models_for_script_languages: ConwayCostModels,
     pub execution_costs: ExUnitPrices,
     pub max_tx_ex_units: ExUnits,
     pub max_block_ex_units: ExUnits,
@@ -165,17 +166,23 @@ pub struct ConwayProtParams {
     pub max_collateral_inputs: u32,
     pub expansion_rate: UnitInterval,
     pub treasury_growth_rate: UnitInterval,
-    pub maximum_epoch: u32,
+    pub maximum_epoch: Epoch,
     pub pool_pledge_influence: RationalNumber,
     pub pool_voting_thresholds: crate::pallas_primitives::conway::PoolVotingThresholds,
     pub drep_voting_thresholds: crate::pallas_primitives::conway::DRepVotingThresholds,
     pub min_committee_size: u64,
-    pub committee_term_limit: u32,
-    pub governance_action_validity_period: u32,
+    pub committee_term_limit: Epoch,
+    pub governance_action_validity_period: Epoch,
     pub governance_action_deposit: Coin,
     pub drep_deposit: Coin,
-    pub drep_inactivity_period: u32,
+    pub drep_inactivity_period: Epoch,
     pub minfee_refscript_cost_per_byte: UnitInterval,
+}
+
+#[derive(Default, Debug)]
+pub struct AccountState {
+    pub treasury: Coin,
+    pub reserves: Coin,
 }
 
 #[derive(Debug)]
@@ -184,6 +191,7 @@ pub struct Environment {
     pub prot_magic: u32,
     pub block_slot: u64,
     pub network_id: u8,
+    pub acnt: Option<AccountState>,
 }
 
 impl Environment {
@@ -201,5 +209,9 @@ impl Environment {
 
     pub fn network_id(&self) -> &u8 {
         &self.network_id
+    }
+
+    pub fn acnt(&self) -> &Option<AccountState> {
+        &self.acnt
     }
 }

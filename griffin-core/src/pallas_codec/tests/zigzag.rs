@@ -1,4 +1,4 @@
-use pallas_codec::flat::zigzag::ZigZag;
+use crate::pallas_codec::flat::zigzag::ZigZag;
 use proptest::prelude::*;
 
 proptest! {
