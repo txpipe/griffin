@@ -300,6 +300,8 @@ impl Extrinsic for Transaction {
 pub enum UTxOError {
     /// A Babbage era validation error returned by Pallas.
     Babbage(BabbageError),
+    /// An phase two validation error returned by UPLC.
+    PhaseTwo(crate::uplc::tx::error::Error),
     /// No other kind of error should be received.
     Fail,
 }
@@ -358,8 +360,8 @@ impl From<UTxOError> for InvalidTransaction {
                 UnneededRedeemer => Custom(244),
                 ReqSignerWrongSig => Custom(245),
                 VKWrongSignature => Custom(246),
-                PhaseTwoValidationError => Custom(247),
             },
+            PhaseTwo(_) => Custom(247),
         }
     }
 }

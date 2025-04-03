@@ -111,7 +111,7 @@ where
         );
         ensure!(
             phase_two_result.is_ok(),
-            UTxOError::Babbage(PhaseTwoValidationError)
+            UTxOError::PhaseTwo(phase_two_result.unwrap_err())
         );
 
         Ok(())
