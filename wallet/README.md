@@ -174,7 +174,7 @@ For example, we can pay 2000 coins to the plutusV2 script version of [aiken's "h
 In order to spend a script UTxO, we need to specify the file containing the script hex, the file of the parameter list cbor to be applied (if any), the file containing the redeemer cbor, the script input to be consumed and optionally the required signer(s) and witness(es) (if omitted, Shawn's values go as default). The complete command looks like this:
 
 ```bash
-./target/release/griffin-wallet pay-to-script \
+./target/release/griffin-wallet spend-script \
 --script-hex-file PATH_TO_SCRIPT_HEX \
 --script_params_cbor_file PATH_TO_PARAM_LIST_CBOR \
 --redeemer-cbor-file PATH_TO_REDEEMER_CBOR
