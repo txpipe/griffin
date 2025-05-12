@@ -104,12 +104,17 @@ where
             })
             .collect();
 
+        let slot_config = SlotConfig {
+            zero_time: Self::zero_time(),
+            zero_slot: Self::zero_slot(),
+            slot_length: MILLI_SECS_PER_SLOT,
+        };
         let phase_two_result = eval_phase_two(
             &conway_mtx,
             &pallas_resolved_inputs,
             None,
             None,
-            &SlotConfig::default(),
+            &slot_config,
             false,
             |_| (),
         );
