@@ -11,6 +11,8 @@ pub mod genesis;
 
 use alloc::{string::ToString, vec, vec::Vec};
 use codec::{Decode, Encode};
+use griffin_core::genesis::config_builder::GenesisConfig;
+use griffin_core::MILLI_SECS_PER_SLOT;
 use scale_info::TypeInfo;
 use sp_api::impl_runtime_apis;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
@@ -83,9 +85,6 @@ pub type Transaction = griffin_core::types::Transaction;
 pub type Block = griffin_core::types::Block;
 pub type Executive = griffin_core::Executive;
 pub type Output = griffin_core::types::Output;
-
-/// The Aura slot duration. When things are working well, this will also be the block time.
-const BLOCK_TIME: u64 = 3000;
 
 /// The main struct in this module.
 #[derive(Encode, Decode, PartialEq, Eq, Clone, TypeInfo)]
@@ -227,7 +226,7 @@ impl_runtime_apis! {
 
     impl sp_consensus_aura::AuraApi<Block, AuraId> for Runtime {
         fn slot_duration() -> sp_consensus_aura::SlotDuration {
-            sp_consensus_aura::SlotDuration::from_millis(BLOCK_TIME)
+            sp_consensus_aura::SlotDuration::from_millis(MILLI_SECS_PER_SLOT.into())
         }
 
         fn authorities() -> Vec<AuraId> {
@@ -264,16 +263,16 @@ impl_runtime_apis! {
 
     impl sp_genesis_builder::GenesisBuilder<Block> for Runtime {
         fn build_state(config: Vec<u8>) -> sp_genesis_builder::Result {
-            let genesis_transactions = serde_json::from_slice::<Vec<Transaction>>(config.as_slice())
-                .map_err(|_| "The input JSON is not a valid list of Transactions.")?;
+            let genesis_config = serde_json::from_slice::<GenesisConfig>(config.as_slice())
+                .map_err(|_| "The input JSON is not a valid genesis configuration.")?;
 
-            griffin_core::genesis::GriffinGenesisConfigBuilder::build(genesis_transactions)
+            griffin_core::genesis::GriffinGenesisConfigBuilder::build(genesis_config)
         }
 
         fn get_preset(_id: &Option<sp_genesis_builder::PresetId>) -> Option<Vec<u8>> {
-            let txs : &Vec<Transaction> = &genesis::development_genesis_transactions("".to_string());
-            Some(serde_json::to_vec(txs)
-                 .expect("Development genesis transactions are valid."))
+            let genesis_config : &GenesisConfig = &genesis::get_genesis_config("".to_string());
+            Some(serde_json::to_vec(genesis_config)
+                 .expect("Genesis configuration is valid."))
         }
 
         fn preset_names() -> Vec<sp_genesis_builder::PresetId> {

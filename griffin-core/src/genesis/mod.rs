@@ -2,7 +2,7 @@
 
 #[cfg(feature = "std")]
 mod block_builder;
-mod config_builder;
+pub mod config_builder;
 
 #[cfg(feature = "std")]
 pub use block_builder::GriffinGenesisBlockBuilder;
