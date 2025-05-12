@@ -48,6 +48,7 @@ pub type RequiredSigner = H224;
 pub struct TransactionBody {
     pub inputs: Vec<Input>,
     pub outputs: Vec<Output>,
+    pub ttl: Option<u64>,
     pub validity_interval_start: Option<u64>,
     pub mint: Option<Mint>,
     pub required_signers: Option<Vec<RequiredSigner>>,
@@ -530,6 +531,7 @@ impl From<(Vec<Input>, Vec<Output>)> for Transaction {
             transaction_body: TransactionBody {
                 inputs,
                 outputs,
+                ttl: None,
                 validity_interval_start: None,
                 mint: None,
                 required_signers: None,

@@ -390,7 +390,7 @@ impl From<TransactionBody> for PallasTransactionBody {
             inputs: val.inputs.into_iter().map(|i| <_>::from(i)).collect(),
             outputs: val.outputs.into_iter().map(|i| <_>::from(i)).collect(),
             fee: 0,
-            ttl: None,
+            ttl: val.ttl,
             certificates: None,
             withdrawals: None,
             update: None,
@@ -417,6 +417,7 @@ impl From<PallasTransactionBody> for TransactionBody {
         Self {
             inputs: val.inputs.into_iter().map(|i| Input::from(i)).collect(),
             outputs: val.outputs.into_iter().map(|i| Output::from(i)).collect(),
+            ttl: val.ttl,
             validity_interval_start: val.validity_interval_start,
             mint: val.mint.map(|m| Multiasset::from(m)),
             required_signers: val.required_signers.map(|rss| {
