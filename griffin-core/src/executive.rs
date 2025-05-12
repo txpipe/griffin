@@ -10,6 +10,7 @@ use crate::pallas_applying::{
         check_ins_not_empty,
         // check_all_ins_in_utxos,
         check_preservation_of_value,
+        check_tx_validity_interval,
         check_witness_set,
     },
     utils::BabbageError::*,
@@ -34,6 +35,7 @@ use crate::{
     utxo_set::TransparentUtxoSet,
     EXTRINSIC_KEY, HEADER_KEY, HEIGHT_KEY, LOG_TARGET,
 };
+use crate::{MILLI_SECS_PER_SLOT, ZERO_SLOT, ZERO_TIME};
 use alloc::{collections::btree_set::BTreeSet, string::String, vec::Vec};
 use log::debug;
 use parity_scale_codec::{Decode, Encode};
@@ -76,6 +78,8 @@ where
         let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
         // Next unneeded since already checked at `apply_griffin_transaction`
         // check_all_ins_in_utxos(tx_body, utxos)?;
+        let current_slot = Self::zero_slot() + (Self::block_height() as u64);
+        check_tx_validity_interval(tx_body, &current_slot)?;
         check_preservation_of_value(tx_body, utxos)?;
         check_witness_set(mtx, utxos)?;
         check_min_coin(tx_body)?;
@@ -295,6 +299,21 @@ where
         sp_io::storage::get(HEIGHT_KEY)
             .and_then(|d| BlockNumber::decode(&mut &*d).ok())
             .expect("A height is stored at the beginning of block one and never cleared.")
+    }
+
+    /// A helper function that allows griffin runtimes to read the start posix time of the first
+    /// block, in milliseconds
+    pub fn zero_time() -> u64 {
+        sp_io::storage::get(ZERO_TIME)
+            .and_then(|d| u64::decode(&mut &*d).ok())
+            .expect("Failed to read ZERO_TIME from storage.")
+    }
+
+    /// A helper function that allows griffin runtimes to read the slot number of the first block
+    pub fn zero_slot() -> u64 {
+        sp_io::storage::get(ZERO_SLOT)
+            .and_then(|d| u64::decode(&mut &*d).ok())
+            .expect("Failed to read ZERO_SLOT from storage.")
     }
 
     // These next three methods are for the block authoring workflow.

@@ -99,7 +99,7 @@ pub fn check_all_ins_in_utxos(tx_body: &MintedTransactionBody, utxos: &UTxOs) ->
 
 // The block slot is contained in the transaction validity interval, and the
 // upper bound is translatable to UTC time.
-fn check_tx_validity_interval(
+pub fn check_tx_validity_interval(
     tx_body: &MintedTransactionBody,
     block_slot: &u64,
 ) -> ValidationResult {
