@@ -1,0 +1,42 @@
+---
+title: Running
+sidebar:
+  order: 3
+---
+
+The following command starts a block-producing development node that doesn't persist state:
+
+```bash
+./target/release/griffin-solochain-node --dev
+```
+
+To purge the development chain's state, run the following:
+
+```bash
+./target/release/griffin-solochain-node purge-chain --dev
+```
+
+Development chains are set to 
+
+- maintain state in a temporary folder while the node is running;
+- use the Alice account as default validator authority; and
+- are preconfigured with a genesis state (/node/src/chain_spec.rs).
+
+
+To preserve the chain state between runs, specify a base path as follows:
+
+```bash
+// Create a folder to use as the db base path
+$ mkdir my-chain-state
+
+// Use of that folder to store the chain state
+$ ./target/release/solochain-template-node --dev --base-path ./my-chain-state/
+
+// Check the folder structure created inside the base path after running the chain
+$ ls ./my-chain-state
+chains
+$ ls ./my-chain-state/chains/
+dev
+$ ls ./my-chain-state/chains/dev
+db keystore network
+```
