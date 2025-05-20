@@ -14,9 +14,9 @@ use griffin_core::{
     pallas_primitives::Fragment,
     pallas_traverse::OriginalHash,
     types::{
-        address_from_hex, compute_plutus_v2_script_hash, value_leq, Address, AssetName, Datum,
-        ExUnits, Input, Multiasset, Output, PlutusData, PlutusScript, PolicyId, Redeemer,
-        RedeemerTag, Transaction, VKeyWitness, Value,
+        address_from_hex, compute_plutus_v2_script_hash, Address, AssetName, Datum, Input,
+        Multiasset, Output, PlutusData, PlutusScript, PolicyId, Redeemer, RedeemerTag, Transaction,
+        VKeyWitness, Value,
     },
     uplc::tx::apply_params_to_script,
 };
@@ -352,10 +352,6 @@ pub async fn mint_asset(
             tag: RedeemerTag::Mint,
             index: 0,
             data: PlutusData(hex::decode(redeemer_hex).unwrap()),
-            ex_units: ExUnits {
-                mem: 661056,
-                steps: 159759842,
-            },
         };
 
         let mut transaction = Transaction::from((Vec::new(), Vec::new()));
@@ -450,8 +446,8 @@ fn test_phase2_one_shot_mp() {
     };
     use griffin_core::pallas_primitives::Fragment;
     use griffin_core::types::{
-        compute_plutus_v2_script_hash, Address, AssetName, ExUnits, Input, Multiasset, Output,
-        PlutusData, PlutusScript, Redeemer, RedeemerTag, Value,
+        compute_plutus_v2_script_hash, Address, AssetName, Input, Multiasset, Output, PlutusData,
+        PlutusScript, Redeemer, RedeemerTag, Value,
     };
     use griffin_core::uplc::tx::{
         apply_params_to_script, eval_phase_two, ResolvedInput, SlotConfig,
@@ -535,10 +531,6 @@ fn test_phase2_one_shot_mp() {
             any_constructor: None,
             fields: Def([].to_vec()),
         })),
-        ex_units: ExUnits {
-            mem: 661056,
-            steps: 159759842,
-        },
     };
     let mint = Some(Multiasset::from((
         policy,
@@ -588,8 +580,8 @@ fn test_phase2_aiken_hello_world() {
         TransactionInput, TransactionOutput,
     };
     use griffin_core::types::{
-        compute_plutus_v2_script_hash, Address, Datum, ExUnits, Input, Output, PlutusData,
-        PlutusScript, Redeemer, RedeemerTag, VKeyWitness, Value,
+        compute_plutus_v2_script_hash, Address, Datum, Input, Output, PlutusData, PlutusScript,
+        Redeemer, RedeemerTag, VKeyWitness, Value,
     };
     use griffin_core::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
     use sp_core::H256;
@@ -648,10 +640,6 @@ fn test_phase2_aiken_hello_world() {
                 .to_vec(),
             ),
         })),
-        ex_units: ExUnits {
-            mem: 661056,
-            steps: 159759842,
-        },
     };
 
     let mut transaction = Transaction::from((Vec::new(), Vec::new()));
@@ -727,8 +715,7 @@ fn test_phase2_ppp_vesting() {
         TransactionInput, TransactionOutput,
     };
     use griffin_core::types::{
-        Address, Datum, ExUnits, Input, Output, PlutusData, PlutusScript, Redeemer, RedeemerTag,
-        Value,
+        Address, Datum, Input, Output, PlutusData, PlutusScript, Redeemer, RedeemerTag, Value,
     };
     use griffin_core::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
     use sp_core::H256;
@@ -804,10 +791,6 @@ fn test_phase2_ppp_vesting() {
             any_constructor: None,
             fields: Def([].to_vec()),
         })),
-        ex_units: ExUnits {
-            mem: 661056,
-            steps: 159759842,
-        },
     };
 
     let mut transaction = Transaction::from((Vec::new(), Vec::new()));

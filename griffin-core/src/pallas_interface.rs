@@ -329,18 +329,11 @@ impl From<PallasPlutusData> for PlutusData {
 }
 
 impl From<Redeemer> for PallasRedeemer {
-    fn from(
-        Redeemer {
-            tag,
-            index,
-            ex_units,
-            data,
-        }: Redeemer,
-    ) -> Self {
+    fn from(Redeemer { tag, index, data }: Redeemer) -> Self {
         Self {
             tag: <_>::from(tag),
             index,
-            ex_units: <_>::from(ex_units),
+            ex_units: Default::default(),
             data: <_>::from(data),
         }
     }

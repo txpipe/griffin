@@ -208,7 +208,6 @@ pub struct Redeemer {
     pub tag: RedeemerTag,
     pub index: u32,
     pub data: PlutusData,
-    pub ex_units: ExUnits,
 }
 
 /// Fragment of a Cardano witness set.
