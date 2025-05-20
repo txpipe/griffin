@@ -63,7 +63,7 @@ Development chains are set to
 - are preconfigured with a genesis state (/node/src/chain_spec.rs).
 
 
-To preserve the chain state between runs, specify a base path by running a command similar to the following:
+To preserve the chain state between runs, specify a base path as follows:
 
 ```bash
 // Create a folder to use as the db base path
@@ -111,6 +111,7 @@ If you get a `NetworkKeyNotFound` error, you can run once `./target/release/grif
   ```
   
   where `<AUTHORING_NODE_IDENTITY>` should be replaced by the appropriate id.
+
 4. The wallet will talk to the node having `--rpc-port` equal to 9944.
 
 It might be necessary to delete the nodes' DBs (through the `purge-chain` command or manually, e.g., by erasing the `/tmp/hola` folder for the listening node) if this is not first time the node is run *locally*.

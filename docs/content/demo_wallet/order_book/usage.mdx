@@ -1,0 +1,107 @@
+---
+title: Usage
+sidebar:
+  order: 3
+---
+
+## Creating an Order
+
+Let's say that Alice wants to place an order paying 2 `Token A` and expecting to receive 5 `Token B`. She will use her input to pay for the amount, and specify in the datum her pub key hash, the expected asset policy, name and amount, and the asset class of the control token:
+
+```bash
+./target/release/griffin-wallet pay-to-script \
+--validator-hex-file ./wallet/src/eutxo_examples/order_book/script.txt \
+--datum-cbor-file ./wallet/src/eutxo_examples/order_book/datum.txt \
+--input 600b207f1a6a2a316ac010c9fd42587df206dee24a6025bc87d9c5f7229b0d3e01000000 \
+--policy-hex-file ./wallet/src/eutxo_examples/order_book/script.txt \
+--policy-redeemer-cbor-file ./wallet/src/eutxo_examples/order_book/policy_redeemer.txt \
+--minted-asset-name controlToken \
+--minted-asset-amount 1 \
+--output-coin-amount 2000 \
+--output-asset-policy 0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005 \
+--output-asset-name tokenA \
+--output-asset-amount 2 \
+--witness c6f58a018f5f4fba0eec76bb2d92cacab00eb6b548197925572c61c17b3e4edf \
+--required-signers 547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6
+```
+
+Note that she also had to specify the name and amount of the control token being minted, some coins to reach the minimum output amount, and her credentials to sign the transaction.
+
+
+## Printing Available Orders
+
+Note that if we just print all the outputs with the `show-all-outputs` wallet command, we won't be able to see the details of the order datum:
+
+```bash
+bc67bcf53c1355c09558b95ff02fc37dc7a4e69e22a5bc365cc87f9d2207858500000000:
+ script address: 706372cd7adc3553240c5cf5e5b8e1e96998821ef8a9b897bfa9c7d5b3,
+ datum: Some("d8799fd8799f581c547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6d8799fd8799f581c0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de200546746f6b656e42ff05ffffd8799f581c6372cd7adc3553240c5cf5e5b8e1e96998821ef8a9b897bfa9c7d5b34c636f6e74726f6c546f6b656effff"),
+ amount: 2000 Coins, Multiassets:
+  (0x0298…2005) tokenA: 2
+  (0x6372…d5b3) controlToken: 1
+```
+
+To see the details of the order, we can use the `show-all-orders` command:
+
+```bash
+###### Available Orders ###########
+bc67bcf53c1355c09558b95ff02fc37dc7a4e69e22a5bc365cc87f9d2207858500000000:
+ SENDER_PH: 0x547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6
+ ORDERED_CLASS: AssetClass {
+    policy_id: 0x0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005,
+    asset_name: AssetName(
+        "tokenB",
+    ),
+}
+ ORDERED_AMOUNT: 5
+ CONTROL_TOKEN_CLASS: AssetClass {
+    policy_id: 0x6372cd7adc3553240c5cf5e5b8e1e96998821ef8a9b897bfa9c7d5b3,
+    asset_name: AssetName(
+        "controlToken",
+    ),
+}
+ VALUE: 2000 Coins, Multiassets:
+  (0x0298…2005) tokenA: 2
+  (0x6372…d5b3) controlToken: 1
+```
+
+## Canceling an Order
+
+Suppose Alice wants to cancel the order. She will use the `spend-script` command, specifying the script input, the cancel redeemer, the burning of the control token and her credentials to prove ownership of the order:
+
+```bash
+./target/release/griffin-wallet spend-script \
+--script-input bc67bcf53c1355c09558b95ff02fc37dc7a4e69e22a5bc365cc87f9d2207858500000000 \
+--validator-hex-file ./wallet/src/eutxo_examples/order_book/script.txt \
+--validator-redeemer-cbor-file ./wallet/src/eutxo_examples/order_book/cancel_redeemer.txt \
+--policy-hex-file ./wallet/src/eutxo_examples/order_book/script.txt \
+--policy-redeemer-cbor-file ./wallet/src/eutxo_examples/order_book/policy_redeemer.txt \
+--burnt-asset-name controlToken \
+--burnt-asset-amount 1 \
+--witness c6f58a018f5f4fba0eec76bb2d92cacab00eb6b548197925572c61c17b3e4edf \
+--required-signers 547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6
+```
+
+## Resolving an Order
+
+Now let's say that Shawn wants to resolve the order and pay 5 `Token B` to Alice. He will use the `spend-script` command, specifying the script input, the resolve redeemer, and Alice's address as the output recipient:
+
+```bash
+./target/release/griffin-wallet spend-script \
+--script-input bc67bcf53c1355c09558b95ff02fc37dc7a4e69e22a5bc365cc87f9d2207858500000000 \
+--validator-hex-file ./wallet/src/eutxo_examples/order_book/script.txt \
+--validator-redeemer-cbor-file ./wallet/src/eutxo_examples/order_book/resolve_redeemer.txt \
+--policy-hex-file ./wallet/src/eutxo_examples/order_book/script.txt \
+--policy-redeemer-cbor-file ./wallet/src/eutxo_examples/order_book/policy_redeemer.txt \
+--burnt-asset-name controlToken \
+--burnt-asset-amount 1 \
+--output-asset-policy 0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005 \
+--output-asset-name tokenB \
+--output-asset-amount 5 \
+--wallet-input 600b207f1a6a2a316ac010c9fd42587df206dee24a6025bc87d9c5f7229b0d3e00000000 \
+--output-recipient 61547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6
+--witness 7b155093789404780735f4501c576e9f6e2b0a486cdec70e03e1ef8b9ef99274 \
+--required-signers 01e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4
+```
+
+Note that Shawn also had to specify the name and amount of the control token being burned, and a wallet input used to pay to Alice.
