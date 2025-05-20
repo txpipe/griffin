@@ -23,6 +23,17 @@ pub const GENESIS_DEFAULT_JSON: &str = r#"
                     }
                     ],
             "datum": "820080"
+        },
+        {
+            "address": "61547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6",
+            "coin": 314150000,
+            "value": [
+                    {
+                        "policy": "0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005",
+                        "assets": [ ["tokenA", 300000000], ["tokenB", 2000000000] ]
+                    }
+                    ],
+            "datum": "820080"
         }
     ]
 }
