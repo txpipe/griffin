@@ -1,0 +1,32 @@
+---
+title: Cardano to Griffin
+sidebar:
+  order: 4
+---
+
+Some minor change was made to the Order Book validator in order to make it compatible with Griffin. Since so far we are not considering staking, the addresses are simpler. So as you can verify in the aiken code, the order info now excludes the sender staking hash:
+
+```rust
+pub type OrderInfo {
+  sender_payment_hash: PubKeyHash,
+  token: DatumValue,
+}
+```
+
+This had an impact on the onchain code, since the sender address, which in the Cardano version was constructed like this:
+
+```rust
+let sender_address =
+    when datum.info.sender_staking_hash is {
+        Some(staking_hash) ->
+            credential.from_verification_key(datum.info.sender_payment_hash)
+                |> credential.with_delegation_key(staking_hash)
+        None -> credential.from_verification_key(datum.info.sender_payment_hash)
+    }
+```
+
+now is simply:
+
+```rust
+let sender_address = credential.from_verification_key(datum.info.sender_payment_hash)
+```

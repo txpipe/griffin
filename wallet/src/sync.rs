@@ -17,6 +17,7 @@ use std::path::PathBuf;
 use crate::order_book::{OrderDatum, ORDER_SCRIPT_HEX};
 use crate::rpc;
 use anyhow::anyhow;
+use colored::Colorize;
 use griffin_core::types::{
     compute_plutus_v2_script_hash, Address, Datum, Input, OpaqueBlock, PlutusScript, Transaction,
     Value,
@@ -372,13 +373,23 @@ pub(crate) fn print_unspent_tree(db: &Db) -> anyhow::Result<()> {
             <(Address, Value, Option<Datum>)>::decode(&mut &owner_amount_datum_ivec[..])?;
         let datum_option_hex = datum_option.map(|datum| hex::encode(datum.0));
 
-        println!(
-            "{}: owner address {}, datum {:?}, amount: {}",
-            input,
-            owner_pubkey,
-            datum_option_hex,
-            amount.normalize(),
-        );
+        if owner_pubkey.to_string().starts_with("70") {
+            println!(
+                "{}:\n script address: {},\n datum: {:?},\n amount: {}",
+                input.bold(),
+                owner_pubkey.to_string().red(),
+                datum_option_hex,
+                amount.normalize(),
+            );
+        } else {
+            println!(
+                "{}:\n wallet address: {},\n datum: {:?},\n amount: {}",
+                input.bold(),
+                owner_pubkey.to_string().green(),
+                datum_option_hex,
+                amount.normalize(),
+            );
+        }
     }
 
     Ok(())
@@ -411,16 +422,17 @@ pub(crate) fn print_orders(db: &Db) -> anyhow::Result<()> {
                 }
                 Some(OrderDatum::Ok {
                     sender_payment_hash,
-                    control_token_class: _,
+                    control_token_class,
                     ordered_class,
                     ordered_amount,
                 }) => {
                     println!(
-                        "{}:\n SENDER_PH: {:?}\n ORDERED_CLASS: {:#?}\n ORDERED_AMOUNT: {}\n VALUE: {}",
+                        "{}:\n SENDER_PH: {:?}\n ORDERED_CLASS: {:#?}\n ORDERED_AMOUNT: {}\n CONTROL_TOKEN_CLASS: {:#?}\n VALUE: {}",
                         input,
                         sender_payment_hash,
                         ordered_class,
                         ordered_amount,
+                        control_token_class,
                         value.normalize(),
                     );
                 }

@@ -22,7 +22,7 @@ use griffin_core::{
     pallas_traverse::OriginalHash,
     types::{
         address_from_hex, compute_plutus_v2_script_hash, Address, AssetClass, AssetName, Coin,
-        Datum, ExUnits, Input, Multiasset, Output, PlutusData, PlutusScript, Redeemer, RedeemerTag,
+        Datum, Input, Multiasset, Output, PlutusData, PlutusScript, Redeemer, RedeemerTag,
         Transaction, VKeyWitness, Value,
     },
 };
@@ -129,10 +129,6 @@ pub async fn start_order(
             any_constructor: None,
             fields: Def([].to_vec()),
         })),
-        ex_units: ExUnits {
-            mem: 661056,
-            steps: 159759842,
-        },
     };
     transaction.transaction_body.mint = mint;
     transaction.transaction_body.required_signers = Some(vec![args.sender_ph]);
@@ -279,10 +275,6 @@ pub async fn resolve_order(
                         })]
                         .to_vec()),
                     })),
-                    ex_units: ExUnits {
-                        mem: 661056,
-                        steps: 159759842,
-                    },
                 };
                 let mint = Some(Multiasset::from((
                     control_token_policy,
@@ -297,10 +289,6 @@ pub async fn resolve_order(
                         any_constructor: None,
                         fields: Def([].to_vec()),
                     })),
-                    ex_units: ExUnits {
-                        mem: 661056,
-                        steps: 159759842,
-                    },
                 };
                 transaction.transaction_body.mint = mint;
                 transaction.transaction_body.required_signers = Some(vec![sender_payment_hash]);
@@ -420,10 +408,6 @@ pub async fn cancel_order(
                         })]
                         .to_vec()),
                     })),
-                    ex_units: ExUnits {
-                        mem: 661056,
-                        steps: 159759842,
-                    },
                 };
 
                 let mint = Some(Multiasset::from((
@@ -439,10 +423,6 @@ pub async fn cancel_order(
                         any_constructor: None,
                         fields: Def([].to_vec()),
                     })),
-                    ex_units: ExUnits {
-                        mem: 661056,
-                        steps: 159759842,
-                    },
                 };
                 transaction.transaction_body.mint = mint;
                 transaction.transaction_body.required_signers = Some(vec![sender_payment_hash]);
@@ -710,8 +690,8 @@ fn test_phase2_order_start() {
         Constr, MintedTx as ConwayMintedTx, PlutusData as PallasPlutusData,
     };
     use griffin_core::types::{
-        compute_plutus_v2_script_hash, Address, AssetClass, AssetName, Datum, ExUnits, Multiasset,
-        Output, PlutusData, PlutusScript, Redeemer, RedeemerTag, VKeyWitness, Value,
+        compute_plutus_v2_script_hash, Address, AssetClass, AssetName, Datum, Multiasset, Output,
+        PlutusData, PlutusScript, Redeemer, RedeemerTag, VKeyWitness, Value,
     };
     use griffin_core::uplc::tx::{eval_phase_two, SlotConfig};
 
@@ -786,10 +766,6 @@ fn test_phase2_order_start() {
             any_constructor: None,
             fields: Def([].to_vec()),
         })),
-        ex_units: ExUnits {
-            mem: 661056,
-            steps: 159759842,
-        },
     };
 
     transaction.transaction_body.mint = mint;
@@ -827,8 +803,8 @@ fn test_phase2_order_resolve() {
         TransactionOutput,
     };
     use griffin_core::types::{
-        compute_plutus_v2_script_hash, Address, AssetClass, AssetName, Datum, ExUnits, Input,
-        Multiasset, Output, PlutusData, PlutusScript, Redeemer, RedeemerTag, VKeyWitness, Value,
+        compute_plutus_v2_script_hash, Address, AssetClass, AssetName, Datum, Input, Multiasset,
+        Output, PlutusData, PlutusScript, Redeemer, RedeemerTag, VKeyWitness, Value,
     };
     use griffin_core::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
     use sp_core::H256;
@@ -928,10 +904,6 @@ fn test_phase2_order_resolve() {
             })]
             .to_vec()),
         })),
-        ex_units: ExUnits {
-            mem: 661056,
-            steps: 159759842,
-        },
     };
 
     let mut transaction = Transaction::from((Vec::new(), Vec::new()));
@@ -963,10 +935,6 @@ fn test_phase2_order_resolve() {
             any_constructor: None,
             fields: Def([].to_vec()),
         })),
-        ex_units: ExUnits {
-            mem: 661056,
-            steps: 159759842,
-        },
     };
 
     transaction.transaction_body.mint = mint;
@@ -1013,8 +981,8 @@ fn test_phase2_order_cancel() {
         TransactionOutput,
     };
     use griffin_core::types::{
-        compute_plutus_v2_script_hash, Address, AssetClass, AssetName, Datum, ExUnits, Input,
-        Multiasset, Output, PlutusData, PlutusScript, Redeemer, RedeemerTag, VKeyWitness, Value,
+        compute_plutus_v2_script_hash, Address, AssetClass, AssetName, Datum, Input, Multiasset,
+        Output, PlutusData, PlutusScript, Redeemer, RedeemerTag, VKeyWitness, Value,
     };
     use griffin_core::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
     use sp_core::H256;
@@ -1086,10 +1054,6 @@ fn test_phase2_order_cancel() {
             })]
             .to_vec()),
         })),
-        ex_units: ExUnits {
-            mem: 661056,
-            steps: 159759842,
-        },
     };
 
     let mut transaction = Transaction::from((Vec::new(), Vec::new()));
@@ -1105,10 +1069,6 @@ fn test_phase2_order_cancel() {
             any_constructor: None,
             fields: Def([].to_vec()),
         })),
-        ex_units: ExUnits {
-            mem: 661056,
-            steps: 159759842,
-        },
     };
     let mint = Some(Multiasset::from((
         control_token_policy,

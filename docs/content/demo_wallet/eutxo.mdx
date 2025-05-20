@@ -1,0 +1,113 @@
+---
+title: E-UTxO Commands
+sidebar:
+  order: 4
+---
+
+### Paying to a Script Address
+
+This command pays some coins and assets to the script specified by `validator-hex-file`. The optional parameters `validator_params_cbor_file` and `datum-cbor-file` are used to pass the files containing the cbor of the parameter list expected by a parameterized script (if any) and the cbor of the inline datum to be included in the script output, if any. We also specify a list of wallet inputs to be consumed by this transaction, and with `witness` the public key of an input owner (Shawn's pk implied by default). We can set as many inputs, witnesses and combinations of (policy, name, token-amount) as needed.
+
+If minting an asset, the path to the file containing the minting policy script hex, the file of the parameter list cbor to be applied (if any) and the file containing the minting policy redeemer cbor. Also the minted asset name and amount.
+
+The whole command looks like this:
+
+```bash
+./target/release/griffin-wallet pay-to-script \
+--validator-hex-file PATH_TO_VALIDATOR_SCRIPT_HEX \ 
+--validator-params-cbor-file PATH_TO_VALIDATOR_PARAM_LIST_CBOR \
+--datum-cbor-file PATH_TO_DATUM_CBOR \
+--input [INPUT_REF] \
+--policy-hex-file PATH_TO_MINTING_POLICY_SCRIPT_HEX \
+--policy-params-cbor-file PATH_TO_MINTING_POLICY_PARAM_LIST_CBOR \
+--policy-redeemer-cbor-file PATH_TO_MINTING_POLICY_REDEEMER_CBOR \
+--minted-asset-name [BURNT_ASSET_NAME] \
+--minted-asset-amount TOKEN_AMOUNT \
+--output-coin-amount COIN_AMOUNT \
+--output-asset-policy [POLICY_ID] \
+--output-asset-name [ASSET_NAME] \
+--output-asset-amount [TOKEN_AMOUNT] \
+--required-signer [REQUIRED_SIGNER] \
+--witness [WITNESS]
+```
+
+For example, we can pay 2000 coins to the plutusV2 script version of [aiken's "hello-world" example](https://aiken-lang.org/example--hello-world/basics), spending an input that belongs to Shawn (its ref may vary) and with an inline datum that contains Shawn's pub key hash, like so:
+
+```bash
+./target/release/griffin-wallet pay-to-script \
+--validator-hex-file ./wallet/src/eutxo_examples/hello_world/validator.txt \
+--datum-cbor-file ./wallet/src/eutxo_examples/hello_world/datum.txt \
+--input 600b207f1a6a2a316ac010c9fd42587df206dee24a6025bc87d9c5f7229b0d3e00000000 \
+--output-coin-amount 2000
+```
+
+### Spending a Script UTxO
+
+In order to spend a script UTxO, we need to specify the file containing the script hex, the file of the parameter list cbor to be applied (if any), the file containing the validator redeemer cbor, the script input to be consumed.
+
+If burning an asset, the path to the file containing the minting policy script hex, the file of the parameter list cbor to be applied (if any) and the file containing the minting policy redeemer cbor. Also the burnt asset name and amount.
+
+We can also set an arbitrary amount of wallet inputs, to be used to pay some value to some recipient. This value is specified by a coin amount and lists of asset policies, names and amounts, 
+
+Optionally we can set a validity interval start and the required signer(s) and witness(es) (if omitted, Shawn's values go as default). 
+
+The complete command looks like this:
+
+```bash
+./target/release/griffin-wallet spend-script \
+--script-input [INPUT_REF] \
+--validator-hex-file PATH_TO_VALIDATOR_SCRIPT_HEX \ 
+--validator-params-cbor-file PATH_TO_VALIDATOR_PARAM_LIST_CBOR \
+--validator-redeemer-cbor-file PATH_TO_VALIDATOR_REDEEMER_CBOR \
+--policy-hex-file PATH_TO_MINTING_POLICY_SCRIPT_HEX \
+--policy-params-cbor-file PATH_TO_MINTING_POLICY_PARAM_LIST_CBOR \
+--policy-redeemer-cbor-file PATH_TO_MINTING_POLICY_REDEEMER_CBOR \
+--burnt-asset-name [BURNT_ASSET_NAME] \
+--burnt-asset-amount TOKEN_AMOUNT \
+--wallet-input [INPUT_REF] \
+--output-coin-amount COIN_AMOUNT \
+--output-asset-policy [POLICY_ID] \
+--output-asset-name [ASSET_NAME] \
+--output-asset-amount [TOKEN_AMOUNT] \
+--output-recipient RECIPIENT_ADDRESS \
+--validity-interval-start SLOT_NUMBER \
+--required-signer [REQUIRED_SIGNER] \
+--witness [WITNESS]
+```
+
+For instance, to spend the UTxO sitting at the "hello-world" address that we created in [Paying to a Script Address](#paying-to-a-script-address), we use the following command (the input script ref may vary):
+
+```bash
+./target/release/griffin-wallet spend-script \
+--validator-hex-file ./wallet/src/eutxo_examples/hello_world/validator.txt \
+--validator-redeemer-cbor-file ./wallet/src/eutxo_examples/hello_world/redeemer.txt \
+--script-input ea87ef680553f8683ea9a515f933a96b63324befd0946b0c050f19f931e0c80800000000
+```
+
+### Minting an Asset
+
+To mint an asset with some policy id, we need to specify the minting script hex, the parameter list to be applied (if any), the redeemer, an input to be consumed (every tx needs at least one, and we also need to pay for the min amount of coins in the output containing the newly minted asset), the witness(es) and recipient (by default, Shawn's pk and address are implied), the name of the asset to mint and its amount:
+
+```bash
+./target/release/griffin-wallet mint-asset \
+--script-hex-file PATH_TO_MINTING_POLICY_HEX \
+--script-params-cbor-file PATH_TO_PARAM_LIST_CBOR \
+--redeemer-cbor-file PATH_TO_REDEEMER_CBOR \
+--input [INPUT_REF] \
+--witness [WITNESS] \
+--recipient RECIPIENT_ADDRESS \
+--name ASSET_NAME \
+--token-amount MINT_AMOUNT
+```
+
+As an example, we can mint a singleton with name "oneShot", for a plutusV2 script version of the "one-shot" minting policy (takes a ref input as a parameter, and if minting checks that `input_is_consumed && minted_amount == 1`, or just `minted_amount == -1` if burning). In this case we are sending the minted amount back to Shawn (if the input ref is different, you should replace it both in the parameter list cbor as in the `input` argument below):
+
+```bash
+./target/release/griffin-wallet mint-asset \
+--script-hex-file ./wallet/src/eutxo_examples/one_shot_mp/script.txt \
+--script-params-cbor-file ./wallet/src/eutxo_examples/one_shot_mp/parameters.txt \
+--redeemer-cbor-file ./wallet/src/eutxo_examples/one_shot_mp/redeemer.txt \
+--input 76196d9dc867051484c523112f2c4861795566edd5817e41db15be0c4d556e8501000000 \
+--name oneShot \
+--token-amount 1
+```

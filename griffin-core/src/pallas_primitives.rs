@@ -39,7 +39,7 @@ pub type DnsName = String;
 
 pub type Epoch = u64;
 
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Serialize, Deserialize, Default, Encode, Decode, Debug, PartialEq, Eq, Clone, Copy)]
 pub struct ExUnits {
     #[n(0)]
     pub mem: u64,

@@ -1,0 +1,86 @@
+---
+title: Introduction
+sidebar:
+  order: 1
+---
+
+As an example of a dapp that runs on Griffin, we present a simple Order Book.
+
+## dApp Overview
+
+Each time a user starts an order, a new script UTxO is created. This UTxO contains, in its datum, information specific to that instance: payment details along with the sender addresses. To ensure the initial conditions of the orders, a special control Token is minted at the start.
+This strategy follows the ideas described in [this article](https://well-typed.com/blog/2022/08/plutus-initial-conditions/)
+from Well-Typed, where the minted NFT is called the *state token*.
+
+The script is the same for every order available. Anyone can see all the orders that were opened by other users and resolve them, or cancel their own.
+The *control Token* Minting Policy remains constant for every order, and the asset class must be included in the datum for subsequent validations on cancel or resolve operations.
+
+When an order is canceled or resolved, the corresponding UTxO is spent, and funds go to the corresponding wallet addresses. The control Token is then burned.
+
+
+### Script UTxO
+
+#### Datum
+
+- Sender’s address
+- The amount and asset class of the receiver’s payment
+- Asset Class of the Control Token
+
+#### Value
+
+- Control Token
+- The sender’s tokens to exchange
+- Minimum amount of coins per output
+
+
+### Transactions
+
+#### Start
+
+In this transaction, a user locks the tokens they want to exchange and specifies the tokens they want to receive. The control Token is then minted.
+
+![startOrder diagram](../../../assets/startOrder.png)
+
+#### Cancel
+
+The user can cancel the order and receive the locked tokens back. The control Token is then burned.
+
+![cancelOrder diagram](../../../assets/cancelOrder.png)
+
+#### Resolve
+
+The other user pays `k2` Token `B`, closing the script and burning the control token. Each user gets the corresponding tokens.
+
+![resolveOrder diagram](../../../assets/resolveOrder.png)
+
+
+### Validator Scripts
+
+#### Script Validator
+
+Validates the transactions that involve spending the **script UTxO**: Cancel and Resolve.
+
+In the **Cancel operation**, the validator ensures:
+
+- The address that is trying to cancel the order is the same as the Sender’s address.
+- The control token is burned after the transaction.
+
+In the **Resolve operation**, the validator ensures:
+
+- The sender’s address receives the tokens specified in the datum.
+- The control token is burned after the transaction.
+
+#### Control Token minting policy
+
+**Minting:**
+
+- A single token is minted.
+- The minted token is the correct control token.
+- The token is paid to the script address.
+- The volume of tokens the resolving address (receiver) will transfer surpasses 0.
+- The sender’s address is signing the transaction.
+
+**Burning:**
+
+- A single token is burned.
+- The burned token is the correct control token.

@@ -14,9 +14,9 @@ use griffin_core::{
     pallas_primitives::Fragment,
     pallas_traverse::OriginalHash,
     types::{
-        address_from_hex, compute_plutus_v2_script_hash, value_leq, Address, AssetName, Datum,
-        ExUnits, Input, Multiasset, Output, PlutusData, PlutusScript, PolicyId, Redeemer,
-        RedeemerTag, Transaction, VKeyWitness, Value,
+        address_from_hex, compute_plutus_v2_script_hash, Address, AssetName, Datum, Input,
+        Multiasset, Output, PlutusData, PlutusScript, PolicyId, Redeemer, RedeemerTag, Transaction,
+        VKeyWitness, Value,
     },
     uplc::tx::apply_params_to_script,
 };
@@ -36,19 +36,19 @@ pub async fn pay_to_script(
 ) -> anyhow::Result<()> {
     log::debug!("The args are:: {:?}", args);
 
-    let num_pol = args.policy.len();
-    let num_nam = args.name.len();
-    let num_tok = args.token_amount.len();
+    let num_pol = args.output_asset_policy.len();
+    let num_nam = args.output_asset_name.len();
+    let num_tok = args.output_asset_amount.len();
     if num_pol > num_nam {
         Err(anyhow!(
             "Policy ID {} does not correspond to any asset name.",
-            args.policy[num_pol - 1],
+            args.output_asset_policy[num_pol - 1],
         ))?;
     }
     if num_nam > num_tok {
         Err(anyhow!(
             "Missing token amount for asset {:?}.",
-            args.name[num_nam - 1],
+            args.output_asset_name[num_nam - 1],
         ))?;
     }
     if (num_tok != 0) & ((num_nam == 0) | (num_pol == 0)) {
@@ -71,71 +71,120 @@ pub async fn pay_to_script(
         }
     }
 
-    let coin_amount = args.amount.unwrap_or(0);
+    let coin_amount = args.output_coin_amount.unwrap_or(0);
     // Total amount in outputs
     let mut output_value: Value = Value::Coin(coin_amount);
 
-    let last_policy: Option<&PolicyId> = args.policy.last().clone();
+    let last_policy: Option<&PolicyId> = args.output_asset_policy.last().clone();
     for count in 0..num_pol {
         output_value += <_>::from((
-            args.policy[count],
-            <_>::from(args.name[count].clone()),
-            args.token_amount[count],
+            args.output_asset_policy[count],
+            <_>::from(args.output_asset_name[count].clone()),
+            args.output_asset_amount[count],
         ));
     }
-    let last_name: Option<&String> = args.name.last().clone();
+    let last_name: Option<&String> = args.output_asset_name.last().clone();
     for count in num_pol..num_nam {
         output_value += <_>::from((
             last_policy.unwrap().clone(),
-            <_>::from(args.name[count].clone()),
-            args.token_amount[count],
+            <_>::from(args.output_asset_name[count].clone()),
+            args.output_asset_amount[count],
         ));
     }
     for count in num_nam..num_tok {
         output_value += <_>::from((
             last_policy.unwrap().clone(),
             <AssetName>::from(last_name.unwrap().clone()),
-            args.token_amount[count],
+            args.output_asset_amount[count],
         ));
     }
 
-    let script_hex: String = std::fs::read_to_string(args.script_hex_file)?;
-    let script = if args.script_params_cbor_file != "" {
-        let script_params_cbor: String = std::fs::read_to_string(args.script_params_cbor_file)?;
-        let script_params_data =
-            PallasPlutusData::from(PlutusData(hex::decode(script_params_cbor).unwrap()));
+    let validator_hex: String = std::fs::read_to_string(args.validator_hex_file)?;
+    let validator_script = if args.validator_params_cbor_file != "" {
+        let validator_params_cbor: String =
+            std::fs::read_to_string(args.validator_params_cbor_file)?;
+        let validator_params_data =
+            PallasPlutusData::from(PlutusData(hex::decode(validator_params_cbor).unwrap()));
         PlutusScript(
             apply_params_to_script(
-                script_params_data.encode_fragment().unwrap().as_slice(),
-                hex::decode(script_hex).unwrap().as_slice(),
+                validator_params_data.encode_fragment().unwrap().as_slice(),
+                hex::decode(validator_hex).unwrap().as_slice(),
             )
             .unwrap(),
         )
     } else {
-        PlutusScript(hex::decode(script_hex).unwrap())
+        PlutusScript(hex::decode(validator_hex).unwrap())
     };
-    let script_hash = compute_plutus_v2_script_hash(script.clone());
-    let script_address = Address(hex::decode("70".to_owned() + &hex::encode(script_hash)).unwrap());
+    let validator_hash = compute_plutus_v2_script_hash(validator_script.clone());
+    let validator_address =
+        Address(hex::decode("70".to_owned() + &hex::encode(validator_hash)).unwrap());
+
+    let mut minted_value: Value = Value::Coin(0);
+    let mut option_scripts: Option<Vec<PlutusScript>> = None;
+    let mut option_redeemers: Option<Vec<Redeemer>> = None;
+
+    if args.policy_hex_file != "" {
+        let policy_hex: String = std::fs::read_to_string(args.policy_hex_file)?;
+        let policy_script = if args.policy_params_cbor_file != "" {
+            let policy_params_cbor: String = std::fs::read_to_string(args.policy_params_cbor_file)?;
+            let policy_params_data =
+                PallasPlutusData::from(PlutusData(hex::decode(policy_params_cbor).unwrap()));
+            PlutusScript(
+                apply_params_to_script(
+                    policy_params_data.encode_fragment().unwrap().as_slice(),
+                    hex::decode(policy_hex).unwrap().as_slice(),
+                )
+                .unwrap(),
+            )
+        } else {
+            PlutusScript(hex::decode(policy_hex).unwrap())
+        };
+        let policy = compute_plutus_v2_script_hash(policy_script.clone());
+
+        minted_value = Value::from((
+            policy,
+            AssetName::from(args.minted_asset_name.clone()),
+            args.minted_asset_amount,
+        ));
+        output_value += minted_value.clone();
+
+        let policy_redeemer_hex: String = std::fs::read_to_string(args.policy_redeemer_cbor_file)?;
+        let policy_redeemer = Redeemer {
+            tag: RedeemerTag::Mint,
+            index: 0,
+            data: PlutusData(hex::decode(policy_redeemer_hex).unwrap()),
+        };
+
+        let mint = Some(Multiasset::from((
+            policy,
+            AssetName::from(args.minted_asset_name),
+            args.minted_asset_amount as i64,
+        )));
+        transaction.transaction_body.mint = mint;
+
+        option_scripts = Some(vec![policy_script]);
+        option_redeemers = Some(vec![policy_redeemer]);
+    }
 
     // Construct the output and then push to the transaction
     let output = if args.datum_cbor_file != "" {
         let datum_hex: String = std::fs::read_to_string(args.datum_cbor_file)?;
         let datum: Datum = Datum(hex::decode(datum_hex).unwrap());
-        Output::from((script_address, output_value.clone(), datum))
+        Output::from((validator_address, output_value.clone(), datum))
     } else {
-        Output::from((script_address, output_value.clone()))
+        Output::from((validator_address, output_value.clone()))
     };
     transaction.transaction_body.outputs.push(output);
 
     // If the supplied inputs surpass output amount, we redirect the rest to Shawn
-    if value_leq(&output_value, &input_value) {
-        let remainder: Value = input_value - output_value;
-        if !remainder.is_null() {
-            println!("Note: Excess input amount goes to Shawn.");
-            let output = Output::from((address_from_hex(SHAWN_ADDRESS), remainder));
-            transaction.transaction_body.outputs.push(output);
-        }
+    let remainder: Value = minted_value + input_value - output_value;
+    if !remainder.is_null() {
+        println!("Note: Excess input amount goes to Shawn.");
+        let output = Output::from((address_from_hex(SHAWN_ADDRESS), remainder));
+        transaction.transaction_body.outputs.push(output);
     }
+
+    transaction.transaction_body.required_signers = Some(args.required_signers);
 
     // Push each input to the transaction.
     for input in &args.input {
@@ -158,6 +207,8 @@ pub async fn pay_to_script(
         witnesses.push(VKeyWitness::from((vkey, signature)));
     }
     transaction.transaction_witness_set = <_>::from(witnesses);
+    transaction.transaction_witness_set.plutus_script = option_scripts;
+    transaction.transaction_witness_set.redeemer = option_redeemers;
 
     log::debug!("Griffin transaction is: {:#x?}", transaction);
     let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
@@ -203,42 +254,175 @@ pub async fn spend_script(
 ) -> anyhow::Result<()> {
     log::debug!("The args are:: {:?}", args);
 
+    let num_pol = args.output_asset_policy.len();
+    let num_nam = args.output_asset_name.len();
+    let num_tok = args.output_asset_amount.len();
+    if num_pol > num_nam {
+        Err(anyhow!(
+            "Policy ID {} does not correspond to any asset name.",
+            args.output_asset_policy[num_pol - 1],
+        ))?;
+    }
+    if num_nam > num_tok {
+        Err(anyhow!(
+            "Missing token amount for asset {:?}.",
+            args.output_asset_name[num_nam - 1],
+        ))?;
+    }
+    if (num_tok != 0) & ((num_nam == 0) | (num_pol == 0)) {
+        Err(anyhow!("Missing policy ID(s) and/or asset name."))?;
+    }
+
+    // Total amount in inputs
+    let mut wallet_input_value: Value = Value::Coin(0);
+    for input in &args.wallet_input {
+        if let Some((_owner_pubkey, amount, _)) = sync::get_unspent(db, input)? {
+            wallet_input_value += amount;
+        } else {
+            log::info!(
+                "Warning: User-specified utxo {:x?} not found in wallet database",
+                input
+            );
+        }
+    }
+
+    let coin_amount = args.output_coin_amount.unwrap_or(0);
+    // Total amount in outputs
+    let mut recipient_value: Value = Value::Coin(coin_amount);
+
+    let last_policy: Option<&PolicyId> = args.output_asset_policy.last().clone();
+    for count in 0..num_pol {
+        recipient_value += <_>::from((
+            args.output_asset_policy[count],
+            <_>::from(args.output_asset_name[count].clone()),
+            args.output_asset_amount[count],
+        ));
+    }
+    let last_name: Option<&String> = args.output_asset_name.last().clone();
+    for count in num_pol..num_nam {
+        recipient_value += <_>::from((
+            last_policy.unwrap().clone(),
+            <_>::from(args.output_asset_name[count].clone()),
+            args.output_asset_amount[count],
+        ));
+    }
+    for count in num_nam..num_tok {
+        recipient_value += <_>::from((
+            last_policy.unwrap().clone(),
+            <AssetName>::from(last_name.unwrap().clone()),
+            args.output_asset_amount[count],
+        ));
+    }
+    recipient_value += Value::Coin(MIN_COIN_PER_OUTPUT);
+
     // Construct a template Transaction to push coins into later
     let mut transaction = Transaction::from((Vec::new(), Vec::new()));
 
-    if let Some((_, input_value, _)) = sync::get_unspent(db, &args.input)? {
-        let script_hex: String = std::fs::read_to_string(args.script_hex_file)?;
-        let script = if args.script_params_cbor_file != "" {
-            let script_params_cbor: String = std::fs::read_to_string(args.script_params_cbor_file)?;
-            let script_params_data =
-                PallasPlutusData::from(PlutusData(hex::decode(script_params_cbor).unwrap()));
+    if let Some((_, script_input_value, _)) = sync::get_unspent(db, &args.script_input)? {
+        let validator_hex: String = std::fs::read_to_string(args.validator_hex_file)?;
+        let validator_script = if args.validator_params_cbor_file != "" {
+            let validator_params_cbor: String =
+                std::fs::read_to_string(args.validator_params_cbor_file)?;
+            let validator_params_data =
+                PallasPlutusData::from(PlutusData(hex::decode(validator_params_cbor).unwrap()));
             PlutusScript(
                 apply_params_to_script(
-                    script_params_data.encode_fragment().unwrap().as_slice(),
-                    hex::decode(script_hex).unwrap().as_slice(),
+                    validator_params_data.encode_fragment().unwrap().as_slice(),
+                    hex::decode(validator_hex).unwrap().as_slice(),
                 )
                 .unwrap(),
             )
         } else {
-            PlutusScript(hex::decode(script_hex).unwrap())
+            PlutusScript(hex::decode(validator_hex).unwrap())
         };
 
-        let redeemer_hex: String = std::fs::read_to_string(args.redeemer_cbor_file)?;
-        let redeemer = Redeemer {
+        transaction
+            .transaction_body
+            .inputs
+            .push(args.script_input.clone());
+        for input in &args.wallet_input {
+            transaction.transaction_body.inputs.push(input.clone());
+        }
+
+        // Get lexicographic index of the script input
+        let mut input_strings = transaction
+            .transaction_body
+            .inputs
+            .iter()
+            .map(|i| hex::encode(i.encode()))
+            .collect::<Vec<_>>();
+        input_strings.sort();
+        let script_index = input_strings
+            .iter()
+            .position(|i| *i == hex::encode(args.script_input.clone().encode()))
+            .unwrap();
+
+        let redeemer_hex: String = std::fs::read_to_string(args.validator_redeemer_cbor_file)?;
+        let validator_redeemer = Redeemer {
             tag: RedeemerTag::Spend,
-            index: 0,
+            index: script_index as u32,
             data: PlutusData(hex::decode(redeemer_hex).unwrap()),
-            ex_units: ExUnits {
-                mem: 661056,
-                steps: 159759842,
-            },
         };
+
+        let mut burnt_value: Value = Value::Coin(0);
+        let mut scripts: Vec<PlutusScript> = vec![validator_script];
+        let mut redeemers: Vec<Redeemer> = vec![validator_redeemer];
+
+        if args.policy_hex_file != "" {
+            let policy_hex: String = std::fs::read_to_string(args.policy_hex_file)?;
+
+            let policy_script = if args.policy_params_cbor_file != "" {
+                let policy_params_cbor: String =
+                    std::fs::read_to_string(args.policy_params_cbor_file)?;
+                let policy_params_data =
+                    PallasPlutusData::from(PlutusData(hex::decode(policy_params_cbor).unwrap()));
+                PlutusScript(
+                    apply_params_to_script(
+                        policy_params_data.encode_fragment().unwrap().as_slice(),
+                        hex::decode(policy_hex).unwrap().as_slice(),
+                    )
+                    .unwrap(),
+                )
+            } else {
+                PlutusScript(hex::decode(policy_hex).unwrap())
+            };
+            let policy = compute_plutus_v2_script_hash(policy_script.clone());
+
+            burnt_value = Value::from((
+                policy,
+                AssetName::from(args.burnt_asset_name.clone()),
+                args.burnt_asset_amount,
+            ));
+
+            let policy_redeemer_hex: String =
+                std::fs::read_to_string(args.policy_redeemer_cbor_file)?;
+            let policy_redeemer = Redeemer {
+                tag: RedeemerTag::Mint,
+                index: 0,
+                data: PlutusData(hex::decode(policy_redeemer_hex).unwrap()),
+            };
+            let mint = Some(Multiasset::from((
+                policy,
+                AssetName::from(args.burnt_asset_name),
+                -(args.burnt_asset_amount as i64),
+            )));
+            transaction.transaction_body.mint = mint;
+
+            scripts.push(policy_script);
+            redeemers.push(policy_redeemer);
+        }
+
+        let recipient_output = Output::from((args.output_recipient, recipient_value.clone()));
+        transaction.transaction_body.outputs.push(recipient_output);
 
         println!("Note: Excess input amount goes to Shawn.");
-        let output = Output::from((address_from_hex(SHAWN_ADDRESS), input_value));
+        let remainder_output = Output::from((
+            address_from_hex(SHAWN_ADDRESS),
+            wallet_input_value + script_input_value - burnt_value - recipient_value,
+        ));
 
-        transaction.transaction_body.outputs.push(output);
-        transaction.transaction_body.inputs.push(args.input.clone());
+        transaction.transaction_body.outputs.push(remainder_output);
+        transaction.transaction_body.validity_interval_start = args.validity_interval_start;
         transaction.transaction_body.required_signers = Some(args.required_signers);
 
         // FIXME: Duplicate code
@@ -257,8 +441,8 @@ pub async fn spend_script(
             witnesses.push(VKeyWitness::from((vkey, signature)));
         }
         transaction.transaction_witness_set = <_>::from(witnesses);
-        transaction.transaction_witness_set.plutus_script = Some(vec![script]);
-        transaction.transaction_witness_set.redeemer = Some(vec![redeemer]);
+        transaction.transaction_witness_set.plutus_script = Some(scripts);
+        transaction.transaction_witness_set.redeemer = Some(redeemers);
 
         log::debug!("Griffin transaction is: {:#x?}", transaction);
         let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
@@ -298,8 +482,8 @@ pub async fn spend_script(
         Ok(())
     } else {
         Err(anyhow!(
-            "User-specified utxo {:x?} not found in wallet database",
-            &args.input,
+            "User-specified script utxo {:x?} not found in wallet database",
+            &args.script_input,
         ))?
     }
 }
@@ -352,10 +536,6 @@ pub async fn mint_asset(
             tag: RedeemerTag::Mint,
             index: 0,
             data: PlutusData(hex::decode(redeemer_hex).unwrap()),
-            ex_units: ExUnits {
-                mem: 661056,
-                steps: 159759842,
-            },
         };
 
         let mut transaction = Transaction::from((Vec::new(), Vec::new()));
@@ -450,8 +630,8 @@ fn test_phase2_one_shot_mp() {
     };
     use griffin_core::pallas_primitives::Fragment;
     use griffin_core::types::{
-        compute_plutus_v2_script_hash, Address, AssetName, ExUnits, Input, Multiasset, Output,
-        PlutusData, PlutusScript, Redeemer, RedeemerTag, Value,
+        compute_plutus_v2_script_hash, Address, AssetName, Input, Multiasset, Output, PlutusData,
+        PlutusScript, Redeemer, RedeemerTag, Value,
     };
     use griffin_core::uplc::tx::{
         apply_params_to_script, eval_phase_two, ResolvedInput, SlotConfig,
@@ -535,10 +715,6 @@ fn test_phase2_one_shot_mp() {
             any_constructor: None,
             fields: Def([].to_vec()),
         })),
-        ex_units: ExUnits {
-            mem: 661056,
-            steps: 159759842,
-        },
     };
     let mint = Some(Multiasset::from((
         policy,
@@ -588,8 +764,8 @@ fn test_phase2_aiken_hello_world() {
         TransactionInput, TransactionOutput,
     };
     use griffin_core::types::{
-        compute_plutus_v2_script_hash, Address, Datum, ExUnits, Input, Output, PlutusData,
-        PlutusScript, Redeemer, RedeemerTag, VKeyWitness, Value,
+        compute_plutus_v2_script_hash, Address, Datum, Input, Output, PlutusData, PlutusScript,
+        Redeemer, RedeemerTag, VKeyWitness, Value,
     };
     use griffin_core::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
     use sp_core::H256;
@@ -648,10 +824,6 @@ fn test_phase2_aiken_hello_world() {
                 .to_vec(),
             ),
         })),
-        ex_units: ExUnits {
-            mem: 661056,
-            steps: 159759842,
-        },
     };
 
     let mut transaction = Transaction::from((Vec::new(), Vec::new()));
@@ -727,8 +899,7 @@ fn test_phase2_ppp_vesting() {
         TransactionInput, TransactionOutput,
     };
     use griffin_core::types::{
-        Address, Datum, ExUnits, Input, Output, PlutusData, PlutusScript, Redeemer, RedeemerTag,
-        Value,
+        Address, Datum, Input, Output, PlutusData, PlutusScript, Redeemer, RedeemerTag, Value,
     };
     use griffin_core::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
     use sp_core::H256;
@@ -804,10 +975,6 @@ fn test_phase2_ppp_vesting() {
             any_constructor: None,
             fields: Def([].to_vec()),
         })),
-        ex_units: ExUnits {
-            mem: 661056,
-            steps: 159759842,
-        },
     };
 
     let mut transaction = Transaction::from((Vec::new(), Vec::new()));

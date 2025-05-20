@@ -36,6 +36,15 @@ use h224::H224;
 pub mod utxo_set;
 pub use executive::Executive;
 
+/// The Aura slot duration. When things are working well, this will also be the block time.
+pub const MILLI_SECS_PER_SLOT: u32 = 3000;
+
+/// A storage key that will store the slot number of the first block in the chain.
+pub const ZERO_SLOT: &[u8] = b"zero-slot";
+
+/// A storage key that will store the start POSIX time of ZERO_SLOT, in milliseconds.
+pub const ZERO_TIME: &[u8] = b"zero-time";
+
 /// A Griffin-specific target for diagnostic node log messages
 const LOG_TARGET: &str = "griffin-core";
 

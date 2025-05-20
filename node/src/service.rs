@@ -5,11 +5,17 @@ use griffin_solochain_runtime::{self, RuntimeApi};
 use sc_client_api::BlockBackend;
 use sc_consensus_aura::{ImportQueueParams, SlotProportion, StartAuraParams};
 use sc_consensus_grandpa::SharedVoterState;
+use sc_network::peer_store::LOG_TARGET;
 use sc_service::{error::Error as ServiceError, Configuration, TaskManager, WarpSyncParams};
-use sc_telemetry::{Telemetry, TelemetryWorker};
+use sc_telemetry::{log, Telemetry, TelemetryWorker};
 use sc_transaction_pool_api::OffchainTransactionPoolFactory;
 use sp_consensus_aura::sr25519::AuthorityPair as AuraPair;
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::Arc,
+    thread::sleep,
+    time::Duration,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 pub(crate) type FullClient = sc_service::TFullClient<
     Block,
@@ -219,6 +225,19 @@ pub fn new_full<
         })
     };
 
+    let chain_spec =
+        &serde_json::from_str::<serde_json::Value>(&config.chain_spec.as_json(false).unwrap())
+            .unwrap();
+    let zero_time = chain_spec["genesis"]["runtimeGenesis"]["patch"]["zero_time"]
+        .as_u64()
+        .unwrap();
+
+    log::warn!(
+        target: LOG_TARGET,
+        "Genesis posix time (milliseconds): {}",
+        zero_time
+    );
+
     let _rpc_handlers = sc_service::spawn_tasks(sc_service::SpawnTasksParams {
         network: Arc::new(network.clone()),
         client: client.clone(),
@@ -233,6 +252,16 @@ pub fn new_full<
         config,
         telemetry: telemetry.as_mut(),
     })?;
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis() as u64;
+
+    // Wait until genesis time
+    sleep(Duration::from_millis(
+        zero_time.checked_sub(now).unwrap_or(0),
+    ));
 
     if role.is_authority() {
         let proposer_factory = sc_basic_authorship::ProposerFactory::new(

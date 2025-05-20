@@ -48,6 +48,7 @@ pub type RequiredSigner = H224;
 pub struct TransactionBody {
     pub inputs: Vec<Input>,
     pub outputs: Vec<Output>,
+    pub ttl: Option<u64>,
     pub validity_interval_start: Option<u64>,
     pub mint: Option<Mint>,
     pub required_signers: Option<Vec<RequiredSigner>>,
@@ -207,7 +208,6 @@ pub struct Redeemer {
     pub tag: RedeemerTag,
     pub index: u32,
     pub data: PlutusData,
-    pub ex_units: ExUnits,
 }
 
 /// Fragment of a Cardano witness set.
@@ -300,6 +300,8 @@ impl Extrinsic for Transaction {
 pub enum UTxOError {
     /// A Babbage era validation error returned by Pallas.
     Babbage(BabbageError),
+    /// An phase two validation error returned by UPLC.
+    PhaseTwo(crate::uplc::tx::error::Error),
     /// No other kind of error should be received.
     Fail,
 }
@@ -358,8 +360,8 @@ impl From<UTxOError> for InvalidTransaction {
                 UnneededRedeemer => Custom(244),
                 ReqSignerWrongSig => Custom(245),
                 VKWrongSignature => Custom(246),
-                PhaseTwoValidationError => Custom(247),
             },
+            PhaseTwo(_) => Custom(247),
         }
     }
 }
@@ -528,6 +530,7 @@ impl From<(Vec<Input>, Vec<Output>)> for Transaction {
             transaction_body: TransactionBody {
                 inputs,
                 outputs,
+                ttl: None,
                 validity_interval_start: None,
                 mint: None,
                 required_signers: None,
