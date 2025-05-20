@@ -422,16 +422,17 @@ pub(crate) fn print_orders(db: &Db) -> anyhow::Result<()> {
                 }
                 Some(OrderDatum::Ok {
                     sender_payment_hash,
-                    control_token_class: _,
+                    control_token_class,
                     ordered_class,
                     ordered_amount,
                 }) => {
                     println!(
-                        "{}:\n SENDER_PH: {:?}\n ORDERED_CLASS: {:#?}\n ORDERED_AMOUNT: {}\n VALUE: {}",
+                        "{}:\n SENDER_PH: {:?}\n ORDERED_CLASS: {:#?}\n ORDERED_AMOUNT: {}\n CONTROL_TOKEN_CLASS: {:#?}\n VALUE: {}",
                         input,
                         sender_payment_hash,
                         ordered_class,
                         ordered_amount,
+                        control_token_class,
                         value.normalize(),
                     );
                 }
