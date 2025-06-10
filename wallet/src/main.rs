@@ -36,8 +36,8 @@ use sp_core::H256;
 use std::path::PathBuf;
 
 mod cli;
+mod command;
 mod keystore;
-mod money;
 mod order_book;
 mod rpc;
 mod sync;
@@ -141,7 +141,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Some(cli::Command::SpendValue(args)) => {
-            money::spend_value(&db, &client, &keystore, args).await
+            command::spend_value(&db, &client, &keystore, args).await
         }
         Some(Command::InsertKey { seed }) => crate::keystore::insert_key(&keystore, &seed),
         Some(Command::GenerateKey { password }) => {
@@ -197,7 +197,7 @@ async fn main() -> anyhow::Result<()> {
             sync::print_orders(&db)?;
             Ok(())
         }
-        Some(cli::Command::BuildTx(args)) => money::build_tx(&db, &client, &keystore, args).await,
+        Some(cli::Command::BuildTx(args)) => command::build_tx(&db, &client, &keystore, args).await,
         None => {
             log::info!("No Wallet Command invoked. Exiting.");
             Ok(())
