@@ -32,7 +32,9 @@ pub type Block = sp_runtime::generic::Block<Header, Transaction>;
 pub type OpaqueBlock = sp_runtime::generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
 
 /// A reference to a utxo that will be consumed.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+#[derive(
+    Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, PartialOrd, Ord,
+)]
 pub struct Input {
     /// A hash of the transaction that created this output
     pub tx_hash: H256,
@@ -567,6 +569,15 @@ impl<A> From<(PolicyId, AssetName, A)> for Multiasset<A> {
     }
 }
 
+impl From<Value> for Multiasset<Coin> {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::Coin(_) => EncapBTree::<PolicyId, EncapBTree<AssetName, Coin>>::new(),
+            Value::Multiasset(_, ma) => ma,
+        }
+    }
+}
+
 impl From<(PolicyId, AssetName, Coin)> for Value {
     fn from((policy, name, amount): (PolicyId, AssetName, Coin)) -> Self {
         Value::Multiasset(0, <_>::from((policy, name, amount)))
@@ -576,6 +587,12 @@ impl From<(PolicyId, AssetName, Coin)> for Value {
 impl From<(Coin, PolicyId, AssetName, Coin)> for Value {
     fn from((coin, policy, name, amount): (Coin, PolicyId, AssetName, Coin)) -> Self {
         Value::Multiasset(coin, <_>::from((policy, name, amount)))
+    }
+}
+
+impl From<Multiasset<Coin>> for Value {
+    fn from(ma: Multiasset<Coin>) -> Self {
+        Value::Multiasset(0, ma)
     }
 }
 

@@ -30,7 +30,7 @@ use griffin_core::{
     types::{Address, Input, Value},
 };
 use hex::FromHex;
-use jsonrpsee::http_client::HttpClientBuilder;
+use jsonrpsee::http_client::{HttpClient, HttpClientBuilder};
 use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 use std::path::PathBuf;
@@ -122,14 +122,11 @@ async fn main() -> anyhow::Result<()> {
 
     // Dispatch to proper subcommand
     match cli.command {
-        // Some(Command::MintCoins(args)) => {
-        //     money::mint_coins(&client, args).await
-        // }
         Some(Command::VerifyUtxo { input }) => {
             println!("Details of coin {}:", hex::encode(input.encode()));
 
             // Print the details from storage
-            let coin_from_storage = money::get_coin_from_storage(&input, &client).await?;
+            let coin_from_storage = get_coin_from_storage(&input, &client).await?;
             print!("Found in storage.  Value: {:?}, ", coin_from_storage);
 
             // Print the details from the local db
@@ -311,4 +308,13 @@ fn default_data_path() -> PathBuf {
         .expect("app directories exist on all supported platforms; qed")
         .data_dir()
         .into()
+}
+
+/// Given an output ref, fetch the details about its value from the node's
+/// storage.
+async fn get_coin_from_storage(input: &Input, client: &HttpClient) -> anyhow::Result<Value> {
+    let utxo = rpc::fetch_storage(input, client).await?;
+    let coin_in_storage: Value = utxo.value;
+
+    Ok(coin_in_storage)
 }

@@ -224,7 +224,18 @@ async fn apply_transaction(db: &Db, opaque_tx: OpaqueExtrinsic) -> anyhow::Resul
 
     // Insert all new outputs
     for (index, output) in tx.transaction_body.outputs.iter().enumerate() {
-        crate::money::apply_transaction(db, tx_hash, index as u32, output)?;
+        let input = Input {
+            tx_hash,
+            index: index as u32,
+        };
+
+        crate::sync::add_unspent_output(
+            db,
+            &input,
+            &output.address,
+            &output.value,
+            &output.datum_option,
+        )?;
     }
 
     log::debug!("about to spend all inputs");

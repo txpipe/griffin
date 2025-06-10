@@ -12,10 +12,6 @@ use griffin_core::{
     types::{Address, Coin, Input, PolicyId},
 };
 
-#[doc(hidden)]
-/// The default number of coins to be minted.
-pub const DEFAULT_MINT_VALUE: &str = "100";
-
 /// The wallet's main CLI struct
 #[derive(Debug, Parser)]
 #[command(about, version)]
@@ -54,11 +50,6 @@ pub struct Cli {
 /// The tasks supported by the wallet
 #[derive(Debug, Subcommand)]
 pub enum Command {
-    // /// Mint coins, optionally amount and publicKey of owner can be passed.
-    // /// If amount is not passed, 100 coins are minted.
-    // /// If publickKey of owner is not passed, then by default SHAWN_PUB_KEY is used.
-    // #[command(verbatim_doc_comment)]
-    // MintCoins(MintCoinArgs),
     /// Verify that a particular output ref exists.
     /// Show its value and owner address from both chain storage and the local database.
     #[command(verbatim_doc_comment)]
@@ -122,20 +113,73 @@ pub enum Command {
 
 #[doc(hidden)]
 #[derive(Debug, Args)]
-pub struct MintCoinArgs {
-    /// An input to be consumed by this transaction.
-    #[arg(long, short, verbatim_doc_comment, value_parser = input_from_string)]
-    pub input: Input,
+pub struct BuildTxArgs {
+    /// Path to the file containing the transaction inputs info in JSON format.
+    /// Each input info contains the following fields:
+    /// - `tx_hash`
+    /// - `index`
+    /// - `redeemer_cbor` (optional, for script inputs)
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        required = true,
+        value_name = "INPUTS_INFO_JSON"
+    )]
+    pub inputs_info: String,
 
-    /// Pass the amount to be minted.
-    #[arg(long, short, verbatim_doc_comment, action = Append,default_value = DEFAULT_MINT_VALUE)]
-    pub amount: Coin,
+    /// Path to the file containing the transaction outputs in JSON format.
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        required = true,
+        value_name = "OUTPUTS_INFO_JSON"
+    )]
+    pub outputs_info: String,
 
-    /// 28-byte hash-address of the recipient.
-    #[arg(long, short, verbatim_doc_comment, value_parser = address_from_string, default_value = SHAWN_ADDRESS)]
-    pub recipient: Address,
+    /// Path to a list of JSON objects containing the hex of plutus scripts
+    /// and their parameters (if any) to be applied to the scripts.
+    /// Each object must contain the following fields:
+    /// - `script_hex`: The hex-encoded script.
+    /// - `script_params_cbor`: The cbor-encoded parameter list (optional).
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        default_value = "",
+        value_name = "SCRIPTS_INFO_JSON"
+    )]
+    pub scripts_info: String,
+
+    /// Path to a list of JSON objects containing the assets to be minted/burnt,
+    /// their amounts and the redeemer to each minting policy.
+    /// Each object must contain the following fields:
+    /// - `policy`: The policy ID of the asset to be minted/burnt.
+    /// - `assets`: A list of tuples containing the asset name and the amount to be minted/burnt.
+    /// - `redeemer_cbor`: The cbor-encoded redeemer to the minting policy.
+    #[arg(long, short, verbatim_doc_comment, action = Append, default_value = "", value_name = "MINTINGS_INFO_JSON")]
+    pub mintings_info: String,
+
+    /// 32-byte H256 public key of an input owner.
+    /// Their pk/sk pair must be registered in the wallet's keystore.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h256_from_string, default_value = SHAWN_PUB_KEY, value_name = "PUBLIC_KEY")]
+    pub witness: Vec<H256>,
+
+    /// Payment hash of the sender.
+    #[arg(long, short, verbatim_doc_comment, value_parser = h224_from_string, default_value = SHAWN_PUB_KEY_HASH, value_name = "REQUIRED_SIGNERS")]
+    pub required_signer: Vec<H224>,
+
+    /// Start of the validity interval.
+    #[arg(long, short, verbatim_doc_comment, default_value = None, value_name = "VALIDITY_INTERVAL_START")]
+    pub validity_interval_start: Option<u64>,
+
+    /// Time to live.
+    #[arg(long, short, verbatim_doc_comment, default_value = None, value_name = "TTL")]
+    pub ttl: Option<u64>,
 }
 
+/// Arguments for spending wallet inputs only.
 #[derive(Debug, Args)]
 pub struct SpendValueArgs {
     /// An input to be consumed by this transaction. This argument may be specified multiple times.
