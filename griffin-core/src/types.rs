@@ -490,7 +490,11 @@ impl From<(Address, Coin, Multiasset<Coin>, Option<Datum>)> for Output {
     ) -> Self {
         Self {
             address,
-            value: Value::Multiasset(coin, ma),
+            value: if ma.0.is_empty() {
+                Value::Coin(coin)
+            } else {
+                Value::Multiasset(coin, ma)
+            },
             datum_option,
         }
     }
