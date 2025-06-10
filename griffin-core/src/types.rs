@@ -290,8 +290,6 @@ impl Extrinsic for Transaction {
         Some(data)
     }
 
-    // Most probably, transactions will never need be signed, since UTxOs
-    // require proof for consumption.
     fn is_signed(&self) -> Option<bool> {
         None
     }
