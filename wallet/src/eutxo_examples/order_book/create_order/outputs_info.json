@@ -1,0 +1,27 @@
+[
+    {
+        "address": "706372cd7adc3553240c5cf5e5b8e1e96998821ef8a9b897bfa9c7d5b3",
+        "coin": 2000,
+        "value": [
+            {
+                "policy": "0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005",
+                "assets": [ ["tokenA", 2] ]
+            },
+            {
+                "policy": "6372CD7ADC3553240C5CF5E5B8E1E96998821EF8A9B897BFA9C7D5B3",
+                "assets": [ ["controlToken", 1] ]
+            }
+        ],
+        "datum": "D8799FD8799F581C547932E40A24E2B7DEB41F31AF21ED57ACD125F4ED8A72B626B3D7F6D8799FD8799F581C0298AA99F95E2FE0A0132A6BB794261FB7E7B0D988215DA2F2DE200546746F6B656E42FF05FFFFD8799F581C6372CD7ADC3553240C5CF5E5B8E1E96998821EF8A9B897BFA9C7D5B34C636F6E74726F6C546F6B656EFFFF"
+    },
+    {
+        "address": "61547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6",
+        "coin": 314148000,
+        "value": [
+            {
+                "policy": "0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005",
+                "assets": [ ["tokenA", 299999998], ["tokenB", 2000000000] ]
+            }
+        ]
+    }
+]
