@@ -19,16 +19,16 @@ use sp_runtime::traits::Hash as HashT;
 pub struct GriffinGenesisConfigBuilder;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct TransparentMultiasset {
+pub struct TransparentMultiasset<A> {
     pub policy: String,
-    pub assets: Vec<(String, Coin)>,
+    pub assets: Vec<(String, A)>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct TransparentOutput {
     pub address: String,
     pub coin: Coin,
-    pub value: Vec<TransparentMultiasset>,
+    pub value: Vec<TransparentMultiasset<Coin>>,
     pub datum: Option<String>,
 }
 
@@ -90,14 +90,14 @@ pub fn transp_to_output(transp: TransparentOutput) -> Output {
     Output::from((
         address_from_hex(&transp.address),
         transp.coin,
-        transp_to_value(transp.value),
+        transp_to_multiasset(transp.value),
         transp
             .datum
             .map(|v| <_>::from(<Vec<u8>>::from_hex(v).unwrap())),
     ))
 }
 
-fn transp_to_assets(transp: Vec<(String, Coin)>) -> EncapBTree<AssetName, Coin> {
+fn transp_to_assets<A>(transp: Vec<(String, A)>) -> EncapBTree<AssetName, A> {
     let mut asset_btree = BTreeMap::new();
 
     for (name, amount) in transp {
@@ -107,7 +107,7 @@ fn transp_to_assets(transp: Vec<(String, Coin)>) -> EncapBTree<AssetName, Coin> 
     EncapBTree(asset_btree)
 }
 
-fn transp_to_value(transp: Vec<TransparentMultiasset>) -> Multiasset<Coin> {
+pub fn transp_to_multiasset<A>(transp: Vec<TransparentMultiasset<A>>) -> Multiasset<A> {
     let mut ma_btree = BTreeMap::new();
 
     for TransparentMultiasset { policy, assets } in transp {

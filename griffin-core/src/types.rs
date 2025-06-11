@@ -32,7 +32,9 @@ pub type Block = sp_runtime::generic::Block<Header, Transaction>;
 pub type OpaqueBlock = sp_runtime::generic::Block<Header, sp_runtime::OpaqueExtrinsic>;
 
 /// A reference to a utxo that will be consumed.
-#[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
+#[derive(
+    Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, PartialOrd, Ord,
+)]
 pub struct Input {
     /// A hash of the transaction that created this output
     pub tx_hash: H256,
@@ -288,8 +290,6 @@ impl Extrinsic for Transaction {
         Some(data)
     }
 
-    // Most probably, transactions will never need be signed, since UTxOs
-    // require proof for consumption.
     fn is_signed(&self) -> Option<bool> {
         None
     }
@@ -490,7 +490,11 @@ impl From<(Address, Coin, Multiasset<Coin>, Option<Datum>)> for Output {
     ) -> Self {
         Self {
             address,
-            value: Value::Multiasset(coin, ma),
+            value: if ma.0.is_empty() {
+                Value::Coin(coin)
+            } else {
+                Value::Multiasset(coin, ma)
+            },
             datum_option,
         }
     }
@@ -567,6 +571,15 @@ impl<A> From<(PolicyId, AssetName, A)> for Multiasset<A> {
     }
 }
 
+impl From<Value> for Multiasset<Coin> {
+    fn from(value: Value) -> Self {
+        match value {
+            Value::Coin(_) => EncapBTree::<PolicyId, EncapBTree<AssetName, Coin>>::new(),
+            Value::Multiasset(_, ma) => ma,
+        }
+    }
+}
+
 impl From<(PolicyId, AssetName, Coin)> for Value {
     fn from((policy, name, amount): (PolicyId, AssetName, Coin)) -> Self {
         Value::Multiasset(0, <_>::from((policy, name, amount)))
@@ -576,6 +589,12 @@ impl From<(PolicyId, AssetName, Coin)> for Value {
 impl From<(Coin, PolicyId, AssetName, Coin)> for Value {
     fn from((coin, policy, name, amount): (Coin, PolicyId, AssetName, Coin)) -> Self {
         Value::Multiasset(coin, <_>::from((policy, name, amount)))
+    }
+}
+
+impl From<Multiasset<Coin>> for Value {
+    fn from(ma: Multiasset<Coin>) -> Self {
+        Value::Multiasset(0, ma)
     }
 }
 

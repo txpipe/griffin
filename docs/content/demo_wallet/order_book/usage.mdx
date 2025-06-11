@@ -9,24 +9,73 @@ sidebar:
 Let's say that Alice wants to place an order paying 2 `Token A` and expecting to receive 5 `Token B`. She will use her input to pay for the amount, and specify in the datum her pub key hash, the expected asset policy, name and amount, and the asset class of the control token:
 
 ```bash
-./target/release/griffin-wallet pay-to-script \
---validator-hex-file ./wallet/src/eutxo_examples/order_book/script.txt \
---datum-cbor-file ./wallet/src/eutxo_examples/order_book/datum.txt \
---input 600b207f1a6a2a316ac010c9fd42587df206dee24a6025bc87d9c5f7229b0d3e01000000 \
---policy-hex-file ./wallet/src/eutxo_examples/order_book/script.txt \
---policy-redeemer-cbor-file ./wallet/src/eutxo_examples/order_book/policy_redeemer.txt \
---minted-asset-name controlToken \
---minted-asset-amount 1 \
---output-coin-amount 2000 \
---output-asset-policy 0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005 \
---output-asset-name tokenA \
---output-asset-amount 2 \
---witness c6f58a018f5f4fba0eec76bb2d92cacab00eb6b548197925572c61c17b3e4edf \
---required-signers 547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6
+./target/release/griffin-wallet build-tx \
+--inputs-info ./wallet/src/eutxo_examples/order_book/create_order/inputs_info.json \
+--outputs-info ./wallet/src/eutxo_examples/order_book/create_order/outputs_info.json \
+--scripts-info ./wallet/src/eutxo_examples/order_book/scripts_info.json \
+--mintings-info ./wallet/src/eutxo_examples/order_book/create_order/mintings_info.json \
+--required-signer 547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6 \
+--witness c6f58a018f5f4fba0eec76bb2d92cacab00eb6b548197925572c61c17b3e4edf
 ```
 
-Note that she also had to specify the name and amount of the control token being minted, some coins to reach the minimum output amount, and her credentials to sign the transaction.
+The contents of `inputs_info.json`, `outputs_info.json`, `scripts_info.json` and `mintings_info.json` are respectively as follows (inputs refs may vary):
 
+```json
+[
+    {
+        "tx_hash": "600b207f1a6a2a316ac010c9fd42587df206dee24a6025bc87d9c5f7229b0d3e",
+        "index": 1
+    }
+]
+```
+
+```json
+[
+    {
+        "address": "706372cd7adc3553240c5cf5e5b8e1e96998821ef8a9b897bfa9c7d5b3",
+        "coin": 2000,
+        "value": [
+            {
+                "policy": "0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005",
+                "assets": [ ["tokenA", 2] ]
+            },
+            {
+                "policy": "6372CD7ADC3553240C5CF5E5B8E1E96998821EF8A9B897BFA9C7D5B3",
+                "assets": [ ["controlToken", 1] ]
+            }
+        ],
+        "datum": "D8799FD8799F581C547932E40A24E2B7DEB41F31AF21ED57ACD125F4ED8A72B626B3D7F6D8799FD8799F581C0298AA99F95E2FE0A0132A6BB794261FB7E7B0D988215DA2F2DE200546746F6B656E42FF05FFFFD8799F581C6372CD7ADC3553240C5CF5E5B8E1E96998821EF8A9B897BFA9C7D5B34C636F6E74726F6C546F6B656EFFFF"
+    },
+    {
+        "address": "61547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6",
+        "coin": 314148000,
+        "value": [
+            {
+                "policy": "0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005",
+                "assets": [ ["tokenA", 299999998], ["tokenB", 2000000000] ]
+            }
+        ]
+    }
+]
+```
+
+```json
+[
+    {
+        "script_hex": "59080c..."
+    }
+]
+```
+
+```json
+[
+    {
+        "policy": "6372CD7ADC3553240C5CF5E5B8E1E96998821EF8A9B897BFA9C7D5B3",
+        "assets": [ ["controlToken", 1] ],
+        "redeemer_cbor": "D87980"
+    }
+]
+```
 
 ## Printing Available Orders
 
@@ -67,41 +116,116 @@ bc67bcf53c1355c09558b95ff02fc37dc7a4e69e22a5bc365cc87f9d2207858500000000:
 
 ## Canceling an Order
 
-Suppose Alice wants to cancel the order. She will use the `spend-script` command, specifying the script input, the cancel redeemer, the burning of the control token and her credentials to prove ownership of the order:
+Suppose Alice wants to cancel the order. She will specify the script input, the cancel redeemer, the burning of the control token and her credentials to prove ownership of the order:
 
 ```bash
-./target/release/griffin-wallet spend-script \
---script-input bc67bcf53c1355c09558b95ff02fc37dc7a4e69e22a5bc365cc87f9d2207858500000000 \
---validator-hex-file ./wallet/src/eutxo_examples/order_book/script.txt \
---validator-redeemer-cbor-file ./wallet/src/eutxo_examples/order_book/cancel_redeemer.txt \
---policy-hex-file ./wallet/src/eutxo_examples/order_book/script.txt \
---policy-redeemer-cbor-file ./wallet/src/eutxo_examples/order_book/policy_redeemer.txt \
---burnt-asset-name controlToken \
---burnt-asset-amount 1 \
---witness c6f58a018f5f4fba0eec76bb2d92cacab00eb6b548197925572c61c17b3e4edf \
---required-signers 547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6
+./target/release/griffin-wallet build-tx \
+--inputs-info ./wallet/src/eutxo_examples/order_book/cancel_order/inputs_info.json \
+--outputs-info ./wallet/src/eutxo_examples/order_book/cancel_order/outputs_info.json \
+--scripts-info ./wallet/src/eutxo_examples/order_book/scripts_info.json \
+--mintings-info ./wallet/src/eutxo_examples/order_book/cancel_order/mintings_info.json \
+--required-signer 547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6 \
+--witness c6f58a018f5f4fba0eec76bb2d92cacab00eb6b548197925572c61c17b3e4edf
+```
+
+In this case, the contents of `inputs_info.json`, `outputs_info.json` and `mintings_info.json` are respectively as follows:
+
+```json
+[
+    {
+        "tx_hash": "ded6bfad09094e0ffa5c4093e5635827434376d66540e07c564d73f275130c34",
+        "index": 0,
+        "redeemer_cbor": "d87a81d87980"
+    }
+]
+```
+
+```json
+[
+    {
+        "address": "61547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6",
+        "coin": 2000,
+        "value": [
+            {
+                "policy": "0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005",
+                "assets": [ ["tokenA", 2] ]
+            }
+        ]
+    }
+]
+```
+
+```json
+[
+    {
+        "policy": "6372CD7ADC3553240C5CF5E5B8E1E96998821EF8A9B897BFA9C7D5B3",
+        "assets": [ ["controlToken", -1] ],
+        "redeemer_cbor": "D87980"
+    }
+]
 ```
 
 ## Resolving an Order
 
-Now let's say that Shawn wants to resolve the order and pay 5 `Token B` to Alice. He will use the `spend-script` command, specifying the script input, the resolve redeemer, and Alice's address as the output recipient:
+Now let's say that Shawn wants to resolve the order and pay 5 `Token B` to Alice. He will specify the script input, a wallet input used to pay Alice, the resolve redeemer and the burning of the control token:
 
 ```bash
-./target/release/griffin-wallet spend-script \
---script-input bc67bcf53c1355c09558b95ff02fc37dc7a4e69e22a5bc365cc87f9d2207858500000000 \
---validator-hex-file ./wallet/src/eutxo_examples/order_book/script.txt \
---validator-redeemer-cbor-file ./wallet/src/eutxo_examples/order_book/resolve_redeemer.txt \
---policy-hex-file ./wallet/src/eutxo_examples/order_book/script.txt \
---policy-redeemer-cbor-file ./wallet/src/eutxo_examples/order_book/policy_redeemer.txt \
---burnt-asset-name controlToken \
---burnt-asset-amount 1 \
---output-asset-policy 0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005 \
---output-asset-name tokenB \
---output-asset-amount 5 \
---wallet-input 600b207f1a6a2a316ac010c9fd42587df206dee24a6025bc87d9c5f7229b0d3e00000000 \
---output-recipient 61547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6
---witness 7b155093789404780735f4501c576e9f6e2b0a486cdec70e03e1ef8b9ef99274 \
---required-signers 01e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4
+./target/release/griffin-wallet build-tx \
+--inputs-info ./wallet/src/eutxo_examples/order_book/resolve_order/inputs_info.json \
+--outputs-info ./wallet/src/eutxo_examples/order_book/resolve_order/outputs_info.json \
+--scripts-info ./wallet/src/eutxo_examples/order_book/scripts_info.json \
+--mintings-info ./wallet/src/eutxo_examples/order_book/resolve_order/mintings_info.json \
+--required-signer 01e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4 \
+--witness 7b155093789404780735f4501c576e9f6e2b0a486cdec70e03e1ef8b9ef99274
 ```
 
-Note that Shawn also had to specify the name and amount of the control token being burned, and a wallet input used to pay to Alice.
+In this case, the contents of `inputs_info.json`, `outputs_info.json` and `mintings_info.json` are respectively as follows:
+
+```json
+[
+    {
+        "tx_hash": "ded6bfad09094e0ffa5c4093e5635827434376d66540e07c564d73f275130c34",
+        "index": 0,
+        "redeemer_cbor": "d87a81d87a80"
+    },
+    {
+        "tx_hash": "600b207f1a6a2a316ac010c9fd42587df206dee24a6025bc87d9c5f7229b0d3e",
+        "index": 0
+    }
+]
+```
+
+```json
+[
+    {
+        "address": "61547932e40a24e2b7deb41f31af21ed57acd125f4ed8a72b626b3d7f6",
+        "coin": 2000,
+        "value": [
+            {
+                "policy": "0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005",
+                "assets": [ ["tokenB", 5] ]
+            }
+        ]
+    },
+    {
+        "address": "6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4",
+        "coin": 314000000,
+        "value": [
+            {
+                "policy": "0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005",
+                "assets": [ ["tokenA", 271000002], ["tokenB", 1123581316] ]
+            }
+        ]
+    }
+]
+```
+
+```json
+[
+    {
+        "policy": "6372CD7ADC3553240C5CF5E5B8E1E96998821EF8A9B897BFA9C7D5B3",
+        "assets": [ ["controlToken", -1] ],
+        "redeemer_cbor": "D87980"
+    }
+]
+```

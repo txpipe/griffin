@@ -1,0 +1,7 @@
+[
+    {
+        "policy": "6372CD7ADC3553240C5CF5E5B8E1E96998821EF8A9B897BFA9C7D5B3",
+        "assets": [ ["controlToken", -1] ],
+        "redeemer_cbor": "D87980"
+    }
+]

@@ -30,15 +30,14 @@ use griffin_core::{
     types::{Address, Input, Value},
 };
 use hex::FromHex;
-use jsonrpsee::http_client::HttpClientBuilder;
+use jsonrpsee::http_client::{HttpClient, HttpClientBuilder};
 use parity_scale_codec::{Decode, Encode};
 use sp_core::H256;
 use std::path::PathBuf;
 
 mod cli;
-mod eutxo;
+mod command;
 mod keystore;
-mod money;
 mod order_book;
 mod rpc;
 mod sync;
@@ -122,14 +121,11 @@ async fn main() -> anyhow::Result<()> {
 
     // Dispatch to proper subcommand
     match cli.command {
-        // Some(Command::MintCoins(args)) => {
-        //     money::mint_coins(&client, args).await
-        // }
         Some(Command::VerifyUtxo { input }) => {
             println!("Details of coin {}:", hex::encode(input.encode()));
 
             // Print the details from storage
-            let coin_from_storage = money::get_coin_from_storage(&input, &client).await?;
+            let coin_from_storage = get_coin_from_storage(&input, &client).await?;
             print!("Found in storage.  Value: {:?}, ", coin_from_storage);
 
             // Print the details from the local db
@@ -145,7 +141,7 @@ async fn main() -> anyhow::Result<()> {
             Ok(())
         }
         Some(cli::Command::SpendValue(args)) => {
-            money::spend_value(&db, &client, &keystore, args).await
+            command::spend_value(&db, &client, &keystore, args).await
         }
         Some(Command::InsertKey { seed }) => crate::keystore::insert_key(&keystore, &seed),
         Some(Command::GenerateKey { password }) => {
@@ -201,24 +197,7 @@ async fn main() -> anyhow::Result<()> {
             sync::print_orders(&db)?;
             Ok(())
         }
-        Some(cli::Command::StartOrder(args)) => {
-            order_book::start_order(&db, &client, &keystore, args).await
-        }
-        Some(cli::Command::ResolveOrder(args)) => {
-            order_book::resolve_order(&db, &client, &keystore, args).await
-        }
-        Some(cli::Command::CancelOrder(args)) => {
-            order_book::cancel_order(&db, &client, &keystore, args).await
-        }
-        Some(cli::Command::PayToScript(args)) => {
-            eutxo::pay_to_script(&db, &client, &keystore, args).await
-        }
-        Some(cli::Command::SpendScript(args)) => {
-            eutxo::spend_script(&db, &client, &keystore, args).await
-        }
-        Some(cli::Command::MintAsset(args)) => {
-            eutxo::mint_asset(&db, &client, &keystore, args).await
-        }
+        Some(cli::Command::BuildTx(args)) => command::build_tx(&db, &client, &keystore, args).await,
         None => {
             log::info!("No Wallet Command invoked. Exiting.");
             Ok(())
@@ -311,4 +290,13 @@ fn default_data_path() -> PathBuf {
         .expect("app directories exist on all supported platforms; qed")
         .data_dir()
         .into()
+}
+
+/// Given an output ref, fetch the details about its value from the node's
+/// storage.
+async fn get_coin_from_storage(input: &Input, client: &HttpClient) -> anyhow::Result<Value> {
+    let utxo = rpc::fetch_storage(input, client).await?;
+    let coin_in_storage: Value = utxo.value;
+
+    Ok(coin_in_storage)
 }

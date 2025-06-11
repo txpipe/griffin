@@ -2878,6 +2878,7 @@ dependencies = [
  "log",
  "parity-scale-codec",
  "sc-keystore",
+ "serde",
  "serde_json",
  "sled",
  "sp-core",

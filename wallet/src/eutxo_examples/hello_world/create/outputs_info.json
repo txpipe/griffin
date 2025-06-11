@@ -1,0 +1,18 @@
+[
+    {
+        "address": "706fb13cf9efdbe986e784d1983b21d3fb90231c1745925f536a820fb4",
+        "coin": 2000,
+        "value": [],
+        "datum": "D8799F581C01E6301758A6BADFAB05035CFFC8E3438B3AFF2A4EDC6544B47329C4FF"
+    },
+    {
+        "address": "6101e6301758a6badfab05035cffc8e3438b3aff2a4edc6544b47329c4",
+        "coin": 313998000,
+        "value": [
+            {
+                "policy": "0298aa99f95e2fe0a0132a6bb794261fb7e7b0d988215da2f2de2005",
+                "assets": [ ["tokenA", 271000000], ["tokenB", 1123581321] ]
+            }
+        ]
+    }
+]

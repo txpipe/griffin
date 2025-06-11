@@ -1,0 +1,7 @@
+[
+    {
+        "policy": "db764d148ae997129cc55013b5ed783c8b77989212a3a7c5d05db697",
+        "assets": [ ["oneShot", 1] ],
+        "redeemer_cbor": "D87980"
+    }
+]
