@@ -1,0 +1,25 @@
+---
+title: Tx Builder
+sidebar:
+  order: 4
+---
+
+## Complete Transaction Builder
+
+In order to reproduce more complex wallet commands, like consuming a script input or minting an asset, we provide a more complete transaction builder via the `build-tx` command. The whole command has the following shape:
+
+```bash
+./target/release/griffin-wallet build-tx \
+--inputs-info PATH_TO_INPUTS_INFO_JSON \
+--outputs-info PATH_TO_OUTPUTS_INFO_JSON \
+--scripts-info PATH_TO_SCRIPTS_INFO_JSON \
+--mintings-info PATH_TO_MINTINGS_INFO_JSON \
+--witness [PUB_KEY] \
+--required-signer [PUB_KEY_HASH] \
+--validity-interval-start START_OF_VALIDITY_INTERVAL \
+--ttl TIME_TO_LIVE
+```
+
+The optional parameters are: `scripts-info`, `mintings-info`, `witness` (can be specified multiple times and defaults to Shawn's public key), `required-signer` (analogous to `witness`), `validity-interval-start` and `ttl` (the last two default to `None`).
+
+There are example contracts and json files for testing this command in the `eutxo_examples` directory.
