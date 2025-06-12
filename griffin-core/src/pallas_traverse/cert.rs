@@ -2,7 +2,7 @@ use crate::pallas_primitives::{alonzo, conway};
 
 use crate::pallas_traverse::MultiEraCert;
 
-impl<'b> MultiEraCert<'b> {
+impl MultiEraCert<'_> {
     pub fn as_alonzo(&self) -> Option<&alonzo::Certificate> {
         match self {
             MultiEraCert::AlonzoCompatible(x) => Some(x),

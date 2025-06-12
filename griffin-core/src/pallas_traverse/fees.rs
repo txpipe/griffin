@@ -47,7 +47,7 @@ mod tests {
         let block_str = include_str!("../../test_data/byron4.block");
 
         let block_bytes = hex::decode(block_str).expect("bad block file");
-        let block = crate::pallas_traverse::MultiEraBlock::decode_byron(&block_bytes).unwrap();
+        let block = crate::MultiEraBlock::decode_byron(&block_bytes).unwrap();
         let txs = block.txs();
 
         // don't want to pass if we don't have tx in the block

@@ -4,7 +4,7 @@ use crate::pallas_primitives::alonzo;
 
 use crate::pallas_traverse::MultiEraWithdrawals;
 
-impl<'b> MultiEraWithdrawals<'b> {
+impl MultiEraWithdrawals<'_> {
     pub fn as_alonzo(&self) -> Option<&alonzo::Withdrawals> {
         match self {
             Self::AlonzoCompatible(x) => Some(x),

@@ -60,7 +60,7 @@ pub type DRepVotingThresholds = conway::DRepVotingThresholds;
 use crate::pallas_traverse::{Era, MultiEraUpdate};
 
 impl<'b> MultiEraUpdate<'b> {
-    pub fn decode_for_era(era: Era, cbor: &'b [u8]) -> Result<Self, minicbor::decode::Error> {
+    pub fn decode_for_era(era: Era, cbor: &[u8]) -> Result<Self, minicbor::decode::Error> {
         match era {
             Era::Byron => {
                 let (epoch, up) = minicbor::decode(cbor)?;

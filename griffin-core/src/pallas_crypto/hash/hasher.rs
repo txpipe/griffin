@@ -134,7 +134,7 @@ impl<const BITS: usize> Write for Hasher<BITS> {
 }
 */
 
-impl<'a, const BITS: usize> minicbor::encode::Write for &'a mut Hasher<BITS> {
+impl<const BITS: usize> minicbor::encode::Write for &mut Hasher<BITS> {
     type Error = core::convert::Infallible;
 
     #[inline]

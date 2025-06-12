@@ -61,6 +61,7 @@ itertools = { version="0.13.0", default-features = false, features = ["use_alloc
 serde_json = { version = "1.0.79", optional = true, default-features = false, features = [
     "alloc",
 ] }
+chrono = { version = "0.4.39", default-features = false }
 
 ### UPLC
 bitvec = { version = "1.0.1", default-features = false, features = ["alloc"]}
