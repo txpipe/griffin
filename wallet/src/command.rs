@@ -4,18 +4,19 @@ use crate::{
 };
 use anyhow::anyhow;
 use griffin_core::{
-    checks_interface::{babbage_minted_tx_from_cbor, babbage_tx_to_cbor},
+    checks_interface::{conway_minted_tx_from_cbor, conway_tx_to_cbor},
     genesis::{
         config_builder::{
             transp_to_multiasset, transp_to_output, TransparentMultiasset, TransparentOutput,
         },
         SHAWN_ADDRESS,
     },
-    pallas_primitives::babbage::{MintedTx, Tx as PallasTransaction},
+    pallas_primitives::conway::{MintedTx, Tx as PallasTransaction},
     pallas_traverse::OriginalHash,
     types::{
-        address_from_hex, value_leq, AssetName, Input, Multiasset, Output, PlutusData,
-        PlutusScript, PolicyId, Redeemer, RedeemerTag, Transaction, VKeyWitness, Value,
+        address_from_hex, value_leq, AssetName, Input, Multiasset, NonEmptySet, NonZeroInt, Output,
+        PlutusData, PlutusScript, PolicyId, Redeemer, RedeemerTag, Transaction, VKeyWitness, Value,
+        WitnessSet,
     },
     uplc::tx::apply_params_to_script,
 };
@@ -100,7 +101,8 @@ pub async fn build_tx(
 
     // Construct a template Transaction from the inputs and outputs
     let mut transaction = Transaction::from((inputs, outputs));
-    transaction.transaction_body.required_signers = Some(args.required_signer);
+    transaction.transaction_body.required_signers =
+        Some(<_>::try_from(args.required_signer).unwrap());
     transaction.transaction_body.validity_interval_start = args.validity_interval_start;
     transaction.transaction_body.ttl = args.ttl;
 
@@ -114,15 +116,26 @@ pub async fn build_tx(
             .into_iter()
             .map(|mi| TransparentMultiasset {
                 policy: mi.policy,
-                assets: mi.assets,
+                assets: mi
+                    .assets
+                    .into_iter()
+                    .map(|(name, amount)| {
+                        (
+                            name,
+                            NonZeroInt::try_from(amount).expect("Minted amount must be non-zero"),
+                        )
+                    })
+                    .collect(),
             })
-            .collect::<Vec<TransparentMultiasset<i64>>>();
-        transaction.transaction_body.mint = Some(Multiasset::from(transp_to_multiasset(tmas)));
+            .collect::<Vec<TransparentMultiasset<NonZeroInt>>>();
+        transaction.transaction_body.mint = Some(Multiasset::from(transp_to_multiasset(
+            <_>::try_from(tmas).unwrap(),
+        )));
     }
 
     let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
-    let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
-    let mtx: MintedTx = babbage_minted_tx_from_cbor(&cbor_bytes);
+    let cbor_bytes: Vec<u8> = conway_tx_to_cbor(&pallas_tx);
+    let mtx: MintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
     let tx_hash: &Vec<u8> = &Vec::from(mtx.transaction_body.original_hash().as_ref());
     log::debug!("Original tx_body hash is: {:#x?}", tx_hash);
 
@@ -134,11 +147,12 @@ pub async fn build_tx(
             Vec::from(crate::keystore::sign_with(keystore, &public, tx_hash)?.0);
         witnesses.push(VKeyWitness::from((vkey, signature)));
     }
-    transaction.transaction_witness_set = <_>::from(witnesses);
+    transaction.transaction_witness_set =
+        WitnessSet::from(NonEmptySet::try_from(witnesses).expect("Witnesses must be non-empty"));
 
-    if args.scripts_info != "" {
+    if args.scripts_v2_info != "" {
         // Read the scripts info from the JSON file
-        let scripts_info_json: String = std::fs::read_to_string(args.scripts_info)?;
+        let scripts_info_json: String = std::fs::read_to_string(args.scripts_v2_info)?;
         let scripts_info: Vec<ScriptInfo> = serde_json::from_str(&scripts_info_json)
             .map_err(|e| anyhow!("Invalid Plutus scripts JSON: {}", e))?;
         // Lexicographically order scripts by script_hex
@@ -161,7 +175,37 @@ pub async fn build_tx(
                 }
             })
             .collect();
-        transaction.transaction_witness_set.plutus_script = Some(plutus_scripts);
+        transaction.transaction_witness_set.plutus_v2_script =
+            Some(<_>::try_from(plutus_scripts).expect("Plutus V2 scripts list must be non-empty"));
+    }
+
+    if args.scripts_v3_info != "" {
+        // Read the scripts info from the JSON file
+        let scripts_info_json: String = std::fs::read_to_string(args.scripts_v3_info)?;
+        let scripts_info: Vec<ScriptInfo> = serde_json::from_str(&scripts_info_json)
+            .map_err(|e| anyhow!("Invalid Plutus scripts JSON: {}", e))?;
+        // Lexicographically order scripts by script_hex
+        let mut ordered_scripts_info = scripts_info.clone();
+        ordered_scripts_info.sort_by(|a, b| a.script_hex.cmp(&b.script_hex));
+        // Convert to PlutusScript
+        let plutus_scripts: Vec<PlutusScript> = ordered_scripts_info
+            .iter()
+            .map(|si| {
+                if si.script_params_cbor.is_some() {
+                    PlutusScript(
+                        apply_params_to_script(
+                            &hex::decode(si.script_params_cbor.clone().unwrap()).unwrap(),
+                            &hex::decode(&si.script_hex).unwrap(),
+                        )
+                        .unwrap(),
+                    )
+                } else {
+                    PlutusScript(hex::decode(&si.script_hex).unwrap())
+                }
+            })
+            .collect();
+        transaction.transaction_witness_set.plutus_v3_script =
+            Some(<_>::try_from(plutus_scripts).expect("Plutus V3 scripts list must be non-empty"));
     }
 
     let redeemers: Vec<Redeemer> = {
@@ -209,7 +253,7 @@ pub async fn build_tx(
 
     log::debug!("Griffin transaction is: {:#x?}", transaction);
     let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
-    log::debug!("Babbage transaction is: {:#x?}", pallas_tx);
+    log::debug!("Conway transaction is: {:#x?}", pallas_tx);
 
     // Send the transaction
     let genesis_spend_hex = hex::encode(Encode::encode(&transaction));
@@ -341,8 +385,8 @@ pub async fn spend_value(
     }
 
     let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
-    let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
-    let mtx: MintedTx = babbage_minted_tx_from_cbor(&cbor_bytes);
+    let cbor_bytes: Vec<u8> = conway_tx_to_cbor(&pallas_tx);
+    let mtx: MintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
     let tx_hash: &Vec<u8> = &Vec::from(mtx.transaction_body.original_hash().as_ref());
     log::debug!("Original tx_body hash is: {:#x?}", tx_hash);
 
@@ -354,11 +398,12 @@ pub async fn spend_value(
             Vec::from(crate::keystore::sign_with(keystore, &public, tx_hash)?.0);
         witnesses.push(VKeyWitness::from((vkey, signature)));
     }
-    transaction.transaction_witness_set = <_>::from(witnesses);
+    transaction.transaction_witness_set =
+        WitnessSet::from(NonEmptySet::try_from(witnesses).expect("Witnesses must be non-empty"));
 
     log::debug!("Griffin transaction is: {:#x?}", transaction);
     let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
-    log::debug!("Babbage transaction is: {:#x?}", pallas_tx);
+    log::debug!("Conway transaction is: {:#x?}", pallas_tx);
 
     // Send the transaction
     let genesis_spend_hex = hex::encode(Encode::encode(&transaction));
@@ -409,7 +454,8 @@ mod tests {
         TransactionInput, TransactionOutput,
     };
     use griffin_core::types::{
-        Address, Datum, Input, Output, PlutusData, PlutusScript, Redeemer, RedeemerTag, Value,
+        Address, Datum, Input, NonZeroInt, Output, PlutusData, PlutusScript, Redeemer, RedeemerTag,
+        Value,
     };
     use griffin_core::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
     use sp_core::H256;
@@ -522,15 +568,16 @@ mod tests {
         let mint = Some(Multiasset::from((
             policy,
             AssetName::from("oneShot".to_string()),
-            1,
+            NonZeroInt::try_from(1).unwrap(),
         )));
 
         transaction.transaction_body.mint = mint;
         transaction.transaction_witness_set.redeemer = Some(vec![mint_redeemer]);
-        transaction.transaction_witness_set.plutus_script = Some(vec![script]);
+        transaction.transaction_witness_set.plutus_v2_script =
+            Some(<_>::try_from(vec![script]).expect("Plutus V2 scripts list must be non-empty"));
 
         let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
-        let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
+        let cbor_bytes: Vec<u8> = conway_tx_to_cbor(&pallas_tx);
         let mtx: ConwayMintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
 
         let input_utxos: Vec<ResolvedInput> = pallas_inputs
@@ -634,17 +681,19 @@ mod tests {
             transaction.transaction_body.inputs.push(input.clone());
         }
 
-        transaction.transaction_body.required_signers = Some(vec![owner]);
+        transaction.transaction_body.required_signers = Some(<_>::try_from(vec![owner]).unwrap());
         let vkeywitness = VKeyWitness {
             vkey: hex::decode("F6E9814CE6626EB532372B1740127E153C28D643A9384F51B1B0229AEDA43717").unwrap(),
             signature: hex::decode("A4ACDA77397F7A80B21FA17AE95FCC99C255069B8135897BA8A7A5EC0E829DBA91171FBF794C1A5E6249263B04075C659BDEBA1B1E10E38F734539626BFF6905").unwrap()
         };
-        transaction.transaction_witness_set.vkeywitness = Some(vec![vkeywitness]);
+        transaction.transaction_witness_set.vkeywitness =
+            Some(<_>::try_from(vec![vkeywitness]).unwrap());
         transaction.transaction_witness_set.redeemer = Some(vec![redeemer]);
-        transaction.transaction_witness_set.plutus_script = Some(vec![script]);
+        transaction.transaction_witness_set.plutus_v2_script =
+            Some(<_>::try_from(vec![script]).unwrap());
 
         let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
-        let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
+        let cbor_bytes: Vec<u8> = conway_tx_to_cbor(&pallas_tx);
         let mtx: ConwayMintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
 
         let input_utxos: Vec<ResolvedInput> = pallas_inputs
@@ -777,12 +826,13 @@ mod tests {
         let sign: H224 = H224::from(
             Hash::from_str("5b6de1be218ebb35fc08b2983e3a1d72aec969c8d2a6301212e2ea9a").unwrap(),
         );
-        transaction.transaction_body.required_signers = Some(vec![sign]);
+        transaction.transaction_body.required_signers = Some(<_>::try_from(vec![sign]).unwrap());
         transaction.transaction_body.validity_interval_start = Some(82651727);
         transaction.transaction_witness_set.redeemer = Some(vec![redeemer]);
-        transaction.transaction_witness_set.plutus_script = Some(vec![PlutusScript(script)]);
+        transaction.transaction_witness_set.plutus_v2_script =
+            Some(<_>::try_from(vec![PlutusScript(script)]).unwrap());
         let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
-        let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
+        let cbor_bytes: Vec<u8> = conway_tx_to_cbor(&pallas_tx);
         let mtx: ConwayMintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
 
         let input_utxos: Vec<ResolvedInput> = pallas_inputs

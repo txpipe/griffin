@@ -3,7 +3,7 @@ use griffin_core::{
     pallas_codec::minicbor,
     pallas_codec::utils::{Int, MaybeIndefArray::Indef},
     pallas_crypto::hash::Hash as PallasHash,
-    pallas_primitives::babbage::{BigInt, BoundedBytes, Constr, PlutusData as PallasPlutusData},
+    pallas_primitives::conway::{BigInt, BoundedBytes, Constr, PlutusData as PallasPlutusData},
     types::{AssetClass, AssetName, Coin, Datum, PlutusData},
 };
 
@@ -210,18 +210,19 @@ impl From<PallasPlutusData> for OrderDatum {
 mod tests {
     use super::*;
     use core::str::FromStr;
-    use griffin_core::checks_interface::{babbage_tx_to_cbor, conway_minted_tx_from_cbor};
+    use griffin_core::checks_interface::{conway_minted_tx_from_cbor, conway_tx_to_cbor};
     use griffin_core::h224::H224;
     use griffin_core::pallas_codec::utils::MaybeIndefArray::Def;
     use griffin_core::pallas_crypto::hash::Hash;
-    use griffin_core::pallas_primitives::babbage::Tx as PallasTransaction;
+    use griffin_core::pallas_primitives::conway::Tx as PallasTransaction;
     use griffin_core::pallas_primitives::conway::{
         Constr, MintedTx as ConwayMintedTx, PlutusData as PallasPlutusData, TransactionInput,
         TransactionOutput,
     };
     use griffin_core::types::{
         compute_plutus_v2_script_hash, Address, AssetClass, AssetName, Datum, Input, Multiasset,
-        Output, PlutusData, PlutusScript, Redeemer, RedeemerTag, Transaction, VKeyWitness, Value,
+        NonZeroInt, Output, PlutusData, PlutusScript, Redeemer, RedeemerTag, Transaction,
+        VKeyWitness, Value,
     };
     use griffin_core::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
     use sp_core::H256;
@@ -289,7 +290,7 @@ mod tests {
         let mint = Some(Multiasset::from((
             control_token_policy,
             control_token_name,
-            1,
+            NonZeroInt::try_from(1).unwrap(),
         )));
         let mint_redeemer = Redeemer {
             tag: RedeemerTag::Mint,
@@ -302,13 +303,15 @@ mod tests {
         };
 
         transaction.transaction_body.mint = mint;
-        transaction.transaction_body.required_signers = Some(vec![sign]);
-        transaction.transaction_witness_set.vkeywitness = Some(vec![vkeywitness]);
+        transaction.transaction_body.required_signers = Some(<_>::try_from(vec![sign]).unwrap());
+        transaction.transaction_witness_set.vkeywitness =
+            Some(<_>::try_from(vec![vkeywitness]).unwrap());
         transaction.transaction_witness_set.redeemer = Some(vec![mint_redeemer]);
-        transaction.transaction_witness_set.plutus_script = Some(vec![script.clone()]);
+        transaction.transaction_witness_set.plutus_v2_script =
+            Some(<_>::try_from(vec![script.clone()]).unwrap());
 
         let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
-        let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
+        let cbor_bytes: Vec<u8> = conway_tx_to_cbor(&pallas_tx);
         let mtx: ConwayMintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
 
         let redeemers = eval_phase_two(
@@ -443,7 +446,7 @@ mod tests {
         let mint = Some(Multiasset::from((
             control_token_policy,
             control_token_name,
-            -1,
+            NonZeroInt::try_from(-1).unwrap(),
         )));
         let burn_redeemer = Redeemer {
             tag: RedeemerTag::Mint,
@@ -456,13 +459,15 @@ mod tests {
         };
 
         transaction.transaction_body.mint = mint;
-        transaction.transaction_body.required_signers = Some(vec![sign]);
-        transaction.transaction_witness_set.vkeywitness = Some(vec![vkeywitness]);
+        transaction.transaction_body.required_signers = Some(<_>::try_from(vec![sign]).unwrap());
+        transaction.transaction_witness_set.vkeywitness =
+            Some(<_>::try_from(vec![vkeywitness]).unwrap());
         transaction.transaction_witness_set.redeemer = Some(vec![burn_redeemer, resolve_redeemer]);
-        transaction.transaction_witness_set.plutus_script = Some(vec![script]);
+        transaction.transaction_witness_set.plutus_v2_script =
+            Some(<_>::try_from(vec![script]).unwrap());
 
         let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
-        let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
+        let cbor_bytes: Vec<u8> = conway_tx_to_cbor(&pallas_tx);
         let mtx: ConwayMintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
 
         let input_utxos: Vec<ResolvedInput> = pallas_inputs
@@ -575,21 +580,24 @@ mod tests {
         let mint = Some(Multiasset::from((
             control_token_policy,
             control_token_name,
-            -1,
+            NonZeroInt::try_from(-1).unwrap(),
         )));
 
         transaction.transaction_body.mint = mint;
-        transaction.transaction_body.required_signers = Some(vec![sender_payment_hash]);
+        transaction.transaction_body.required_signers =
+            Some(<_>::try_from(vec![sender_payment_hash]).unwrap());
         let vkeywitness = VKeyWitness {
             vkey: hex::decode("F6E9814CE6626EB532372B1740127E153C28D643A9384F51B1B0229AEDA43717").unwrap(),
             signature: hex::decode("A4ACDA77397F7A80B21FA17AE95FCC99C255069B8135897BA8A7A5EC0E829DBA91171FBF794C1A5E6249263B04075C659BDEBA1B1E10E38F734539626BFF6905").unwrap()
         };
-        transaction.transaction_witness_set.vkeywitness = Some(vec![vkeywitness]);
+        transaction.transaction_witness_set.vkeywitness =
+            Some(<_>::try_from(vec![vkeywitness]).unwrap());
         transaction.transaction_witness_set.redeemer = Some(vec![cancel_redeemer, burn_redeemer]);
-        transaction.transaction_witness_set.plutus_script = Some(vec![script]);
+        transaction.transaction_witness_set.plutus_v2_script =
+            Some(<_>::try_from(vec![script]).unwrap());
 
         let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
-        let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
+        let cbor_bytes: Vec<u8> = conway_tx_to_cbor(&pallas_tx);
         let mtx: ConwayMintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
 
         let input_utxos: Vec<ResolvedInput> = pallas_inputs

@@ -138,9 +138,18 @@ pub struct BuildTxArgs {
         short,
         verbatim_doc_comment,
         default_value = "",
-        value_name = "SCRIPTS_INFO_JSON"
+        value_name = "SCRIPTS_V2_INFO_JSON"
     )]
-    pub scripts_info: String,
+    pub scripts_v2_info: String,
+
+    #[arg(
+        long,
+        short,
+        verbatim_doc_comment,
+        default_value = "",
+        value_name = "SCRIPTS_V3_INFO_JSON"
+    )]
+    pub scripts_v3_info: String,
 
     /// Path to a list of JSON objects containing the assets to be minted/burnt,
     /// their amounts and the redeemer to each minting policy.
