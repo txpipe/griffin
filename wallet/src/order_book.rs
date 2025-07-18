@@ -212,12 +212,16 @@ mod tests {
     use core::str::FromStr;
     use griffin_core::checks_interface::{conway_minted_tx_from_cbor, conway_tx_to_cbor};
     use griffin_core::h224::H224;
-    use griffin_core::pallas_codec::utils::MaybeIndefArray::Def;
+    use griffin_core::pallas_codec::utils::{MaybeIndefArray::Def, CborWrap};
     use griffin_core::pallas_crypto::hash::Hash;
     use griffin_core::pallas_primitives::conway::Tx as PallasTransaction;
     use griffin_core::pallas_primitives::conway::{
         Constr, MintedTx as ConwayMintedTx, PlutusData as PallasPlutusData, TransactionInput,
-        TransactionOutput,
+        TransactionOutput, Value as PallasValue, MintedDatumOption, MintedScriptRef, MintedTransactionBody
+    };
+    use griffin_core::pallas_applying::{conway::{check_preservation_of_value, check_witness_set}, UTxOs};
+    use griffin_core::checks_interface::{
+        mk_utxo_for_conway_tx
     };
     use griffin_core::types::{
         compute_plutus_v2_script_hash, Address, AssetClass, AssetName, Datum, Input, Multiasset,
@@ -302,6 +306,26 @@ mod tests {
             })),
         };
 
+        type OutputInfoList<'a> = Vec<(
+            String, // address in string format
+            PallasValue,
+            Option<MintedDatumOption<'a>>,
+            Option<CborWrap<MintedScriptRef<'a>>>,
+        )>;
+
+        let mut tx_outs_info: OutputInfoList = Vec::new();
+
+        for output in &transaction.transaction_body.outputs {
+            let address = hex::encode(output.address.0.as_slice());
+            let value = PallasValue::from(output.value.clone());
+            tx_outs_info.push((
+                address,
+                value,
+                None,
+                None,
+            ));
+        }
+
         transaction.transaction_body.mint = mint;
         transaction.transaction_body.required_signers = Some(<_>::try_from(vec![sign]).unwrap());
         transaction.transaction_witness_set.vkeywitness =
@@ -314,6 +338,10 @@ mod tests {
         let cbor_bytes: Vec<u8> = conway_tx_to_cbor(&pallas_tx);
         let mtx: ConwayMintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
 
+        let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
+        let outs_info_clone = tx_outs_info.clone();
+        let utxos: UTxOs = mk_utxo_for_conway_tx(tx_body, outs_info_clone.as_slice());
+
         let redeemers = eval_phase_two(
             &mtx,
             &vec![],
@@ -325,6 +353,8 @@ mod tests {
         )
         .unwrap();
         assert_eq!(redeemers.len(), 1);
+        assert!(check_preservation_of_value(tx_body, &utxos).is_ok());
+        assert!(check_witness_set(&mtx, &utxos).is_ok());
     }
 
     #[test]
