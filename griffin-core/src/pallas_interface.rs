@@ -2,27 +2,20 @@
 use crate::pallas_codec::{
     minicbor::{encode, Decode, Decoder},
     utils::{
-        Bytes,
-        CborWrap,
-        KeyValuePairs, // CborWrap, KeepRaw, MaybeIndefArray,
-        NonEmptyKeyValuePairs,
-        Nullable,
+        Bytes, CborWrap, KeyValuePairs, MaybeIndefArray, NonEmptyKeyValuePairs,
+        NonEmptySet as PallasNonEmptySet, NonZeroInt as PallasNonZeroInt, Nullable,
     },
 };
 use crate::pallas_crypto::hash::Hash as PallasHash;
-use crate::pallas_primitives::babbage::{
+use crate::pallas_primitives::alonzo::{Multiasset as LegacyMultiasset, Value as LegacyValue};
+use crate::pallas_primitives::conway::{
     AssetName as PallasAssetName, DatumOption, ExUnits as PallasExUnits, LegacyTransactionOutput,
     Multiasset as PallasMultiasset, PlutusData as PallasPlutusData,
     PlutusScript as PallasPlutusScript, PolicyId as PallasPolicyId, PostAlonzoTransactionOutput,
     PseudoDatumOption::Data, Redeemer as PallasRedeemer, RedeemerTag as PallasRedeemerTag,
-    TransactionBody as PallasTransactionBody, TransactionInput as PallasInput,
-    TransactionOutput as PallasOutput, Tx as PallasTransaction, VKeyWitness as PallasVKeyWitness,
-    Value as PallasValue, WitnessSet as PallasWitnessSet,
-};
-use crate::pallas_primitives::conway::{
-    DatumOption as ConwayDatumOption, Multiasset as ConwayMultiasset,
-    PostAlonzoTransactionOutput as ConwayPostAlonzoTransactionOutput,
-    TransactionOutput as ConwayOutput, Value as ConwayValue,
+    Redeemers as PallasRedeemers, TransactionBody as PallasTransactionBody,
+    TransactionInput as PallasInput, TransactionOutput as PallasOutput, Tx as PallasTransaction,
+    VKeyWitness as PallasVKeyWitness, Value as PallasValue, WitnessSet as PallasWitnessSet,
 };
 use crate::pallas_primitives::{AddrKeyhash, PositiveCoin};
 use crate::{types::*, H224};
@@ -89,7 +82,7 @@ impl<K: Clone + Ord, V: Clone> From<KeyValuePairs<K, V>> for EncapBTree<K, V> {
     }
 }
 
-impl<A: Clone> From<Multiasset<A>> for PallasMultiasset<A> {
+impl<A: Clone> From<Multiasset<A>> for LegacyMultiasset<A> {
     fn from(val: Multiasset<A>) -> Self {
         let mut res: Vec<(PallasPolicyId, KeyValuePairs<PallasAssetName, A>)> = Vec::new();
 
@@ -108,7 +101,27 @@ impl<A: Clone> From<Multiasset<A>> for PallasMultiasset<A> {
     }
 }
 
-impl From<Multiasset<Coin>> for ConwayMultiasset<PositiveCoin> {
+impl<A: Clone> From<Multiasset<A>> for PallasMultiasset<A> {
+    fn from(val: Multiasset<A>) -> Self {
+        let mut res: Vec<(PallasPolicyId, NonEmptyKeyValuePairs<PallasAssetName, A>)> = Vec::new();
+
+        for (k, v) in val.0.into_iter() {
+            res.push((
+                <_>::from(k),
+                NonEmptyKeyValuePairs::try_from(
+                    v.0.into_iter()
+                        .map(|(k, v)| (<_>::from(k), v))
+                        .collect::<Vec<_>>(),
+                )
+                .expect("Failed to convert to NonEmptyKeyValuePairs."),
+            ))
+        }
+
+        NonEmptyKeyValuePairs::try_from(res).expect("Failed to convert to NonEmptyKeyValuePairs.")
+    }
+}
+
+impl From<Multiasset<Coin>> for PallasMultiasset<PositiveCoin> {
     fn from(val: Multiasset<Coin>) -> Self {
         let mut res: Vec<(
             PallasPolicyId,
@@ -118,16 +131,96 @@ impl From<Multiasset<Coin>> for ConwayMultiasset<PositiveCoin> {
         for (k, v) in val.0.into_iter() {
             res.push((
                 <_>::from(k),
-                <_>::try_from(
+                NonEmptyKeyValuePairs::try_from(
                     v.0.into_iter()
-                        .map(|(k, v)| (<_>::from(k), PositiveCoin(v)))
+                        .map(|(k, v)| (<_>::from(k), PositiveCoin::try_from(v).expect("Failed to convert Coin to PositiveCoin")))
                         .collect::<Vec<_>>(),
                 )
-                .unwrap(),
+                .expect("Failed to convert to NonEmptyKeyValuePairs."),
             ))
         }
 
-        NonEmptyKeyValuePairs::try_from(res).unwrap()
+        NonEmptyKeyValuePairs::try_from(res).expect("Failed to convert to NonEmptyKeyValuePairs.")
+    }
+}
+
+impl From<Multiasset<NonZeroInt>> for PallasMultiasset<PallasNonZeroInt> {
+    fn from(val: Multiasset<NonZeroInt>) -> Self {
+        let mut res: Vec<(
+            PallasPolicyId,
+            NonEmptyKeyValuePairs<PallasAssetName, PallasNonZeroInt>,
+        )> = Vec::new();
+
+        for (k, v) in val.0.into_iter() {
+            res.push((
+                <_>::from(k),
+                NonEmptyKeyValuePairs::try_from(
+                    v.0.into_iter()
+                        .map(|(k, v)| (<_>::from(k), PallasNonZeroInt::from(v)))
+                        .collect::<Vec<_>>(),
+                )
+                .expect("Failed to convert to NonEmptyKeyValuePairs."),
+            ))
+        }
+
+        NonEmptyKeyValuePairs::try_from(res).expect("Failed to convert to NonEmptyKeyValuePairs.")
+    }
+}
+
+impl<A: Clone> From<LegacyMultiasset<A>> for Multiasset<A> {
+    fn from(val: LegacyMultiasset<A>) -> Self {
+        let mut res: Vec<(PolicyId, EncapBTree<AssetName, A>)> = Vec::new();
+
+        for (k, v) in val.iter() {
+            res.push((
+                PolicyId::from(k.clone()),
+                EncapBTree(<_>::from_iter(
+                    v.clone()
+                        .iter()
+                        .map(|(k, v)| (<_>::from(k.clone()), v.clone())),
+                )),
+            ))
+        }
+
+        EncapBTree(<_>::from_iter(res.into_iter()))
+    }
+}
+
+impl From<PallasMultiasset<PositiveCoin>> for Multiasset<Coin> {
+    fn from(val: PallasMultiasset<PositiveCoin>) -> Self {
+        let mut res: Vec<(PolicyId, EncapBTree<AssetName, Coin>)> = Vec::new();
+
+        for (k, v) in val.iter() {
+            res.push((
+                PolicyId::from(k.clone()),
+                EncapBTree(<_>::from_iter(
+                    v.clone()
+                        .iter()
+                        .map(|(k, v)| (<_>::from(k.clone()), u64::from(v.clone()))),
+                )),
+            ))
+        }
+
+        EncapBTree(<_>::from_iter(res.into_iter()))
+    }
+}
+
+impl From<PallasMultiasset<PallasNonZeroInt>> for Multiasset<NonZeroInt> {
+    fn from(val: PallasMultiasset<PallasNonZeroInt>) -> Self {
+        let mut res: Vec<(PolicyId, EncapBTree<AssetName, NonZeroInt>)> = Vec::new();
+
+        for (k, v) in val.iter() {
+            res.push((
+                PolicyId::from(k.clone()),
+                EncapBTree(<_>::from_iter(
+                    v.clone()
+                        .iter()
+                        .map(|(k, v)| (<_>::from(k.clone()), NonZeroInt::from(v.clone()))),
+                )),
+            ))
+        }
+
+        EncapBTree(<_>::from_iter(res.into_iter()))
     }
 }
 
@@ -159,11 +252,11 @@ impl From<Value> for PallasValue {
     }
 }
 
-impl From<Value> for ConwayValue {
-    fn from(val: Value) -> Self {
+impl From<LegacyValue> for Value {
+    fn from(val: LegacyValue) -> Self {
         match val {
-            Value::Coin(c) => Self::Coin(c),
-            Value::Multiasset(c, m) => Self::Multiasset(c, <_>::from(m)),
+            LegacyValue::Coin(c) => Self::Coin(c),
+            LegacyValue::Multiasset(c, m) => Self::Multiasset(c, <_>::from(m)),
         }
     }
 }
@@ -173,24 +266,6 @@ impl From<PallasValue> for Value {
         match val {
             PallasValue::Coin(c) => Self::Coin(c),
             PallasValue::Multiasset(c, m) => Self::Multiasset(c, <_>::from(m)),
-        }
-    }
-}
-
-impl From<Output> for ConwayPostAlonzoTransactionOutput {
-    fn from(val: Output) -> Self {
-        // FIXME: Add error handling
-        let datum_option: Option<ConwayDatumOption> = val.datum_option.map(|d| {
-            Data(CborWrap(
-                Decode::decode(&mut Decoder::new(d.0.as_slice()), &mut ()).unwrap(),
-            ))
-        });
-
-        Self {
-            address: <_>::from(val.address.0),
-            value: <_>::from(val.value),
-            datum_option,
-            script_ref: Default::default(),
         }
     }
 }
@@ -258,12 +333,6 @@ impl From<LegacyTransactionOutput> for Output {
 impl From<Output> for PallasOutput {
     fn from(val: Output) -> Self {
         PallasOutput::PostAlonzo(<_>::from(val))
-    }
-}
-
-impl From<Output> for ConwayOutput {
-    fn from(val: Output) -> Self {
-        ConwayOutput::PostAlonzo(<_>::from(val))
     }
 }
 
@@ -341,25 +410,47 @@ impl From<Redeemer> for PallasRedeemer {
 
 impl From<WitnessSet> for PallasWitnessSet {
     fn from(val: WitnessSet) -> Self {
-        let vkeywitness: Option<Vec<PallasVKeyWitness>> = val
-            .vkeywitness
-            .map(|vks| vks.into_iter().map(|vk| <_>::from(vk)).collect());
-        let redeemer: Option<Vec<PallasRedeemer>> = val
-            .redeemer
-            .map(|vks| vks.into_iter().map(|vk| <_>::from(vk)).collect());
-        let plutus_v2_script: Option<Vec<PallasPlutusScript<2>>> = val.plutus_script.map(|vks| {
-            vks.into_iter()
-                .map(|vk| PallasPlutusScript::<2>(<_>::from(vk.0)))
-                .collect()
+        let vkeywitness: Option<PallasNonEmptySet<PallasVKeyWitness>> =
+            val.vkeywitness.map(|vks| {
+                <_>::try_from(
+                    vks.into_iter()
+                        .map(|vk| <_>::from(vk.clone()))
+                        .collect::<Vec<_>>(),
+                )
+                .unwrap()
+            });
+        let redeemer: Option<PallasRedeemers> = val.redeemer.map(|vks| {
+            PallasRedeemers::List(MaybeIndefArray::Def(
+                vks.into_iter().map(|vk| <_>::from(vk)).collect(),
+            ))
         });
+        let plutus_v2_script: Option<PallasNonEmptySet<PallasPlutusScript<2>>> =
+            val.plutus_v2_script.map(|vks| {
+                <_>::try_from(
+                    vks.into_iter()
+                        .map(|vk| PallasPlutusScript::<2>(<_>::from(vk.0.clone())))
+                        .collect::<Vec<_>>(),
+                )
+                .unwrap()
+            });
+        let plutus_v3_script: Option<PallasNonEmptySet<PallasPlutusScript<3>>> =
+            val.plutus_v3_script.map(|vks| {
+                <_>::try_from(
+                    vks.into_iter()
+                        .map(|vk| PallasPlutusScript::<3>(<_>::from(vk.0.clone())))
+                        .collect::<Vec<_>>(),
+                )
+                .unwrap()
+            });
         Self {
-            vkeywitness,
-            native_script: None,
-            bootstrap_witness: None,
-            plutus_v1_script: None,
-            plutus_data: None,
             redeemer,
+            vkeywitness,
+            plutus_data: None,
+            native_script: None,
+            plutus_v1_script: None,
             plutus_v2_script,
+            plutus_v3_script,
+            bootstrap_witness: None,
         }
     }
 }
@@ -367,11 +458,16 @@ impl From<WitnessSet> for PallasWitnessSet {
 impl From<PallasWitnessSet> for WitnessSet {
     fn from(val: PallasWitnessSet) -> Self {
         Self {
-            vkeywitness: val
-                .vkeywitness
-                .map(|v| v.into_iter().map(|y| <_>::from(y)).collect()),
-            // FIXME: does not work as a `From`. Revise or eliminate all From<Pallas...>!
-            plutus_script: None,
+            vkeywitness: val.vkeywitness.map(|v| {
+                <_>::try_from(
+                    v.into_iter()
+                        .map(|y| <_>::from(y.clone()))
+                        .collect::<Vec<_>>(),
+                )
+                .unwrap()
+            }),
+            plutus_v2_script: None,
+            plutus_v3_script: None,
             redeemer: None,
         }
     }
@@ -380,27 +476,38 @@ impl From<PallasWitnessSet> for WitnessSet {
 impl From<TransactionBody> for PallasTransactionBody {
     fn from(val: TransactionBody) -> Self {
         Self {
-            inputs: val.inputs.into_iter().map(|i| <_>::from(i)).collect(),
+            inputs: <_>::from(
+                val.inputs
+                    .into_iter()
+                    .map(|i| <_>::from(i))
+                    .collect::<Vec<_>>(),
+            ),
             outputs: val.outputs.into_iter().map(|i| <_>::from(i)).collect(),
             fee: 0,
             ttl: val.ttl,
             certificates: None,
             withdrawals: None,
-            update: None,
             auxiliary_data_hash: None,
             validity_interval_start: val.validity_interval_start,
             mint: val.mint.map(|m| PallasMultiasset::from(m)),
             script_data_hash: None,
             collateral: None,
             required_signers: val.required_signers.map(|rss| {
-                rss.into_iter()
-                    .map(|rs| PallasRequiredSigner::from(rs))
-                    .collect::<Vec<_>>()
+                <_>::try_from(
+                    rss.into_iter()
+                        .map(|rs| PallasRequiredSigner::from(*rs))
+                        .collect::<Vec<_>>(),
+                )
+                .unwrap()
             }),
             network_id: None,
             collateral_return: None,
             total_collateral: None,
             reference_inputs: None,
+            donation: None,
+            proposal_procedures: None,
+            treasury_value: None,
+            voting_procedures: None,
         }
     }
 }
@@ -408,15 +515,23 @@ impl From<TransactionBody> for PallasTransactionBody {
 impl From<PallasTransactionBody> for TransactionBody {
     fn from(val: PallasTransactionBody) -> Self {
         Self {
-            inputs: val.inputs.into_iter().map(|i| Input::from(i)).collect(),
+            inputs: <_>::from(
+                val.inputs
+                    .into_iter()
+                    .map(|i| Input::from(i.clone()))
+                    .collect::<Vec<_>>(),
+            ),
             outputs: val.outputs.into_iter().map(|i| Output::from(i)).collect(),
             ttl: val.ttl,
             validity_interval_start: val.validity_interval_start,
             mint: val.mint.map(|m| Multiasset::from(m)),
             required_signers: val.required_signers.map(|rss| {
-                rss.into_iter()
-                    .map(|rs| RequiredSigner::from(rs))
-                    .collect::<Vec<_>>()
+                <_>::try_from(
+                    rss.into_iter()
+                        .map(|rs| RequiredSigner::from(*rs))
+                        .collect::<Vec<_>>(),
+                )
+                .unwrap()
             }),
         }
     }

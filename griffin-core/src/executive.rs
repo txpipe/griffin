@@ -6,29 +6,25 @@
 //! It does all the reusable verification of UTXO transactions.
 
 use crate::pallas_applying::{
-    babbage::{
+    conway::{
         check_ins_not_empty,
         // check_all_ins_in_utxos,
         check_preservation_of_value,
         check_tx_validity_interval,
         check_witness_set,
     },
-    utils::BabbageError::*,
+    utils::ConwayError::*,
     UTxOs,
 };
 use crate::pallas_codec::utils::CborWrap;
-use crate::pallas_primitives::{
-    babbage::{
-        MintedDatumOption, MintedScriptRef, MintedTransactionBody, MintedTx,
-        Tx as PallasTransaction, Value as PallasValue,
-    },
-    conway::{MintedTx as ConwayMintedTx, TransactionOutput},
+use crate::pallas_primitives::conway::{
+    MintedDatumOption, MintedScriptRef, MintedTransactionBody, MintedTx,
+    TransactionOutput as PallasOutput, Tx as PallasTransaction, Value as PallasValue,
 };
 use crate::uplc::tx::{eval_phase_two, ResolvedInput, SlotConfig};
 use crate::{
     checks_interface::{
-        babbage_minted_tx_from_cbor, babbage_tx_to_cbor, check_min_coin,
-        conway_minted_tx_from_cbor, mk_utxo_for_babbage_tx,
+        check_min_coin, conway_minted_tx_from_cbor, conway_tx_to_cbor, mk_utxo_for_conway_tx,
     },
     ensure,
     types::{Block, BlockNumber, DispatchResult, Header, Input, Output, Transaction, UTxOError},
@@ -87,13 +83,12 @@ where
         Ok(())
     }
 
-    fn phase_two_checks(tx_cbor_bytes: &Vec<u8>, input_utxos: Vec<Output>) -> DispatchResult {
-        let conway_mtx: ConwayMintedTx = conway_minted_tx_from_cbor(&tx_cbor_bytes);
+    fn phase_two_checks(pallas_mtx: &MintedTx, input_utxos: Vec<Output>) -> DispatchResult {
         let pallas_input_utxos = input_utxos
             .iter()
-            .map(|ri| TransactionOutput::from(ri.clone()))
+            .map(|ri| PallasOutput::from(ri.clone()))
             .collect::<Vec<_>>();
-        let pallas_resolved_inputs: Vec<ResolvedInput> = conway_mtx
+        let pallas_resolved_inputs: Vec<ResolvedInput> = pallas_mtx
             .transaction_body
             .inputs
             .iter()
@@ -110,7 +105,7 @@ where
             slot_length: MILLI_SECS_PER_SLOT,
         };
         let phase_two_result = eval_phase_two(
-            &conway_mtx,
+            &pallas_mtx,
             &pallas_resolved_inputs,
             None,
             None,
@@ -151,7 +146,7 @@ where
                 .collect();
             ensure!(
                 input_set.len() == transaction.transaction_body.inputs.len(),
-                UTxOError::Babbage(DuplicateInput)
+                UTxOError::Conway(DuplicateInput)
             );
         }
 
@@ -191,18 +186,18 @@ where
 
             ensure!(
                 TransparentUtxoSet::peek_utxo(&input).is_none(),
-                UTxOError::Babbage(OutputAlreadyInUTxO)
+                UTxOError::Conway(OutputAlreadyInUTxO)
             );
         }
 
         // Griffin Tx -> Pallas Tx -> CBOR -> Minted Pallas Tx
         // This last one is used to produce the local UTxO set.
         let pallas_tx: PallasTransaction = <_>::from(transaction.clone());
-        let cbor_bytes: Vec<u8> = babbage_tx_to_cbor(&pallas_tx);
-        let mtx: MintedTx = babbage_minted_tx_from_cbor(&cbor_bytes);
+        let cbor_bytes: Vec<u8> = conway_tx_to_cbor(&pallas_tx);
+        let mtx: MintedTx = conway_minted_tx_from_cbor(&cbor_bytes);
         let tx_body: &MintedTransactionBody = &mtx.transaction_body.clone();
         let outs_info_clone = tx_outs_info.clone();
-        let utxos: UTxOs = mk_utxo_for_babbage_tx(tx_body, outs_info_clone.as_slice());
+        let utxos: UTxOs = mk_utxo_for_conway_tx(tx_body, outs_info_clone.as_slice());
 
         Self::pool_checks(&mtx, &utxos)?;
 
@@ -237,7 +232,7 @@ where
         // This might limit the ledger's ability to accept transactions that would be valid
         // in a block, as in chaining.
         Self::ledger_checks(&mtx, &utxos)?;
-        Self::phase_two_checks(&cbor_bytes, input_utxos)?;
+        Self::phase_two_checks(&mtx, input_utxos)?;
 
         // Return the valid transaction
         Ok(ValidTransaction {
@@ -266,7 +261,7 @@ where
         // although it would be valid in the pool
         ensure!(
             valid_transaction.requires.is_empty(),
-            UTxOError::Babbage(InputNotInUTxO)
+            UTxOError::Conway(InputNotInUTxO)
         );
 
         // At this point, all validation is complete, so we can commit the storage changes.

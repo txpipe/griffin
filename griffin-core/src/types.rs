@@ -1,12 +1,13 @@
 //! Types used to construct Griffin transactions.
 use crate::h224::H224;
-use crate::pallas_applying::utils::BabbageError;
+use crate::pallas_applying::utils::ConwayError;
 use crate::pallas_codec::minicbor::{
     self, decode::Error as MiniDecError, encode::Error as MiniEncError, encode::Write as MiniWrite,
     Decode as MiniDecode, Decoder, Encode as MiniEncode, Encoder,
 };
+use crate::pallas_codec::utils::NonZeroInt as PallasNonZeroInt;
 use crate::pallas_crypto::hash::Hash as PallasHash;
-use crate::pallas_primitives::babbage::PlutusScript as PallasPlutusScript;
+use crate::pallas_primitives::conway::PlutusScript as PallasPlutusScript;
 use alloc::{collections::BTreeMap, string::String, vec::Vec};
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 use core::{fmt, ops::Deref};
@@ -53,7 +54,7 @@ pub struct TransactionBody {
     pub ttl: Option<u64>,
     pub validity_interval_start: Option<u64>,
     pub mint: Option<Mint>,
-    pub required_signers: Option<Vec<RequiredSigner>>,
+    pub required_signers: Option<NonEmptySet<RequiredSigner>>,
 }
 
 /// Hash of a 28-byte Cardano policy ID.
@@ -140,7 +141,7 @@ impl<T: Clone + fmt::Display> fmt::Display for Multiasset<T> {
     }
 }
 
-pub type Mint = Multiasset<i64>;
+pub type Mint = Multiasset<NonZeroInt>;
 
 /// Port of Cardano `Value` using `BTreeMap`-based Multiassets
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo)]
@@ -184,6 +185,14 @@ pub fn compute_plutus_v2_script_hash(script: PlutusScript) -> PolicyId {
     )
 }
 
+pub fn compute_plutus_v3_script_hash(script: PlutusScript) -> PolicyId {
+    PolicyId::from(
+        crate::pallas_applying::utils::compute_plutus_v3_script_hash(&PallasPlutusScript::<3>(
+            <_>::from(script.0),
+        )),
+    )
+}
+
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct ExUnits {
     pub mem: u64,
@@ -215,27 +224,30 @@ pub struct Redeemer {
 /// Fragment of a Cardano witness set.
 #[derive(Serialize, Deserialize, Encode, Decode, Debug, PartialEq, Eq, Clone, TypeInfo, Hash)]
 pub struct WitnessSet {
-    pub vkeywitness: Option<Vec<VKeyWitness>>,
+    pub vkeywitness: Option<NonEmptySet<VKeyWitness>>,
     pub redeemer: Option<Vec<Redeemer>>,
-    pub plutus_script: Option<Vec<PlutusScript>>,
+    pub plutus_v2_script: Option<NonEmptySet<PlutusScript>>,
+    pub plutus_v3_script: Option<NonEmptySet<PlutusScript>>,
 }
 
 impl Default for WitnessSet {
     fn default() -> Self {
         Self {
             vkeywitness: None,
-            plutus_script: None,
             redeemer: None,
+            plutus_v2_script: None,
+            plutus_v3_script: None,
         }
     }
 }
 
-impl From<Vec<VKeyWitness>> for WitnessSet {
-    fn from(wits: Vec<VKeyWitness>) -> Self {
+impl From<NonEmptySet<VKeyWitness>> for WitnessSet {
+    fn from(wits: NonEmptySet<VKeyWitness>) -> Self {
         Self {
             vkeywitness: Some(wits),
-            plutus_script: None,
             redeemer: None,
+            plutus_v2_script: None,
+            plutus_v3_script: None,
         }
     }
 }
@@ -298,8 +310,8 @@ impl Extrinsic for Transaction {
 /// Reasons to reject a transaction.
 #[derive(Debug)]
 pub enum UTxOError {
-    /// A Babbage era validation error returned by Pallas.
-    Babbage(BabbageError),
+    /// A Conway era validation error returned by Pallas.
+    Conway(ConwayError),
     /// An phase two validation error returned by UPLC.
     PhaseTwo(crate::uplc::tx::error::Error),
     /// No other kind of error should be received.
@@ -309,13 +321,13 @@ pub enum UTxOError {
 /// `UTxOError`s are mapped to custom Substrate errors.
 impl From<UTxOError> for InvalidTransaction {
     fn from(utxo_error: UTxOError) -> Self {
-        use BabbageError::*;
+        use ConwayError::*;
         use InvalidTransaction::Custom;
         use UTxOError::*;
 
         match utxo_error {
             Fail => Custom(32),
-            Babbage(err) => match err {
+            Conway(err) => match err {
                 TxWrongNetworkID => Custom(64),
                 OutputWrongNetworkID => Custom(65),
                 BlockPrecedesValInt => Custom(128),
@@ -347,12 +359,13 @@ impl From<UTxOError> for InvalidTransaction {
                 UnneededNativeScript => Custom(225),
                 UnneededPlutusV1Script => Custom(226),
                 UnneededPlutusV2Script => Custom(227),
-                TxExUnitsExceeded => Custom(228),
-                MintingLacksPolicy => Custom(229),
-                MetadataHash => Custom(230),
-                DatumMissing => Custom(231),
-                UnsupportedPlutusLanguage => Custom(232),
-                ScriptIntegrityHash => Custom(233),
+                UnneededPlutusV3Script => Custom(228),
+                TxExUnitsExceeded => Custom(229),
+                MintingLacksPolicy => Custom(230),
+                MetadataHash => Custom(231),
+                DatumMissing => Custom(232),
+                UnsupportedPlutusLanguage => Custom(233),
+                ScriptIntegrityHash => Custom(234),
                 RedeemerMissing => Custom(240),
                 ReqSignerMissing => Custom(241),
                 VKWitnessMissing => Custom(242),
@@ -801,5 +814,101 @@ impl Value {
 impl From<String> for AssetName {
     fn from(string: String) -> Self {
         Self(string)
+    }
+}
+
+#[derive(
+    Debug,
+    PartialEq,
+    Copy,
+    Clone,
+    PartialOrd,
+    Eq,
+    Ord,
+    Hash,
+    Serialize,
+    Deserialize,
+    Encode,
+    Decode,
+    TypeInfo,
+)]
+#[serde(transparent)]
+pub struct NonZeroInt(i64);
+
+impl TryFrom<i64> for NonZeroInt {
+    type Error = i64;
+
+    fn try_from(value: i64) -> Result<Self, Self::Error> {
+        if value == 0 {
+            return Err(value);
+        }
+
+        Ok(Self(value))
+    }
+}
+
+impl From<NonZeroInt> for i64 {
+    fn from(value: NonZeroInt) -> Self {
+        value.0
+    }
+}
+
+impl From<NonZeroInt> for PallasNonZeroInt {
+    fn from(value: NonZeroInt) -> Self {
+        <_>::try_from(value.0).expect("NonZeroInt should never be zero")
+    }
+}
+
+impl From<PallasNonZeroInt> for NonZeroInt {
+    fn from(value: PallasNonZeroInt) -> Self {
+        Self(i64::from(value))
+    }
+}
+
+#[derive(
+    Debug, PartialEq, Eq, Clone, PartialOrd, Serialize, Deserialize, Encode, Decode, TypeInfo, Hash,
+)]
+pub struct NonEmptySet<T>(Vec<T>);
+
+impl<T> NonEmptySet<T> {
+    pub fn to_vec(self) -> Vec<T> {
+        self.0
+    }
+
+    pub fn from_vec(x: Vec<T>) -> Option<Self> {
+        if x.is_empty() {
+            None
+        } else {
+            Some(Self(x))
+        }
+    }
+}
+
+impl<T> Deref for NonEmptySet<T> {
+    type Target = Vec<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> TryFrom<Vec<T>> for NonEmptySet<T> {
+    type Error = Vec<T>;
+
+    fn try_from(value: Vec<T>) -> Result<Self, Self::Error> {
+        if value.is_empty() {
+            Err(value)
+        } else {
+            Ok(NonEmptySet(value))
+        }
+    }
+}
+
+impl<'a, T> IntoIterator for &'a NonEmptySet<T> {
+    type Item = &'a T;
+    type IntoIter = core::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
     }
 }
