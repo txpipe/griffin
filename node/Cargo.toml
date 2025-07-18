@@ -1,7 +1,7 @@
 [package]
 name = "griffin-solochain-node"
 description = "A solochain node built with Substrate, part of Polkadot SDK"
-version = "0.2.0"
+version = "0.3.0"
 license.workspace = true
 authors.workspace = true
 homepage.workspace = true
@@ -76,8 +76,8 @@ substrate-frame-rpc-system.workspace = true
 substrate-frame-rpc-system.default-features = true
 frame-benchmarking-cli.workspace = true
 frame-benchmarking-cli.default-features = true
-griffin-solochain-runtime = { version = "0.2.0", path = "../runtime", default-features = false }
-griffin-core = { version = "0.2.0", path = "../griffin-core" }
+griffin-solochain-runtime = { version = "0.3.0", path = "../runtime", default-features = false }
+griffin-core = { version = "0.3.0", path = "../griffin-core" }
 
 [build-dependencies]
 substrate-build-script-utils.workspace = true
