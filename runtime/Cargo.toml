@@ -1,7 +1,7 @@
 [package]
 name = "griffin-solochain-runtime"
 description = "A solochain runtime built with Substrate, part of Polkadot SDK"
-version = "0.2.0"
+version = "0.3.0"
 license.workspace = true
 authors.workspace = true
 homepage.workspace = true
@@ -32,7 +32,7 @@ serde = { version = "1.0.209", default-features = false }
 serde_json = { features = [
 	"alloc",
 ], default-features = false, workspace = true }
-griffin-core = { version = "0.2.0", default-features = false, path = "../griffin-core" }
+griffin-core = { version = "0.3.0", default-features = false, path = "../griffin-core" }
 sp-application-crypto = { default-features = false, workspace = true }
 hex-literal = { workspace = true }
 log = { workspace = true }
