@@ -8,13 +8,13 @@ The Cardano developer community has made huge strides in terms of best-practices
 
 We want to provide the tools for Cardano developers to leverage their Plutus experience when building
 
-We'll build a Substrate-compatible runtime with the following special capabilities:
+We present a Substrate-compatible runtime with the following special capabilities:
 
 - UTxO-based ledger: this ledger will resemble as much as possible the Cardano ledger, with the exception of any staking, delegation or governance primitives.
 - Extended UTxO primitives: we'll replicate the programability primitives around UTxO (datums, redeemers, scripts, etc) so that these concepts remains analogous to Cardano.
 - Plutus VM: we'll integrate a virtual machine capable of executing Plutus scripts that can be created using existing Plutus tooling and languages, such as Aiken.
 
-We'll also build a client node reference implementation using Substrate that integrates the following components:
+We've also built a client node reference implementation using Substrate that integrates the following components:
 
 - RPC interface: a mechanism to interact with the node using a network RPC interface, used for extrinsic event submission and management operations.
 - Aura consensus: a proof-of-authority (PoA) consensus protocol where only approved nodes are allowed to create new blocks.
@@ -23,6 +23,7 @@ We'll also build a client node reference implementation using Substrate that int
 
 
 ## Installation
+
 
 Depending on your operating system and Rust version, there might be additional packages required to compile the node and the wallet. Check the [install](https://docs.substrate.io/install/) instructions for your platform for the most common dependencies.
 
@@ -33,7 +34,7 @@ In particular, you might need to add the `wasm32-unknown-unknown` target and the
 Use the following command to build the node:
 
 ```bash
-cargo build --package griffin-solochain-node --release
+cargo +1.86 build --package griffin-solochain-node --release
 ```
 
 *Note on exhaustion*. The building process is **memory-intensive**, and you might need to close some programs (browser, etc.) if you are getting errors during the last part (e.g. from `collect2` or `ld` at the linking step).
