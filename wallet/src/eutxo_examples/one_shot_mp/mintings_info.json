@@ -1,6 +1,6 @@
 [
     {
-        "policy": "db764d148ae997129cc55013b5ed783c8b77989212a3a7c5d05db697",
+        "policy": "5f7897cb297c0531ec8b3e8c5f694d0344791ff0d96f488c671cbd50",
         "assets": [ ["oneShot", 1] ],
         "redeemer_cbor": "D87980"
     }
