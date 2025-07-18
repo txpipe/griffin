@@ -13,7 +13,7 @@ In particular, you might need to add the `wasm32-unknown-unknown` target and the
 Use the following command to build the node:
 
 ```bash
-cargo build --package griffin-solochain-node --release
+cargo +1.86 build --package griffin-solochain-node --release
 ```
 
 *Note on exhaustion*. The building process is **memory-intensive**, and you might need to close some programs (browser, etc.) if you are getting errors during the last part (e.g. from `collect2` or `ld` at the linking step).
